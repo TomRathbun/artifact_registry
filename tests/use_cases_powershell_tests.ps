@@ -1,0 +1,20 @@
+$token = (irm http://127.0.0.1:8000/token -Method Post -Body "username=rathbun&password=seclpass" -ContentType "application/x-www-form-urlencoded").access_token
+
+# CREATE Use Case
+$uc_body = @{area="MCK"; description="User Authentication"; status="proposed"; primary_actor=@("User")} | ConvertTo-Json
+$uc_res = irm "http://127.0.0.1:8000/use-cases" -Method Post -Headers @{Authorization="Bearer $token"; "Content-Type"="application/json"} -Body $uc_body
+$uc_aid = $uc_res.aid
+Write-Host "Use Case AID: $uc_aid"
+
+# LIST filtered
+irm "http://127.0.0.1:8000/use-cases?area=MCK&status=proposed" -Headers @{Authorization="Bearer $token"}
+
+# GET
+irm "http://127.0.0.1:8000/use-cases/$uc_aid" -Headers @{Authorization="Bearer $token"}
+
+# UPDATE (post-workshop)
+$update_uc = @{status="verified"} | ConvertTo-Json
+irm "http://127.0.0.1:8000/use-cases/$uc_aid" -Method Put -Headers @{Authorization="Bearer $token"; "Content-Type"="application/json"} -Body $update_uc
+
+# DELETE
+irm "http://127.0.0.1:8000/use-cases/$uc_aid" -Method Delete -Headers @{Authorization="Bearer $token"}

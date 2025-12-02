@@ -1,0 +1,33 @@
+# 1. Token
+$token = (irm http://127.0.0.1:8000/token -Method Post -Body "username=rathbun&password=seclpass" -ContentType "application/x-www-form-urlencoded").access_token
+
+# 2. CREATE Need (if not already)
+$need_body = @{title="Login Flow"; description="User must log in"; area="MCK"; status="proposed"; owner="rathbun"} | ConvertTo-Json
+$need_res = irm "http://127.0.0.1:8000/needs" -Method Post -Headers @{Authorization="Bearer $token"; "Content-Type"="application/json"} -Body $need_body
+$need_aid = $need_res.aid
+Write-Host "Need AID: $need_aid"
+
+# 3. CREATE Use Case
+ $uc_body = @{area="MCK"; description="User Authentication Use Case"; status="proposed"; primary_actor="User"; scope="HIGH"; title="test uc"} | ConvertTo-Json
+ $uc_res = irm "http://127.0.0.1:8000/use_cases" -Method Post -Headers @{Authorization="Bearer $token"; "Content-Type"="application/json"} -Body $uc_body
+$uc_aid = $uc_res.aid
+Write-Host "Use Case AID: $uc_aid"
+
+# 4. CREATE Linkage (need refines use case)
+$link_body = @{source_artifact_type="need"; source_id=$need_aid; target_artifact_type="use_case"; target_id=$uc_aid; relationship_type="derived_from"} | ConvertTo-Json
+$link_res = irm "http://127.0.0.1:8000/linkages" -Method Post -Headers @{Authorization="Bearer $token"; "Content-Type"="application/json"} -Body $link_body
+$link_aid = $link_res.aid
+Write-Host "Link AID: $link_aid"
+
+# 5. LIST Linkages (filter by source)
+irm "http://127.0.0.1:8000/linkages?source_artifact_type=need&source_id=$need_aid" -Headers @{Authorization="Bearer $token"}  # Expected: 1 linkage
+
+# 6. GET Linkage
+irm "http://127.0.0.1:8000/linkages/$link_aid" -Headers @{Authorization="Bearer $token"}  # Expected: 200, linkage details
+
+# 7. UPDATE Linkage (change type to "satisfies")
+$update_link = @{relationship_type="satisfies"} | ConvertTo-Json
+irm "http://127.0.0.1:8000/linkages/$link_aid" -Method Put -Headers @{Authorization="Bearer $token"; "Content-Type"="application/json"} -Body $update_link  # Expected: 200
+
+# 8. DELETE Linkage
+irm "http://127.0.0.1:8000/linkages/$link_aid" -Method Delete -Headers @{Authorization="Bearer $token"}  # Expected: 204

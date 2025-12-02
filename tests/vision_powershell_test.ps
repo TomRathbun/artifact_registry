@@ -1,0 +1,36 @@
+# 1. Token (if expired)
+$token = (irm http://127.0.0.1:8000/token -Method Post -Body "username=rathbun&password=seclpass" -ContentType "application/x-www-form-urlencoded").access_token
+Write-Host "Token ready"
+
+# 2. CREATE Vision (global, hardcoded AID)
+$vision_body = @{
+description="TR2 Phase 2 will modernize the system for secure, scalable operations across MCK areas.";
+title="TR2 Phase 2";
+area="GLOBAL"
+} | ConvertTo-Json
+$vision_res = irm "http://127.0.0.1:8000/vision-statements" -Method Post -Headers @{Authorization="Bearer $token"; "Content-Type"="application/json"} -Body $vision_body
+$vision_aid = $vision_res.aid
+Write-Host "Created Vision AID: $vision_aid"  # Expected: "TR2-GLOBAL-VISION-001"
+
+# 3. LIST all visions
+irm "http://127.0.0.1:8000/vision-statements" -Headers @{Authorization="Bearer $token"}  # Expected: 200, array with 1 vision
+
+# 4. GET single by AID
+irm "http://127.0.0.1:8000/vision-statements/$vision_aid" -Headers @{Authorization="Bearer $token"}  # Expected: 200, {"aid": "TR2-GLOBAL-VISION-001", "statement": "...", ...}
+
+# 5. UPDATE (partial: refine statement post-stakeholder review)
+$update_body = @{description="TR2 Phase 2 will modernize the system for secure, scalable operations, with emphasis on MCK area traceability."} | ConvertTo-Json
+$update_res = irm "http://127.0.0.1:8000/vision-statements/$vision_aid" -Method Put -Headers @{Authorization="Bearer $token"; "Content-Type"="application/json"} -Body $update_body
+$update_res  # Expected: 200, updated vision with new statement
+
+# 6. GET updated (verify)
+irm "http://127.0.0.1:8000/vision-statements/$vision_aid" -Headers @{Authorization="Bearer $token"}  # Expected: 200, new statement
+
+# 7. DELETE (if obsolete, though rare for vision)
+irm "http://127.0.0.1:8000/vision-statements/$vision_aid" -Method Delete -Headers @{Authorization="Bearer $token"}  # Expected: 204
+
+# 8. GET deleted (404)
+irm "http://127.0.0.1:8000/vision-statements/$vision_aid" -Headers @{Authorization="Bearer $token"}  # Expected: 404 "Vision Statement not found"
+
+# 9. Error cases
+irm "http://127.0.0.1:8000/vision-statements/invalid-aid" -Headers @{Authorization="Bearer $token"}  # Expected: 404

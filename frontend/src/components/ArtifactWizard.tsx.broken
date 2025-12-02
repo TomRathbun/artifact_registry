@@ -1,0 +1,699 @@
+import { useState, useEffect } from 'react'
+import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useForm, useFieldArray } from 'react-hook-form'
+import { VisionService, NeedsService, UseCasesService, RequirementsService, MetadataService } from '../client'
+import { ArrowLeft, Plus, X, Trash2 } from 'lucide-react'
+
+type ArtifactType = 'vision' | 'need' | 'use_case' | 'requirement'
+
+type FormData = {
+    title: string
+    description: string
+    primary_actor: string
+    source_vision_id: string
+    source_need_id: string
+    source_use_case_id: string
+    area: string
+    status: string
+    owner_id: string
+    stakeholder_id: string
+    rationale: string
+    short_name: string
+    text: string
+    mss: { step_num: number, actor: string, description: string }[]
+    stakeholders_list: { name: string }[]
+    precondition_ids: string[]
+    postconditions: string
+    exceptions: string[]
+}
+
+export default function ArtifactWizard() {
+    const { projectId } = useParams<{ projectId: string }>()
+    const navigate = useNavigate()
+    const queryClient = useQueryClient()
+    const [artifactType, setArtifactType] = useState<ArtifactType>('vision')
+    const [showAreaModal, setShowAreaModal] = useState(false)
+    const [showPersonModal, setShowPersonModal] = useState(false)
+    const [showPreconditionModal, setShowPreconditionModal] = useState(false)
+    const [personModalType, setPersonModalType] = useState<'owner' | 'stakeholder'>('owner')
+
+    const { register, handleSubmit, watch, setValue, control } = useForm<FormData>({
+        defaultValues: {
+            mss: [{ step_num: 1, actor: 'User', description: '' }],
+            stakeholders_list: [{ name: '' }],
+            precondition_ids: []
+        }
+    })
+
+    // Field Arrays
+    const { fields: mssFields, append: appendMss, remove: removeMss } = useFieldArray({
+        control,
+        name: "mss"
+    });
+
+    const { fields: stakeholderFields, append: appendStakeholder, remove: removeStakeholder } = useFieldArray({
+        control,
+        name: "stakeholders_list"
+    });
+
+    // Fetch potential parents
+    const { data: visions } = useQuery({
+        queryKey: ['visions'],
+        queryFn: () => VisionService.listVisionStatementsApiV1VisionVisionStatementsGet(),
+        enabled: artifactType === 'need'
+    })
+    const { data: needs } = useQuery({
+        queryKey: ['needs'],
+        queryFn: () => NeedsService.listNeedsApiV1NeedNeedsGet(),
+        enabled: artifactType === 'use_case'
+    })
+    const { data: useCases } = useQuery({
+        queryKey: ['use_cases'],
+        queryFn: () => UseCasesService.listUseCasesApiV1UseCaseUseCasesGet(),
+        enabled: artifactType === 'requirement'
+    })
+
+    // Fetch metadata for needs
+    const { data: areas } = useQuery({
+        queryKey: ['areas'],
+        queryFn: () => MetadataService.listAreasApiV1MetadataMetadataAreasGet(),
+        enabled: artifactType === 'need' || artifactType === 'use_case'
+    })
+    const { data: owners } = useQuery({
+        queryKey: ['owners'],
+        queryFn: () => MetadataService.listPeopleApiV1MetadataMetadataPeopleGet('owner'),
+        enabled: artifactType === 'need'
+    })
+    const { data: stakeholders } = useQuery({
+        queryKey: ['stakeholders'],
+        queryFn: () => MetadataService.listPeopleApiV1MetadataMetadataPeopleGet('stakeholder'),
+        enabled: artifactType === 'need'
+    })
+
+    // Fetch preconditions for use cases
+    const { data: preconditions } = useQuery({
+        queryKey: ['preconditions', projectId],
+        queryFn: () => UseCasesService.listPreconditionsApiV1UseCaseUseCasesPreconditionsGet(projectId!),
+        enabled: artifactType === 'use_case' && !!projectId
+    })
+
+
+    // Filter parents by project
+    const projectVisions = visions?.filter((v: any) => v.project_id === projectId) || []
+    const projectNeeds = needs?.filter((n: any) => n.project_id === projectId) || []
+    const projectUseCases = useCases?.filter((u: any) => u.project_id === projectId) || []
+
+    // Auto-select Vision if only one exists
+    useEffect(() => {
+        if (artifactType === 'need' && projectVisions.length === 1) {
+            setValue('source_vision_id', projectVisions[0].aid)
+        }
+    }, [artifactType, projectVisions, setValue])
+
+    // Pre-fill Need Description Template
+    useEffect(() => {
+        if (artifactType === 'need') {
+            setValue('description', 'As <stakeholder> we need <the need>, so that <benefit>')
+            queryClient.invalidateQueries({ queryKey: ['visions'] })
+            queryClient.invalidateQueries({ queryKey: ['owners'] })
+            queryClient.invalidateQueries({ queryKey: ['stakeholders'] })
+            queryClient.invalidateQueries({ queryKey: ['areas'] })
+        } else if (artifactType === 'use_case') {
+            setValue('description', '')
+            queryClient.invalidateQueries({ queryKey: ['needs'] })
+            queryClient.invalidateQueries({ queryKey: ['preconditions'] })
+        } else if (artifactType === 'requirement') {
+            setValue('description', '')
+            queryClient.invalidateQueries({ queryKey: ['use_cases'] })
+        } else {
+            setValue('description', '')
+        }
+    }, [artifactType, setValue, queryClient])
+
+    const mutation = useMutation({
+        mutationFn: async (data: any) => {
+            const payload = { ...data, project_id: projectId }
+            switch (artifactType) {
+                case 'vision': return VisionService.createVisionStatementApiV1VisionVisionStatementsPost(payload)
+                case 'need': return NeedsService.createNeedApiV1NeedNeedsPost(payload)
+                case 'use_case': return UseCasesService.createUseCaseApiV1UseCaseUseCasesPost(payload)
+                case 'requirement': return RequirementsService.createRequirementApiV1RequirementRequirementsPost(payload)
+            }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries()
+            navigate(`/project/${projectId}`)
+        },
+        onError: (error) => {
+            console.error("Failed to create artifact:", error)
+            alert("Failed to create artifact. Please check the console for details.")
+        }
+    })
+
+    const createAreaMutation = useMutation({
+        mutationFn: (data: any) => MetadataService.createAreaApiV1MetadataMetadataAreasPost(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['areas'] })
+            setShowAreaModal(false)
+        }
+    })
+
+    const createPersonMutation = useMutation({
+        mutationFn: (data: any) => MetadataService.createPersonApiV1MetadataMetadataPeoplePost(data),
+        onSuccess: (newPerson: any) => {
+            queryClient.invalidateQueries({ queryKey: ['owners'] })
+            queryClient.invalidateQueries({ queryKey: ['stakeholders'] })
+            if (personModalType === 'owner') {
+                setValue('owner_id', newPerson.id)
+            } else {
+                setValue('stakeholder_id', newPerson.id)
+            }
+            setShowPersonModal(false)
+        }
+    })
+
+    const createPreconditionMutation = useMutation({
+        mutationFn: (text: string) => UseCasesService.createPreconditionApiV1UseCaseUseCasesPreconditionsPost({
+            text,
+            project_id: projectId!
+        }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['preconditions'] })
+            setShowPreconditionModal(false)
+        }
+    })
+
+    const onSubmit = (data: FormData) => {
+        // Transform data for API
+        const payload: any = { ...data, project_id: projectId }
+        console.log("Submitting payload:", JSON.stringify(payload, null, 2))
+
+        if (artifactType === 'use_case') {
+            // Transform stakeholders_list to string array
+            payload.stakeholders = data.stakeholders_list.map(s => s.name).filter(n => n.trim() !== '')
+            // Ensure mss steps are numbers
+            payload.mss = data.mss.map(step => ({ ...step, step_num: Number(step.step_num) }))
+        }
+
+        mutation.mutate(payload)
+    }
+
+    const selectedNeedId = watch('source_need_id')
+    const selectedNeed = needs?.find((n: any) => n.aid === selectedNeedId)
+
+    return (
+        <div className="max-w-2xl mx-auto p-8">
+            <Link to={`/project/${projectId}`} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 mb-6">
+                <ArrowLeft className="w-4 h-4" />
+                Back to Project
+            </Link>
+
+            <h1 className="text-3xl font-bold text-slate-800 mb-8">Create Artifact</h1>
+
+            <div className="bg-white p-8 rounded-xl shadow-sm border border-slate-200">
+                <div className="mb-6">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Artifact Type</label>
+                    <select
+                        value={artifactType}
+                        onChange={(e) => setArtifactType(e.target.value as ArtifactType)}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="vision">Vision Statement</option>
+                        <option value="need">Need</option>
+                        <option value="use_case">Use Case</option>
+                        <option value="requirement">Requirement</option>
+                    </select>
+                </div>
+
+                <form onSubmit={handleSubmit(onSubmit, (errors) => console.log("Validation errors:", errors))} className="space-y-4">
+
+                    {/* Dynamic Parent Selection */}
+                    {artifactType === 'need' && (
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Source Vision (Required)</label>
+                            <select
+                                {...register('source_vision_id', { required: true })}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">Select a Vision...</option>
+                                {projectVisions.map((v: any) => (
+                                    <option key={v.aid} value={v.aid}>{v.title}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
+                    {artifactType === 'use_case' && (
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Source Need (Required)</label>
+                            <select
+                                {...register('source_need_id', { required: true })}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">Select a Need...</option>
+                                {projectNeeds.map((n: any) => (
+                                    <option key={n.aid} value={n.aid}>{n.title}</option>
+                                ))}
+                            </select>
+                            {selectedNeed && (
+                                <div className="mt-2 p-3 bg-blue-50 text-blue-800 rounded-md text-sm border border-blue-100">
+                                    <div className="font-semibold mb-1">Need Description:</div>
+                                    {selectedNeed.description}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {artifactType === 'requirement' && (
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Source Use Case (Required)</label>
+                            <select
+                                {...register('source_use_case_id', { required: true })}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">Select a Use Case...</option>
+                                {projectUseCases.map((u: any) => (
+                                    <option key={u.aid} value={u.aid}>{u.title}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
+                    {/* Need-specific fields */}
+                    {artifactType === 'need' && (
+                        <>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Area (Required)</label>
+                                <div className="flex gap-2">
+                                    <select
+                                        {...register('area', { required: true })}
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="">Select an Area...</option>
+                                        {areas?.map((a: any) => (
+                                            <option key={a.code} value={a.code}>{a.code} - {a.name}</option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowAreaModal(true)}
+                                        className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                                    >
+                                        <Plus className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                                <select
+                                    {...register('status')}
+                                    defaultValue="proposed"
+                                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="proposed">Proposed</option>
+                                    <option value="approved">Approved</option>
+                                    <option value="in_progress">In Progress</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="rejected">Rejected</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Owner</label>
+                                <div className="flex gap-2">
+                                    <select
+                                        {...register('owner_id')}
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="">Select an Owner...</option>
+                                        {owners?.map((p: any) => (
+                                            <option key={p.id} value={p.id}>{p.name} {p.role && `(${p.role})`}</option>
+                                        ))}
+
+                                    </select>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setPersonModalType('owner'); setShowPersonModal(true) }}
+                                        className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                                    >
+                                        <Plus className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Stakeholder</label>
+                                <div className="flex gap-2">
+                                    <select
+                                        {...register('stakeholder_id')}
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="">Select a Stakeholder...</option>
+                                        {stakeholders?.map((p: any) => (
+                                            <option key={p.id} value={p.id}>{p.name} {p.role && `(${p.role})`}</option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setPersonModalType('stakeholder'); setShowPersonModal(true) }}
+                                        className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                                    >
+                                        <Plus className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {/* Common Fields */}
+                    {artifactType !== 'requirement' ? (
+                        <>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
+                                <input
+                                    {...register('title', { required: true })}
+                                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                            {artifactType === 'use_case' && (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Primary Actor</label>
+                                        <input
+                                            {...register('primary_actor', { required: true })}
+                                            className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+
+                                    {/* Preconditions */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Preconditions</label>
+                                        <div className="space-y-2">
+                                            <div className="flex gap-2">
+                                                <select
+                                                    multiple
+                                                    {...register('precondition_ids')}
+                                                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 h-32"
+                                                >
+                                                    {preconditions?.map((p: any) => (
+                                                        <option key={p.id} value={p.id}>{p.text}</option>
+                                                    ))}
+                                                </select>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPreconditionModal(true)}
+                                                    className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors h-10"
+                                                >
+                                                    <Plus className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                            <p className="text-xs text-slate-500">Hold Ctrl/Cmd to select multiple</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Stakeholders (Dynamic List) */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Stakeholders</label>
+                                        <div className="space-y-2">
+                                            {stakeholderFields.map((field, index) => (
+                                                <div key={field.id} className="flex gap-2">
+                                                    <input
+                                                        {...register(`stakeholders_list.${index}.name` as const)}
+                                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        placeholder="Stakeholder Name"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeStakeholder(index)}
+                                                        className="p-2 text-red-500 hover:bg-red-50 rounded-md"
+                                                    >
+                                                        <Trash2 className="w-5 h-5" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            <button
+                                                type="button"
+                                                onClick={() => appendStakeholder({ name: '' })}
+                                                className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800"
+                                            >
+                                                <Plus className="w-4 h-4" /> Add Stakeholder
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* MSS (Dynamic List) */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Main Success Scenario (Steps)</label>
+                                        <div className="space-y-3 border border-slate-200 rounded-md p-4 bg-slate-50">
+                                            {mssFields.map((field, index) => (
+                                                <div key={field.id} className="flex gap-2 items-start">
+                                                    <div className="w-16">
+                                                        <input
+                                                            type="number"
+                                                            {...register(`mss.${index}.step_num` as const)}
+                                                            className="w-full px-2 py-1 border border-slate-300 rounded-md text-center"
+                                                            placeholder="#"
+                                                        />
+                                                    </div>
+                                                    <div className="w-1/3">
+                                                        <input
+                                                            {...register(`mss.${index}.actor` as const)}
+                                                            className="w-full px-2 py-1 border border-slate-300 rounded-md"
+                                                            placeholder="Actor"
+                                                        />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <input
+                                                            {...register(`mss.${index}.description` as const)}
+                                                            className="w-full px-2 py-1 border border-slate-300 rounded-md"
+                                                            placeholder="Action / Description"
+                                                        />
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeMss(index)}
+                                                        className="p-1 text-red-500 hover:bg-red-50 rounded-md"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            <button
+                                                type="button"
+                                                onClick={() => appendMss({ step_num: mssFields.length + 1, actor: 'User', description: '' })}
+                                                className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800"
+                                            >
+                                                <Plus className="w-4 h-4" /> Add Step
+                                            </button>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                                <textarea
+                                    {...register('description', { required: true })}
+                                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    rows={4}
+                                />
+                            </div>
+                            {artifactType === 'need' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Rationale</label>
+                                    <textarea
+                                        {...register('rationale')}
+                                        className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        rows={3}
+                                        placeholder="Why does this need exist? What's the justification?"
+                                    />
+                                </div>
+                            )}
+                        </>
+                    ) : (
+                        <>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Short Name (ID)</label>
+                                <input
+                                    {...register('short_name', { required: true })}
+                                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="e.g. SYS-001"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Requirement Text</label>
+                                <textarea
+                                    {...register('text', { required: true })}
+                                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    rows={4}
+                                    placeholder="The system shall..."
+                                />
+                            </div>
+                        </>
+                    )}
+
+                    <button
+                        type="submit"
+                        disabled={mutation.isPending}
+                        className="w-full py-2 px-4 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    >
+                        {mutation.isPending ? 'Creating...' : 'Create Artifact'}
+                    </button>
+                </form>
+
+                {/* Area Modal */}
+                {
+                    showAreaModal && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-xl font-bold">Add New Area</h2>
+                                    <button onClick={() => setShowAreaModal(false)} className="text-slate-400 hover:text-slate-600">
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+                                <form onSubmit={(e) => {
+                                    e.preventDefault()
+                                    const formData = new FormData(e.currentTarget)
+                                    createAreaMutation.mutate({
+                                        code: formData.get('code'),
+                                        name: formData.get('name'),
+                                        description: formData.get('description')
+                                    })
+                                }} className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Code (e.g., AI, ZTN)</label>
+                                        <input
+                                            name="code"
+                                            required
+                                            className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
+                                        <input
+                                            name="name"
+                                            required
+                                            className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                                        <textarea
+                                            name="description"
+                                            className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            rows={2}
+                                        />
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        disabled={createAreaMutation.isPending}
+                                        className="w-full py-2 px-4 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
+                                    >
+                                        {createAreaMutation.isPending ? 'Adding...' : 'Add Area'}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    )
+                }
+
+                {/* Person Modal */}
+                {
+                    showPersonModal && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-xl font-bold">Add New Person</h2>
+                                    <button onClick={() => setShowPersonModal(false)} className="text-slate-400 hover:text-slate-600">
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+                                <form onSubmit={(e) => {
+                                    e.preventDefault()
+                                    const formData = new FormData(e.currentTarget)
+                                    createPersonMutation.mutate({
+                                        name: formData.get('name'),
+                                        role: formData.get('role'),
+                                        email: formData.get('email'),
+                                        person_type: personModalType
+                                    })
+                                }} className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
+                                        <input
+                                            name="name"
+                                            required
+                                            className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
+                                        <input
+                                            name="role"
+                                            className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            placeholder="e.g., Product Owner"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                                        <input
+                                            name="email"
+                                            type="email"
+                                            className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        disabled={createPersonMutation.isPending}
+                                        className="w-full py-2 px-4 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
+                                    >
+                                        {createPersonMutation.isPending ? 'Adding...' : 'Add Person'}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    )
+                }
+                {/* Precondition Modal */}
+                {
+                    showPreconditionModal && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-xl font-bold">Add New Precondition</h2>
+                                    <button onClick={() => setShowPreconditionModal(false)} className="text-slate-400 hover:text-slate-600">
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+                                <form onSubmit={(e) => {
+                                    e.preventDefault()
+                                    const formData = new FormData(e.currentTarget)
+                                    createPreconditionMutation.mutate(formData.get('text') as string)
+                                }} className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Precondition Text</label>
+                                        <textarea
+                                            name="text"
+                                            required
+                                            className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 h-24"
+                                            placeholder="e.g., User is logged in"
+                                        />
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        disabled={createPreconditionMutation.isPending}
+                                        className="w-full py-2 px-4 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
+                                    >
+                                        {createPreconditionMutation.isPending ? 'Adding...' : 'Add Precondition'}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    )
+                }
+            </div>
+        </div>
+    )
+}
