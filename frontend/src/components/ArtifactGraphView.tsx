@@ -15,6 +15,8 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import dagre from 'dagre';
 import axios from 'axios';
+import { toPng, toSvg } from 'html-to-image';
+import { Download } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import {
@@ -75,6 +77,7 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
     const [selectedArea, setSelectedArea] = React.useState<string>(initialArea);
+    const [edgeType, setEdgeType] = React.useState<'default' | 'straight' | 'step' | 'smoothstep'>('smoothstep');
 
     useEffect(() => {
         setSelectedArea(initialArea);
@@ -176,7 +179,7 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
                     id: `e${l.source_id}-${l.target_id}`,
                     source: l.source_id,
                     target: l.target_id,
-                    type: 'smoothstep',
+                    type: edgeType,
                     markerEnd: {
                         type: MarkerType.ArrowClosed,
                     },
@@ -194,7 +197,7 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
         setNodes(layoutedNodes);
         setEdges(layoutedEdges);
 
-    }, [visions, needs, useCases, requirements, linkages, setNodes, setEdges, selectedArea]);
+    }, [visions, needs, useCases, requirements, linkages, setNodes, setEdges, selectedArea, edgeType]);
 
     const onConnect = useCallback(
         (params: Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -225,6 +228,35 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
         }
     };
 
+    const downloadImage = (format: 'png' | 'svg') => {
+        const flowElement = document.querySelector('.react-flow') as HTMLElement;
+        if (!flowElement) return;
+
+        const download = (dataUrl: string) => {
+            const a = document.createElement('a');
+            a.setAttribute('download', `artifact-graph.${format}`);
+            a.setAttribute('href', dataUrl);
+            a.click();
+        };
+
+        const options = {
+            backgroundColor: '#fff',
+            filter: (node: HTMLElement) => {
+                // Exclude the MiniMap and Controls from the export
+                if (node.classList && (node.classList.contains('react-flow__minimap') || node.classList.contains('react-flow__controls'))) {
+                    return false;
+                }
+                return true;
+            }
+        };
+
+        if (format === 'png') {
+            toPng(flowElement, options).then(download);
+        } else {
+            toSvg(flowElement, options).then(download);
+        }
+    };
+
     return (
         <div className="h-[calc(100vh-100px)] w-full bg-slate-50 border rounded-lg shadow-inner relative">
             <div className="absolute top-4 left-4 z-10 bg-white p-2 rounded shadow border border-slate-200 flex items-center gap-2">
@@ -240,6 +272,35 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
                     ))}
                 </select>
             </div>
+            <div className="absolute top-4 left-64 z-10 bg-white p-2 rounded shadow border border-slate-200 flex items-center gap-2">
+                <label className="text-sm font-medium text-slate-700">Edge Style:</label>
+                <select
+                    value={edgeType}
+                    onChange={(e) => setEdgeType(e.target.value as any)}
+                    className="text-sm border-slate-300 rounded focus:ring-blue-500 focus:border-blue-500 p-1"
+                >
+                    <option value="default">Bezier</option>
+                    <option value="straight">Straight</option>
+                    <option value="step">Step</option>
+                    <option value="smoothstep">Smooth Step</option>
+                </select>
+            </div>
+            <div className="absolute top-4 right-4 z-10 flex gap-2">
+                <button
+                    onClick={() => downloadImage('png')}
+                    className="bg-white p-2 rounded shadow border border-slate-200 hover:bg-slate-50 text-slate-600 flex items-center gap-1 text-sm font-medium"
+                    title="Export as PNG"
+                >
+                    <Download className="w-4 h-4" /> PNG
+                </button>
+                <button
+                    onClick={() => downloadImage('svg')}
+                    className="bg-white p-2 rounded shadow border border-slate-200 hover:bg-slate-50 text-slate-600 flex items-center gap-1 text-sm font-medium"
+                    title="Export as SVG"
+                >
+                    <Download className="w-4 h-4" /> SVG
+                </button>
+            </div>
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
@@ -253,7 +314,7 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
                 <MiniMap />
                 <Background gap={12} size={1} />
             </ReactFlow>
-        </div>
+        </div >
     );
 };
 

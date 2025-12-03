@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { VisionService, NeedsService, MetadataService, ProjectsService } from '../client'
 
-import { ArrowLeft, Plus, X } from 'lucide-react'
+import { ArrowLeft, Plus, X, FileDown } from 'lucide-react'
 
 export default function ProjectDetails() {
     const { projectId } = useParams<{ projectId: string }>()
@@ -91,6 +91,29 @@ export default function ProjectDetails() {
         }
     }
 
+    const handleExportAll = async () => {
+        if (!project?.id) return;
+        try {
+            // We need to call the raw fetch because the generated client might not have this new endpoint yet
+            // or we want to handle the blob download manually.
+            const response = await fetch(`http://localhost:8000/api/v1/projects/${project.id}/export`);
+            if (!response.ok) throw new Error('Export failed');
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `project_export_${project.name}_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error('Export error:', error);
+            alert('Failed to export project data');
+        }
+    };
+
     return (
         <div className="max-w-6xl mx-auto p-8">
             <div className="mb-8 flex items-center justify-between">
@@ -100,13 +123,23 @@ export default function ProjectDetails() {
                     </Link>
                     <h1 className="text-3xl font-bold text-slate-800">Project Artifacts</h1>
                 </div>
-                <Link
-                    to={`/project/${projectId}/create`}
-                    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-                >
-                    <Plus className="w-4 h-4" />
-                    Create Artifact
-                </Link>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleExportAll}
+                        className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
+                        title="Export all project data to JSON"
+                    >
+                        <FileDown className="w-4 h-4" />
+                        Export All
+                    </button>
+                    <Link
+                        to={`/project/${projectId}/create`}
+                        className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Create Artifact
+                    </Link>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

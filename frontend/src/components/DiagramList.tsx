@@ -28,6 +28,8 @@ export default function DiagramList() {
         enabled: !!projectId,
     });
 
+
+
     const { data: areas } = useQuery({
         queryKey: ['areas'],
         queryFn: () => MetadataService.listAreasApiV1MetadataMetadataAreasGet(),
@@ -110,12 +112,14 @@ export default function DiagramList() {
                     <h1 className="text-2xl font-bold text-slate-900">Diagrams</h1>
                     <p className="text-slate-600">Manage component diagrams and artifact graphs</p>
                 </div>
-                <button
-                    onClick={() => setIsCreating(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                    <Plus className="w-4 h-4" /> New Diagram
-                </button>
+                <div className="flex gap-3">
+                    <button
+                        onClick={() => setIsCreating(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                        <Plus className="w-4 h-4" /> New Diagram
+                    </button>
+                </div>
             </div>
 
             {/* Create Modal */}
@@ -296,76 +300,88 @@ export default function DiagramList() {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {diagrams?.map((diagram: any) => (
-                    <div key={diagram.id} className="group relative bg-white border border-slate-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                        <Link to={`${diagram.id}`} className="block p-6">
-                            <div className="flex items-start justify-between mb-4">
-                                <div className={`p-2 rounded-lg ${diagram.type === 'artifact_graph' ? 'bg-purple-50' : 'bg-blue-50'}`}>
-                                    {diagram.type === 'artifact_graph' ? (
-                                        <GitGraph className="w-6 h-6 text-purple-600" />
+            <div className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                    <thead className="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</th>
+                            <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Type</th>
+                            <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Description</th>
+                            <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Details</th>
+                            <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                        {diagrams?.map((diagram: any) => (
+                            <tr key={diagram.id} className="hover:bg-slate-50 transition-colors">
+                                <td className="px-6 py-4">
+                                    <Link to={`${diagram.id}`} className="font-medium text-slate-900 hover:text-blue-600">
+                                        {diagram.name}
+                                    </Link>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="flex items-center gap-2">
+                                        {diagram.type === 'artifact_graph' ? (
+                                            <>
+                                                <GitGraph className="w-4 h-4 text-purple-600" />
+                                                <span className="text-sm text-slate-600">Artifact Graph</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Network className="w-4 h-4 text-blue-600" />
+                                                <span className="text-sm text-slate-600">Component Diagram</span>
+                                            </>
+                                        )}
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="text-sm text-slate-500 truncate max-w-xs" title={diagram.description}>
+                                        {diagram.description || '-'}
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                    {diagram.type === 'artifact_graph' && diagram.filter_data?.area ? (
+                                        <span className="px-2 py-1 text-xs font-medium bg-slate-100 text-slate-600 rounded-full">
+                                            Area: {diagram.filter_data.area}
+                                        </span>
+                                    ) : diagram.type === 'component' ? (
+                                        <span className="text-sm text-slate-500">
+                                            {diagram.components?.length || 0} components
+                                        </span>
                                     ) : (
-                                        <Network className="w-6 h-6 text-blue-600" />
+                                        <span className="text-sm text-slate-400">-</span>
                                     )}
-                                </div>
-                                {diagram.type === 'artifact_graph' && diagram.filter_data?.area && (
-                                    <span className="px-2 py-1 text-xs font-medium bg-slate-100 text-slate-600 rounded-full">
-                                        Area: {diagram.filter_data.area}
-                                    </span>
-                                )}
-                            </div>
-                            <h3 className="text-lg font-semibold text-slate-900 mb-2">{diagram.name}</h3>
-                            <p className="text-slate-500 text-sm line-clamp-2">
-                                {diagram.description || 'No description provided'}
-                            </p>
-                            <div className="mt-4 pt-4 border-t border-slate-100 flex items-center text-sm text-slate-400">
-                                {diagram.type === 'artifact_graph' ? (
-                                    <span>Artifact Graph View</span>
-                                ) : (
-                                    <span>{diagram.components?.length || 0} components</span>
-                                )}
-                            </div>
-                        </Link>
-
-                        {/* Action Buttons */}
-                        <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    setEditingDiagram(diagram);
-                                }}
-                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md"
-                                title="Edit"
-                            >
-                                <Pencil className="w-4 h-4" />
-                            </button>
-                            <button
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    setDeletingDiagramId(diagram.id);
-                                }}
-                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md"
-                                title="Delete"
-                            >
-                                <Trash2 className="w-4 h-4" />
-                            </button>
-                        </div>
-                    </div>
-                ))}
-
-                {diagrams?.length === 0 && (
-                    <div className="col-span-full text-center py-12 bg-slate-50 rounded-lg border border-dashed border-slate-300">
-                        <Network className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-slate-900 mb-1">No diagrams yet</h3>
-                        <p className="text-slate-500 mb-4">Create your first diagram to start visualizing your components</p>
-                        <button
-                            onClick={() => setIsCreating(true)}
-                            className="text-blue-600 hover:text-blue-700 font-medium"
-                        >
-                            Create Diagram
-                        </button>
-                    </div>
-                )}
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                    <div className="flex justify-end gap-2">
+                                        <button
+                                            onClick={() => setEditingDiagram(diagram)}
+                                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md"
+                                            title="Edit"
+                                        >
+                                            <Pencil className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => setDeletingDiagramId(diagram.id)}
+                                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md"
+                                            title="Delete"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                        {diagrams?.length === 0 && (
+                            <tr>
+                                <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                                    <Network className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                                    <p>No diagrams yet. Create one to get started.</p>
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
             </div>
         </div>
     );

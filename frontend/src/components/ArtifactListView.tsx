@@ -711,6 +711,10 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
         URL.revokeObjectURL(url);
     };
 
+
+
+
+
     // Import mutation
     const importMutation = useMutation({
         mutationFn: async (importData: { artifacts: any[], linkages: any[], projectId: string }) => {

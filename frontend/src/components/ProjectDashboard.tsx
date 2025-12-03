@@ -1,9 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ProjectsService, type ProjectCreate } from '../client'
 import { useForm } from 'react-hook-form'
-import { Plus, FolderOpen, Trash2 } from 'lucide-react'
+import { Plus, FolderOpen, Trash2, Download, Upload } from 'lucide-react'
 import clsx from 'clsx'
 import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import { ConfirmationModal } from './ConfirmationModal'
+import { InfoModal } from './InfoModal'
 
 export default function ProjectDashboard() {
     const queryClient = useQueryClient()
@@ -15,6 +18,31 @@ export default function ProjectDashboard() {
 
     const { register, handleSubmit, reset } = useForm<ProjectCreate>()
 
+    // Modal States
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        isDestructive?: boolean;
+        confirmLabel?: string;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { },
+    });
+
+    const [infoModal, setInfoModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+    });
+
     const createProjectMutation = useMutation({
         mutationFn: (data: ProjectCreate) => ProjectsService.createProjectApiV1ProjectsProjectsPost(data),
 
@@ -24,7 +52,11 @@ export default function ProjectDashboard() {
         },
         onError: (error) => {
             console.error("Failed to create project:", error)
-            alert("Failed to create project. Please check the console for details.")
+            setInfoModal({
+                isOpen: true,
+                title: 'Error',
+                message: "Failed to create project. Please check the console for details."
+            });
         }
     })
 
@@ -35,9 +67,113 @@ export default function ProjectDashboard() {
         },
         onError: (error) => {
             console.error("Failed to delete project:", error)
-            alert("Failed to delete project. Please check the console for details.")
+            setInfoModal({
+                isOpen: true,
+                title: 'Error',
+                message: "Failed to delete project. Please check the console for details."
+            });
         }
     })
+
+    const handleExport = async (e: React.MouseEvent, projectId: string, projectName: string) => {
+        e.preventDefault();
+        try {
+            const response = await fetch(`http://localhost:8000/api/v1/projects/${projectId}/export`);
+            if (!response.ok) throw new Error('Export failed');
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `project_export_${projectName}_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error('Export error:', error);
+            setInfoModal({
+                isOpen: true,
+                title: 'Export Failed',
+                message: 'Failed to export project data'
+            });
+        }
+    };
+
+    const handleImportClick = (e: React.MouseEvent, projectId: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Trigger file input click programmatically after confirmation?
+        // No, we can't trigger file input from async callback easily in all browsers.
+        // Better to show modal first, then if confirmed, show file input?
+        // Or: File input is hidden. Label click triggers it.
+        // We need to intercept the label click.
+
+        // Actually, the previous logic was: Click label -> File Input opens -> Select File -> onChange -> Confirm -> Process.
+        // But `confirm()` is blocking.
+        // With non-blocking modal, we can't pause the file selection.
+
+        // Alternative flow:
+        // 1. User clicks "Import" button (not file input label).
+        // 2. Show Confirmation Modal "This will overwrite...".
+        // 3. If Confirmed -> Trigger hidden file input click.
+        // 4. File Input onChange -> Process Import.
+
+        setConfirmModal({
+            isOpen: true,
+            title: 'Overwrite Project?',
+            message: "This will OVERWRITE all existing data in this project. This action cannot be undone. Are you sure you want to proceed?",
+            isDestructive: true,
+            confirmLabel: 'Yes, Overwrite',
+            onConfirm: () => {
+                // Trigger file input
+                const fileInput = document.getElementById(`import-file-${projectId}`) as HTMLInputElement;
+                if (fileInput) fileInput.click();
+            }
+        });
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, projectId: string) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const jsonData = JSON.parse(event.target?.result as string);
+
+                const response = await fetch(`http://localhost:8000/api/v1/projects/${projectId}/import`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(jsonData),
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || 'Import failed');
+                }
+
+                setInfoModal({
+                    isOpen: true,
+                    title: 'Success',
+                    message: 'Project imported successfully!'
+                });
+                queryClient.invalidateQueries({ queryKey: ['projects'] });
+            } catch (error) {
+                console.error('Import error:', error);
+                setInfoModal({
+                    isOpen: true,
+                    title: 'Import Failed',
+                    message: `Failed to import project: ${error}`
+                });
+            }
+        };
+        reader.readAsText(file);
+        e.target.value = ''; // Reset
+    };
 
     const onSubmit = (data: ProjectCreate) => {
         createProjectMutation.mutate(data)
@@ -45,9 +181,14 @@ export default function ProjectDashboard() {
 
     const handleDelete = (e: React.MouseEvent, projectId: string, projectName: string) => {
         e.preventDefault(); // Prevent navigation
-        if (confirm(`Are you sure you want to delete project "${projectName}"? This will delete ALL artifacts associated with it. This action cannot be undone.`)) {
-            deleteProjectMutation.mutate(projectId);
-        }
+        setConfirmModal({
+            isOpen: true,
+            title: 'Delete Project?',
+            message: `Are you sure you want to delete project "${projectName}"? This will delete ALL artifacts associated with it. This action cannot be undone.`,
+            isDestructive: true,
+            confirmLabel: 'Delete',
+            onConfirm: () => deleteProjectMutation.mutate(projectId)
+        });
     }
 
     if (isLoading) return <div className="p-8">Loading projects...</div>
@@ -78,13 +219,40 @@ export default function ProjectDashboard() {
                                         <h3 className="font-medium text-lg group-hover:text-blue-600">{project.name}</h3>
                                         <p className="text-slate-500 text-sm">{project.description}</p>
                                     </div>
-                                    <button
-                                        onClick={(e) => handleDelete(e, project.id, project.name)}
-                                        className="text-slate-400 hover:text-red-600 p-1 rounded-full hover:bg-red-50 transition-colors"
-                                        title="Delete Project"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
+                                    <div className="flex gap-1">
+                                        <button
+                                            onClick={(e) => handleExport(e, project.id, project.name)}
+                                            className="text-slate-400 hover:text-blue-600 p-1 rounded-full hover:bg-blue-50 transition-colors"
+                                            title="Export Project"
+                                        >
+                                            <Download className="w-4 h-4" />
+                                        </button>
+
+                                        {/* Import Button */}
+                                        <button
+                                            className="text-slate-400 hover:text-green-600 p-1 rounded-full hover:bg-green-50 transition-colors"
+                                            title="Import Project (Overwrite)"
+                                            onClick={(e) => handleImportClick(e, project.id)}
+                                        >
+                                            <Upload className="w-4 h-4" />
+                                        </button>
+                                        <input
+                                            id={`import-file-${project.id}`}
+                                            type="file"
+                                            accept=".json"
+                                            className="hidden"
+                                            onChange={(e) => handleFileChange(e, project.id)}
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+
+                                        <button
+                                            onClick={(e) => handleDelete(e, project.id, project.name)}
+                                            className="text-slate-400 hover:text-red-600 p-1 rounded-full hover:bg-red-50 transition-colors"
+                                            title="Delete Project"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
                                 </div>
                             </Link>
                         ))}
@@ -131,6 +299,23 @@ export default function ProjectDashboard() {
                     </form>
                 </div>
             </div>
+
+            <ConfirmationModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                isDestructive={confirmModal.isDestructive}
+                confirmLabel={confirmModal.confirmLabel}
+            />
+
+            <InfoModal
+                isOpen={infoModal.isOpen}
+                onClose={() => setInfoModal(prev => ({ ...prev, isOpen: false }))}
+                title={infoModal.title}
+                message={infoModal.message}
+            />
         </div>
     )
 }

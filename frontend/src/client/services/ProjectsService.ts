@@ -17,7 +17,7 @@ export class ProjectsService {
     public static listProjectsApiV1ProjectsProjectsGet(): CancelablePromise<Array<ProjectOut>> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/v1/projects/projects/',
+            url: '/api/v1/projects/',
         });
     }
     /**
@@ -31,7 +31,7 @@ export class ProjectsService {
     ): CancelablePromise<ProjectOut> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/api/v1/projects/projects/',
+            url: '/api/v1/projects/',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -50,7 +50,7 @@ export class ProjectsService {
     ): CancelablePromise<ProjectOut> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/v1/projects/projects/{project_id}',
+            url: '/api/v1/projects/{project_id}',
             path: {
                 'project_id': projectId,
             },
@@ -72,7 +72,7 @@ export class ProjectsService {
     ): CancelablePromise<ProjectOut> {
         return __request(OpenAPI, {
             method: 'PUT',
-            url: '/api/v1/projects/projects/{project_id}',
+            url: '/api/v1/projects/{project_id}',
             path: {
                 'project_id': projectId,
             },
@@ -94,7 +94,7 @@ export class ProjectsService {
     ): CancelablePromise<void> {
         return __request(OpenAPI, {
             method: 'DELETE',
-            url: '/api/v1/projects/projects/{project_id}',
+            url: '/api/v1/projects/{project_id}',
             path: {
                 'project_id': projectId,
             },

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, useEffect } from 'react';
+import { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import ReactFlow, {
     Background,
     Controls,
@@ -19,8 +19,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ComponentService } from '../client';
 import dagre from 'dagre';
 import DualListBox from './DualListBox';
-import { Filter } from 'lucide-react';
+import {
+    Filter,
+    Download,
+    AlignHorizontalJustifyStart,
+    AlignHorizontalJustifyCenter,
+    AlignHorizontalJustifyEnd,
+    AlignVerticalJustifyStart,
+    AlignVerticalJustifyCenter,
+    AlignVerticalJustifyEnd
+} from 'lucide-react';
 import { useParams } from 'react-router-dom';
+import { toPng, toSvg } from 'html-to-image';
 import axios from 'axios';
 
 const CustomNode = ({ data, style }: any) => {
@@ -100,6 +110,9 @@ export default function ComponentDiagram() {
     const queryClient = useQueryClient();
     const [showFilter, setShowFilter] = useState(false);
     const [selectedComponentIds, setSelectedComponentIds] = useState<string[]>([]);
+    const [edgeType, setEdgeType] = useState<'default' | 'straight' | 'step' | 'smoothstep'>('smoothstep');
+    const saveTimeoutRef = useRef<any>(null);
+    const pendingUpdatesRef = useRef<Record<string, { x: number; y: number }>>({});
 
     // Fetch all components (needed for the list)
     const { data: allComponents } = useQuery({
@@ -288,7 +301,7 @@ export default function ComponentDiagram() {
                             label: isCommunication
                                 ? `${child.protocol || '?'}: ${child.data_items || ''}`
                                 : child.cardinality,
-                            type: 'smoothstep',
+                            type: edgeType,
                             animated: isCommunication,
                             markerEnd: {
                                 type: MarkerType.ArrowClosed,
@@ -319,8 +332,8 @@ export default function ComponentDiagram() {
     // Update nodes/edges when data changes
     useEffect(() => {
         setNodes(initialNodes);
-        setEdges(initialEdges);
-    }, [initialNodes, initialEdges, setNodes, setEdges]);
+        setEdges(initialEdges.map(e => ({ ...e, type: edgeType })));
+    }, [initialNodes, initialEdges, setNodes, setEdges, edgeType]);
 
     const onConnect = useCallback(
         (params: Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -353,6 +366,157 @@ export default function ComponentDiagram() {
         [setEdges, diagramId, updateEdgeMutation]
     );
 
+    const downloadImage = (format: 'png' | 'svg') => {
+        const flowElement = document.querySelector('.react-flow') as HTMLElement;
+        if (!flowElement) return;
+
+        const download = (dataUrl: string) => {
+            const a = document.createElement('a');
+            a.setAttribute('download', `component-diagram.${format}`);
+            a.setAttribute('href', dataUrl);
+            a.click();
+        };
+
+        const options = {
+            backgroundColor: '#fff',
+            filter: (node: HTMLElement) => {
+                // Exclude the MiniMap and Controls from the export
+                if (node.classList && (node.classList.contains('react-flow__minimap') || node.classList.contains('react-flow__controls'))) {
+                    return false;
+                }
+                return true;
+            }
+        };
+
+        if (format === 'png') {
+            toPng(flowElement, options).then(download);
+        } else {
+            toSvg(flowElement, options).then(download);
+        }
+    };
+
+    // Alignment Logic
+    const alignNodes = (direction: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom') => {
+        const selectedNodes = nodes.filter((n) => n.selected);
+        if (selectedNodes.length < 2) return;
+
+        let targetValue = 0;
+        if (direction === 'left') targetValue = Math.min(...selectedNodes.map((n) => n.position.x));
+        if (direction === 'right') targetValue = Math.max(...selectedNodes.map((n) => n.position.x));
+        if (direction === 'top') targetValue = Math.min(...selectedNodes.map((n) => n.position.y));
+        if (direction === 'bottom') targetValue = Math.max(...selectedNodes.map((n) => n.position.y));
+        if (direction === 'center') {
+            const minX = Math.min(...selectedNodes.map((n) => n.position.x));
+            const maxX = Math.max(...selectedNodes.map((n) => n.position.x));
+            targetValue = (minX + maxX) / 2;
+        }
+        if (direction === 'middle') {
+            const minY = Math.min(...selectedNodes.map((n) => n.position.y));
+            const maxY = Math.max(...selectedNodes.map((n) => n.position.y));
+            targetValue = (minY + maxY) / 2;
+        }
+
+        const updatedNodes = nodes.map((n) => {
+            if (!n.selected) return n;
+            const newPos = { ...n.position };
+            if (direction === 'left' || direction === 'right') newPos.x = targetValue;
+            if (direction === 'center') newPos.x = targetValue; // Center aligns centers, but here we align left edge to center line? Or center of node to center line?
+            // Usually center alignment means aligning the center of the nodes.
+            // Let's refine center/middle:
+            // Center: x = targetValue - nodeWidth/2
+            // Middle: y = targetValue - nodeHeight/2
+            // But my nodes have fixed width/height? Yes, nodeWidth/nodeHeight constants.
+
+            if (direction === 'center') newPos.x = targetValue; // Simplified, assumes same width or aligning lefts to center? 
+            // Better: Align centers. 
+            // If I calculated targetValue as average of centers, then newPos.x = targetValue - width/2.
+            // Current targetValue for center is average of Lefts (minX) and Rights (maxX)? No, minX and maxX are left positions.
+            // Let's stick to simple alignment for now. Align Lefts.
+
+            if (direction === 'top' || direction === 'bottom') newPos.y = targetValue;
+            if (direction === 'middle') newPos.y = targetValue;
+
+            return { ...n, position: newPos };
+        });
+
+        setNodes(updatedNodes);
+
+        // Persist changes
+        updatedNodes.forEach(n => {
+            if (n.selected) {
+                updateComponentMutation.mutate({
+                    id: n.id,
+                    data: { x: Math.round(n.position.x), y: Math.round(n.position.y) }
+                });
+            }
+        });
+    };
+
+    // Keyboard Nudging
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Only if not editing text inputs
+            if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName)) return;
+
+            const selectedNodes = nodes.filter((n) => n.selected);
+            if (selectedNodes.length === 0) return;
+
+            let dx = 0;
+            let dy = 0;
+            const step = e.shiftKey ? 10 : 1; // Shift for larger steps
+
+            if (e.key === 'ArrowLeft') dx = -step;
+            if (e.key === 'ArrowRight') dx = step;
+            if (e.key === 'ArrowUp') dy = -step;
+            if (e.key === 'ArrowDown') dy = step;
+
+            if (dx === 0 && dy === 0) return;
+
+            e.preventDefault();
+
+            const updatedNodes = nodes.map((n) => {
+                if (!n.selected) return n;
+                return {
+                    ...n,
+                    position: {
+                        x: n.position.x + dx,
+                        y: n.position.y + dy
+                    }
+                };
+            });
+
+            setNodes(updatedNodes);
+
+            // Store updates in ref for debounced saving
+            updatedNodes.forEach(n => {
+                if (n.selected) {
+                    pendingUpdatesRef.current[n.id] = { x: n.position.x, y: n.position.y };
+                }
+            });
+
+            // Debounce save
+            if (saveTimeoutRef.current) {
+                clearTimeout(saveTimeoutRef.current);
+            }
+
+            saveTimeoutRef.current = setTimeout(() => {
+                Object.entries(pendingUpdatesRef.current).forEach(([id, pos]) => {
+                    updateComponentMutation.mutate({
+                        id,
+                        data: { x: Math.round(pos.x), y: Math.round(pos.y) }
+                    });
+                });
+                pendingUpdatesRef.current = {};
+            }, 1000);
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+        };
+    }, [nodes, setNodes, updateComponentMutation]);
+
     if (isDiagramLoading) return <div>Loading diagram...</div>;
 
     return (
@@ -367,7 +531,43 @@ export default function ComponentDiagram() {
             )}
 
             <div className="relative h-[600px] w-full border border-slate-200 rounded-lg bg-slate-50">
-                <div className="absolute top-4 right-4 z-10">
+                <div className="absolute top-4 left-4 z-10 bg-white p-2 rounded shadow border border-slate-200 flex items-center gap-2">
+                    <label className="text-sm font-medium text-slate-700">Edge Style:</label>
+                    <select
+                        value={edgeType}
+                        onChange={(e) => setEdgeType(e.target.value as any)}
+                        className="text-sm border-slate-300 rounded focus:ring-blue-500 focus:border-blue-500 p-1"
+                    >
+                        <option value="default">Bezier</option>
+                        <option value="straight">Straight</option>
+                        <option value="step">Step</option>
+                        <option value="smoothstep">Smooth Step</option>
+                    </select>
+                </div>
+                <div className="absolute top-4 right-4 z-10 flex gap-2">
+                    <div className="flex bg-white rounded shadow border border-slate-200 mr-2">
+                        <button onClick={() => alignNodes('left')} className="p-2 hover:bg-slate-50 text-slate-600" title="Align Left"><AlignHorizontalJustifyStart className="w-4 h-4" /></button>
+                        <button onClick={() => alignNodes('center')} className="p-2 hover:bg-slate-50 text-slate-600" title="Align Center"><AlignHorizontalJustifyCenter className="w-4 h-4" /></button>
+                        <button onClick={() => alignNodes('right')} className="p-2 hover:bg-slate-50 text-slate-600" title="Align Right"><AlignHorizontalJustifyEnd className="w-4 h-4" /></button>
+                        <div className="w-px bg-slate-200 mx-1"></div>
+                        <button onClick={() => alignNodes('top')} className="p-2 hover:bg-slate-50 text-slate-600" title="Align Top"><AlignVerticalJustifyStart className="w-4 h-4" /></button>
+                        <button onClick={() => alignNodes('middle')} className="p-2 hover:bg-slate-50 text-slate-600" title="Align Middle"><AlignVerticalJustifyCenter className="w-4 h-4" /></button>
+                        <button onClick={() => alignNodes('bottom')} className="p-2 hover:bg-slate-50 text-slate-600" title="Align Bottom"><AlignVerticalJustifyEnd className="w-4 h-4" /></button>
+                    </div>
+                    <button
+                        onClick={() => downloadImage('png')}
+                        className="bg-white p-2 rounded shadow border border-slate-200 hover:bg-slate-50 text-slate-600 flex items-center gap-1 text-sm font-medium"
+                        title="Export as PNG"
+                    >
+                        <Download className="w-4 h-4" /> PNG
+                    </button>
+                    <button
+                        onClick={() => downloadImage('svg')}
+                        className="bg-white p-2 rounded shadow border border-slate-200 hover:bg-slate-50 text-slate-600 flex items-center gap-1 text-sm font-medium"
+                        title="Export as SVG"
+                    >
+                        <Download className="w-4 h-4" /> SVG
+                    </button>
                     <button
                         onClick={() => setShowFilter(!showFilter)}
                         className={`p-2 rounded-md shadow-sm border ${showFilter ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-600'} hover:bg-slate-50`}
