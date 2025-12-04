@@ -78,7 +78,7 @@ export default function ProjectDashboard() {
     const handleExport = async (e: React.MouseEvent, projectId: string, projectName: string) => {
         e.preventDefault();
         try {
-            const response = await fetch(`http://localhost:8000/api/v1/projects/${projectId}/export`);
+            const response = await fetch(`/api/v1/projects/${projectId}/export`);
             if (!response.ok) throw new Error('Export failed');
 
             const blob = await response.blob();
@@ -143,7 +143,7 @@ export default function ProjectDashboard() {
             try {
                 const jsonData = JSON.parse(event.target?.result as string);
 
-                const response = await fetch(`http://localhost:8000/api/v1/projects/${projectId}/import`, {
+                const response = await fetch(`/api/v1/projects/${projectId}/import`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -211,7 +211,7 @@ export default function ProjectDashboard() {
                         {projects?.map((project) => (
                             <Link
                                 key={project.id}
-                                to={`/project/${project.name}`}
+                                to={`/project/${project.id}`}
                                 className="block p-4 bg-white rounded-lg shadow-sm border border-slate-200 hover:border-blue-500 cursor-pointer transition-colors group relative"
                             >
                                 <div className="flex justify-between items-start">

@@ -27,7 +27,7 @@ router = APIRouter(prefix="/needs", tags=["Needs"])
 def list_needs(
     project_id: Optional[str] = Query(None, description="Filter by project ID"),
     area: Optional[List[str]] = Query(None, description="Filter by area (e.g., MCK)"),
-    status: Optional[List[str]] = Query(None, description="Filter by status (e.g., proposed)"),
+    status: Optional[List[str]] = Query(None, description="Filter by status (e.g., Draft)"),
     owner: Optional[str] = Query(None, description="Filter by owner"),
     search: Optional[str] = Query(None, description="Keyword search in title/description"),
     select_all: bool = Query(False, description="Ignore filters and return all"),

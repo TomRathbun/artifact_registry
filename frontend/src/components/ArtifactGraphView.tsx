@@ -211,7 +211,7 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
             // Or the backend supports partial updates? The backend updates only provided fields.
             // But wait, the backend update endpoint updates name/desc/filter_data if provided.
             // So we can just send filter_data.
-            await axios.put(`http://localhost:8000/api/v1/diagrams/${diagramId}`, {
+            await axios.put(`/api/v1/diagrams/${diagramId}`, {
                 filter_data: { area: newArea }
             });
         },

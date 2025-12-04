@@ -19,7 +19,6 @@ class NeedCreate(BaseModel):
     stakeholder_id: Optional[str] = None
     
     project_id: str
-    source_vision_id: Optional[str] = None
     
     level: Optional[NeedLevel] = None
     site_ids: Optional[List[str]] = []

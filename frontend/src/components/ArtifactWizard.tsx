@@ -16,6 +16,7 @@ import {
 import { X, Plus, Trash2, History } from 'lucide-react';
 import DualListBox from './DualListBox';
 import MDEditor from '@uiw/react-md-editor';
+import { LinkageManager } from './LinkageManager';
 
 
 type ArtifactType = 'vision' | 'need' | 'use_case' | 'requirement';
@@ -538,17 +539,6 @@ export default function ArtifactWizard() {
 
         return (
             <>
-                {artifactType === 'need' && (
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Source Vision</label>
-                        <select {...register('source_vision_id')} className="w-full px-3 py-2 border border-slate-300 rounded-md">
-                            <option value="">Select Source Vision...</option>
-                            {visions?.map((v: any) => (
-                                <option key={v.aid} value={v.aid}>{v.title} ({v.aid})</option>
-                            ))}
-                        </select>
-                    </div>
-                )}
                 {artifactType === 'requirement' ? (
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -608,22 +598,22 @@ export default function ArtifactWizard() {
                     </div>
                 )}
 
-                {artifactType !== 'vision' && (
-                    <div>
-                        <div className="flex justify-between items-center mb-1">
-                            <label className="block text-sm font-medium text-slate-700">Area</label>
-                            <button type="button" onClick={() => setShowAreaModal(true)} className="text-xs text-blue-600 hover:text-blue-800 flex items-center">
-                                <Plus className="w-3 h-3 mr-1" /> Add Area
-                            </button>
-                        </div>
-                        <select {...register('area')} className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="">Select Area...</option>
-                            {areas?.map((area: any) => (
-                                <option key={area.code} value={area.code}>{area.code} - {area.name}</option>
-                            ))}
-                        </select>
+                {/* Area Selection - Now available for all types including Vision */}
+                <div>
+                    <div className="flex justify-between items-center mb-1">
+                        <label className="block text-sm font-medium text-slate-700">Area</label>
+                        <button type="button" onClick={() => setShowAreaModal(true)} className="text-xs text-blue-600 hover:text-blue-800 flex items-center">
+                            <Plus className="w-3 h-3 mr-1" /> Add Area
+                        </button>
                     </div>
-                )}
+                    <select {...register('area')} className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Select Area...</option>
+                        {areas?.map((area: any) => (
+                            <option key={area.code} value={area.code}>{area.code} - {area.name}</option>
+                        ))}
+                    </select>
+                </div>
+
             </>
         );
     };
@@ -732,21 +722,21 @@ export default function ArtifactWizard() {
                 return (
                     <>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Source Need</label>
-                            <select {...register('source_need_id')} className="w-full px-3 py-2 border border-slate-300 rounded-md">
-                                <option value="">Select Source Need...</option>
-                                {needs?.map((n: any) => (
-                                    <option key={n.aid} value={n.aid}>{n.title} ({n.aid})</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
                             <input
                                 {...register('title', { required: true })}
                                 className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 placeholder="Use Case Title"
                             />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Area</label>
+                            <select {...register('area')} className="w-full px-3 py-2 border border-slate-300 rounded-md">
+                                <option value="">Select Area...</option>
+                                {areas?.map((a: any) => (
+                                    <option key={a.code} value={a.code}>{a.code} - {a.name}</option>
+                                ))}
+                            </select>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
@@ -927,11 +917,11 @@ export default function ArtifactWizard() {
                 return (
                     <>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Source Use Case</label>
-                            <select {...register('source_use_case_id', { required: true })} className="w-full px-3 py-2 border border-slate-300 rounded-md">
-                                <option value="">Select Source Use Case...</option>
-                                {useCases?.map((uc: any) => (
-                                    <option key={uc.aid} value={uc.aid}>{uc.title} ({uc.aid})</option>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Area</label>
+                            <select {...register('area')} className="w-full px-3 py-2 border border-slate-300 rounded-md">
+                                <option value="">Select Area...</option>
+                                {areas?.map((a: any) => (
+                                    <option key={a.code} value={a.code}>{a.code} - {a.name}</option>
                                 ))}
                             </select>
                         </div>
@@ -1133,6 +1123,18 @@ export default function ArtifactWizard() {
                     </button>
                 </div>
             </form>
+
+            {/* Linkage Manager - Only visible when artifact exists */}
+            {(isEditMode || savedAid) && realProjectId && (
+                <div className="mt-8 bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                    <h2 className="text-xl font-bold text-slate-900 mb-6">Artifact Linkages</h2>
+                    <LinkageManager
+                        sourceArtifactType={artifactType}
+                        sourceId={artifactId || savedAid || ''}
+                        projectId={realProjectId}
+                    />
+                </div>
+            )}
 
             {/* Modals */}
             {

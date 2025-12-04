@@ -125,7 +125,7 @@ export default function ComponentDiagram() {
         queryKey: ['diagram', diagramId],
         queryFn: async () => {
             if (!diagramId) return null;
-            const response = await axios.get(`http://localhost:8000/api/v1/diagrams/${diagramId}`);
+            const response = await axios.get(`/api/v1/diagrams/${diagramId}`);
             return response.data;
         },
         enabled: !!diagramId,
@@ -145,7 +145,7 @@ export default function ComponentDiagram() {
         mutationFn: async ({ id, data }: { id: string; data: any }) => {
             if (diagramId) {
                 // Update diagram-specific position
-                await axios.put(`http://localhost:8000/api/v1/diagrams/${diagramId}/components/${id}`, {
+                await axios.put(`/api/v1/diagrams/${diagramId}/components/${id}`, {
                     x: data.x,
                     y: data.y
                 });
@@ -170,12 +170,12 @@ export default function ComponentDiagram() {
 
             if (action === 'add') {
                 // Add with default position (0,0)
-                await axios.put(`http://localhost:8000/api/v1/diagrams/${diagramId}/components/${componentId}`, {
+                await axios.put(`/api/v1/diagrams/${diagramId}/components/${componentId}`, {
                     x: 0,
                     y: 0
                 });
             } else {
-                await axios.delete(`http://localhost:8000/api/v1/diagrams/${diagramId}/components/${componentId}`);
+                await axios.delete(`/api/v1/diagrams/${diagramId}/components/${componentId}`);
             }
         },
         onSuccess: () => {
@@ -187,7 +187,7 @@ export default function ComponentDiagram() {
         mutationFn: async ({ sourceId, targetId, sourceHandle, targetHandle }: { sourceId: string; targetId: string; sourceHandle: string; targetHandle: string }) => {
             if (!diagramId) return;
             await axios.put(
-                `http://localhost:8000/api/v1/diagrams/${diagramId}/edges`,
+                `/api/v1/diagrams/${diagramId}/edges`,
                 {
                     source_handle: sourceHandle,
                     target_handle: targetHandle

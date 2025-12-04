@@ -2,6 +2,7 @@
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
+from app.enums import LinkType
 
 
 class LinkageCreate(BaseModel):
@@ -9,7 +10,7 @@ class LinkageCreate(BaseModel):
     source_id: Optional[str] = None
     target_artifact_type: Optional[str] = None
     target_id: Optional[str] = None
-    relationship_type: str
+    relationship_type: LinkType
     project_id: Optional[str] = None
 
 class LinkageOut(LinkageCreate):

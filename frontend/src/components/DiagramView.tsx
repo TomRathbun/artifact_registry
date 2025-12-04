@@ -11,7 +11,7 @@ export default function DiagramView() {
         queryKey: ['diagram', diagramId],
         queryFn: async () => {
             if (!diagramId) return null;
-            const response = await axios.get(`http://localhost:8000/api/v1/diagrams/${diagramId}`);
+            const response = await axios.get(`/api/v1/diagrams/${diagramId}`);
             return response.data;
         },
         enabled: !!diagramId,

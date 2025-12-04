@@ -13,10 +13,15 @@ export class LinkageService {
      * @returns LinkageOut Successful Response
      * @throws ApiError
      */
-    public static listLinkagesApiV1LinkageLinkagesGet(): CancelablePromise<Array<LinkageOut>> {
+    public static listLinkagesApiV1LinkageLinkagesGet(
+        projectId?: string,
+    ): CancelablePromise<Array<LinkageOut>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/linkage/linkages/',
+            query: {
+                'project_id': projectId,
+            },
         });
     }
     /**

@@ -23,7 +23,6 @@ class RequirementCreate(BaseModel):
     owner: Optional[str] = None
     
     project_id: str
-    source_use_case_id: str             # Strict enforcement: Must link to a Use Case
 
 class RequirementOut(BaseModel):
     aid: str

@@ -118,7 +118,7 @@ def delete_exception(id: str, db: Session = Depends(get_db)):
 def list_use_cases(
         project_id: str = Query(None, description="Project ID"),
         area: Optional[List[str]] = Query(None, description="Filter by area (e.g., MCK)"),
-        status: Optional[List[str]] = Query(None, description="Filter by status (e.g., proposed)"),
+        status: Optional[List[str]] = Query(None, description="Filter by status (e.g., Draft)"),
         primary_actor: Optional[str] = Query(None, description="Filter by primary_actor"),
         select_all: bool = Query(False, description="Select all requirements (ignore filters)"),
         db: Session = Depends(get_db),

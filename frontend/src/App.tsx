@@ -11,7 +11,9 @@ import SiteManager from './components/SiteManager';
 import ComponentManager from './components/ComponentManager';
 import ComponentDiagram from './components/ComponentDiagram';
 import DiagramList from './components/DiagramList';
+
 import DiagramView from './components/DiagramView';
+import LinkageListView from './components/LinkageListView';
 
 const queryClient = new QueryClient();
 
@@ -37,6 +39,8 @@ function App() {
               <Route path="diagrams" element={<DiagramList />} />
               <Route path="diagrams/:diagramId" element={<DiagramView />} />
               <Route path="components/diagram" element={<ComponentDiagram />} />
+
+              <Route path="linkages" element={<LinkageListView />} />
               <Route path="graph" element={<ArtifactGraphView />} />
               {/* Create new artifact */}
               <Route path=":artifactType/create" element={<ArtifactWizard />} />

@@ -132,7 +132,6 @@ class UseCaseCreate(BaseModel):
     
     # Required relationships
     project_id: str
-    source_need_id: Optional[str] = None
 
 class UseCaseOut(BaseModel):
     aid: str

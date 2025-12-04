@@ -19,16 +19,19 @@ export default function DiagramList() {
     const [editingDiagram, setEditingDiagram] = useState<any>(null);
     const [deletingDiagramId, setDeletingDiagramId] = useState<string | null>(null);
 
-    const { data: diagrams, isLoading } = useQuery({
+    const { data: diagrams, isLoading, isError, error } = useQuery({
         queryKey: ['diagrams', projectId],
         queryFn: async () => {
-            const response = await axios.get(`http://localhost:8000/api/v1/projects/${projectId}/diagrams`);
-            return response.data;
+            try {
+                const response = await axios.get(`/api/v1/projects/${projectId}/diagrams`);
+                return response.data;
+            } catch (err) {
+                console.error("Error fetching diagrams:", err);
+                throw err;
+            }
         },
         enabled: !!projectId,
     });
-
-
 
     const { data: areas } = useQuery({
         queryKey: ['areas'],
@@ -37,7 +40,7 @@ export default function DiagramList() {
 
     const createMutation = useMutation({
         mutationFn: async (data: { name: string; description: string; type: string; filter_data?: any }) => {
-            await axios.post(`http://localhost:8000/api/v1/projects/${projectId}/diagrams`, {
+            await axios.post(`/api/v1/projects/${projectId}/diagrams`, {
                 name: data.name,
                 description: data.description,
                 type: data.type,
@@ -56,7 +59,7 @@ export default function DiagramList() {
 
     const updateMutation = useMutation({
         mutationFn: async (data: { id: string; name: string; description: string; filter_data?: any }) => {
-            await axios.put(`http://localhost:8000/api/v1/diagrams/${data.id}`, {
+            await axios.put(`/api/v1/diagrams/${data.id}`, {
                 name: data.name,
                 description: data.description,
                 filter_data: data.filter_data
@@ -70,7 +73,7 @@ export default function DiagramList() {
 
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
-            await axios.delete(`http://localhost:8000/api/v1/diagrams/${id}`);
+            await axios.delete(`/api/v1/diagrams/${id}`);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['diagrams', projectId] });
@@ -103,7 +106,8 @@ export default function DiagramList() {
         });
     };
 
-    if (isLoading) return <div>Loading diagrams...</div>;
+    if (isLoading) return <div className="p-8 text-center text-slate-500">Loading diagrams...</div>;
+    if (isError) return <div className="p-8 text-center text-red-500">Error loading diagrams: {(error as Error).message}</div>;
 
     return (
         <div className="p-6 max-w-6xl mx-auto">
@@ -372,7 +376,7 @@ export default function DiagramList() {
                                 </td>
                             </tr>
                         ))}
-                        {diagrams?.length === 0 && (
+                        {(!diagrams || diagrams.length === 0) && (
                             <tr>
                                 <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
                                     <Network className="w-8 h-8 text-slate-300 mx-auto mb-2" />

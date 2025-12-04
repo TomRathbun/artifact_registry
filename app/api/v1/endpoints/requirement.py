@@ -78,7 +78,7 @@ def validate_ears_requirement(payload: EARSValidationRequest):
 def list_requirements(
     project_id: Optional[str] = Query(None, description="Filter by project ID"),
     area: Optional[List[str]] = Query(None, description="Filter by area (e.g., MCK)"),
-    status: Optional[List[str]] = Query(None, description="Filter by status (e.g., proposed)"),
+    status: Optional[List[str]] = Query(None, description="Filter by status (e.g., Draft)"),
     owner: Optional[str] = Query(None, description="Filter by owner"),
     level: Optional[List[str]] = Query(None, description="Filter by level (e.g., STK)"),
     ears_type: Optional[List[str]] = Query(None, description="Filter by EARS type (e.g., SYS)"),
@@ -197,7 +197,7 @@ def create_requirement(payload: RequirementCreate, db: Session = Depends(get_db)
         area=area_code,  # Store the area code, not the name
         level=payload.level or ReqLevel.STK,
         ears_type=payload.ears_type or EarsType.UBIQUITOUS,
-        status=payload.status or Status.PROPOSED,
+        status=payload.status or Status.DRAFT,
         rationale=payload.rationale,
         owner=payload.owner,
         project_id=payload.project_id

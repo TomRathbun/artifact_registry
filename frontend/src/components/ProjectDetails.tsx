@@ -96,7 +96,7 @@ export default function ProjectDetails() {
         try {
             // We need to call the raw fetch because the generated client might not have this new endpoint yet
             // or we want to handle the blob download manually.
-            const response = await fetch(`http://localhost:8000/api/v1/projects/${project.id}/export`);
+            const response = await fetch(`/api/v1/projects/${project.id}/export`);
             if (!response.ok) throw new Error('Export failed');
 
             const blob = await response.blob();
