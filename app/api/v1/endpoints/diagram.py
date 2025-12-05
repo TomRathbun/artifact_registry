@@ -1,21 +1,47 @@
 from typing import List
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.api.deps import get_db
 from app.db.models.diagram import Diagram, DiagramComponent, DiagramEdge
+from app.db.models.project import Project
 from app.schemas.diagram import DiagramCreate, DiagramUpdate, DiagramOut, DiagramComponentUpdate, DiagramEdgeUpdate
 
 router = APIRouter()
 
+def resolve_project_id(db: Session, project_identifier: str) -> str:
+    try:
+        UUID(str(project_identifier))
+        # It's a UUID, verify existence to be safe or just return
+        # For simple resolution we can just return it, but checking existence is better
+        # checking if it exists as an ID
+        project = db.query(Project).filter(Project.id == project_identifier).first()
+        if project:
+            return project_identifier
+        # If not found by ID, could it be a name that looks like a UUID? Unlikely but possible.
+        # Let's fallback to name check if ID check fails? Or strict?
+        # Strict is better for UUIDs.
+    except ValueError:
+        pass
+    
+    # Try as name
+    project = db.query(Project).filter(Project.name == project_identifier).first()
+    if project:
+        return project.id
+        
+    raise HTTPException(status_code=404, detail="Project not found")
+
 @router.get("/projects/{project_id}/diagrams", response_model=List[DiagramOut])
 def list_diagrams(project_id: str, db: Session = Depends(get_db)):
-    diagrams = db.query(Diagram).filter(Diagram.project_id == project_id).all()
+    real_project_id = resolve_project_id(db, project_id)
+    diagrams = db.query(Diagram).filter(Diagram.project_id == real_project_id).all()
     return diagrams
 
 @router.post("/projects/{project_id}/diagrams", response_model=DiagramOut)
 def create_diagram(project_id: str, diagram_in: DiagramCreate, db: Session = Depends(get_db)):
+    real_project_id = resolve_project_id(db, project_id)
     diagram = Diagram(
-        project_id=project_id,
+        project_id=real_project_id,
         name=diagram_in.name,
         description=diagram_in.description,
         type=diagram_in.type,
