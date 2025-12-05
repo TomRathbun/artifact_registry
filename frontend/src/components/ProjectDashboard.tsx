@@ -211,7 +211,7 @@ export default function ProjectDashboard() {
                         {projects?.map((project) => (
                             <Link
                                 key={project.id}
-                                to={`/project/${project.id}`}
+                                to={`/project/${project.name}`}
                                 className="block p-4 bg-white rounded-lg shadow-sm border border-slate-200 hover:border-blue-500 cursor-pointer transition-colors group relative"
                             >
                                 <div className="flex justify-between items-start">
