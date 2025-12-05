@@ -1,5 +1,6 @@
 from typing import List
 from uuid import uuid4
+import json
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -16,7 +17,10 @@ def create_component(component_in: ComponentCreate, db: Session = Depends(get_db
         id=str(uuid4()),
         name=component_in.name,
         type=component_in.type,
-        description=component_in.description
+        description=component_in.description,
+        tags=json.dumps(component_in.tags) if component_in.tags else json.dumps([]),
+        lifecycle=component_in.lifecycle,
+        project_id=component_in.project_id
     )
     db.add(component)
     db.commit()
@@ -43,6 +47,10 @@ def read_components(skip: int = 0, limit: int = 100, db: Session = Depends(get_d
                     "protocol": rel.protocol,
                     "data_items": rel.data_items
                 })
+        
+        # Deserialize tags from JSON
+        tags = json.loads(c.tags) if c.tags else []
+        
         results.append(ComponentOut(
             id=c.id,
             name=c.name,
@@ -50,6 +58,9 @@ def read_components(skip: int = 0, limit: int = 100, db: Session = Depends(get_d
             description=c.description,
             x=c.x,
             y=c.y,
+            tags=tags,
+            lifecycle=c.lifecycle,
+            project_id=c.project_id,
             children=children
         ))
         
@@ -74,6 +85,9 @@ def read_component(component_id: str, db: Session = Depends(get_db)):
                 "protocol": rel.protocol,
                 "data_items": rel.data_items
             })
+    
+    # Deserialize tags from JSON
+    tags = json.loads(component.tags) if component.tags else []
             
     return ComponentOut(
         id=component.id,
@@ -82,6 +96,9 @@ def read_component(component_id: str, db: Session = Depends(get_db)):
         description=component.description,
         x=component.x,
         y=component.y,
+        tags=tags,
+        lifecycle=component.lifecycle,
+        project_id=component.project_id,
         children=children
     )
 
@@ -101,6 +118,12 @@ def update_component(component_id: str, component_in: ComponentUpdate, db: Sessi
         component.x = component_in.x
     if component_in.y is not None:
         component.y = component_in.y
+    if component_in.tags is not None:
+        component.tags = json.dumps(component_in.tags)
+    if component_in.lifecycle is not None:
+        component.lifecycle = component_in.lifecycle
+    if component_in.project_id is not None:
+        component.project_id = component_in.project_id
         
     db.commit()
     db.refresh(component)
@@ -119,12 +142,18 @@ def update_component(component_id: str, component_in: ComponentUpdate, db: Sessi
                 "protocol": rel.protocol,
                 "data_items": rel.data_items
             })
+    
+    # Deserialize tags from JSON
+    tags = json.loads(component.tags) if component.tags else []
             
     return ComponentOut(
         id=component.id,
         name=component.name,
         type=component.type,
         description=component.description,
+        tags=tags,
+        lifecycle=component.lifecycle,
+        project_id=component.project_id,
         children=children
     )
 

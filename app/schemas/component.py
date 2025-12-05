@@ -23,6 +23,9 @@ class ComponentCreate(BaseModel):
     name: str
     type: str # Hardware or Software
     description: Optional[str] = None
+    tags: Optional[List[str]] = []  # List of tags
+    lifecycle: Optional[str] = 'Active'  # Active, Legacy, Planned, Deprecated
+    project_id: Optional[str] = None  # Optional project association
 
 class ComponentUpdate(BaseModel):
     name: Optional[str] = None
@@ -30,6 +33,9 @@ class ComponentUpdate(BaseModel):
     description: Optional[str] = None
     x: Optional[int] = None
     y: Optional[int] = None
+    tags: Optional[List[str]] = None
+    lifecycle: Optional[str] = None
+    project_id: Optional[str] = None
 
 class ComponentOut(BaseModel):
     id: str
@@ -38,6 +44,9 @@ class ComponentOut(BaseModel):
     description: Optional[str] = None
     x: Optional[int] = None
     y: Optional[int] = None
+    tags: Optional[List[str]] = []
+    lifecycle: Optional[str] = 'Active'
+    project_id: Optional[str] = None
     children: List[ComponentRelationshipOut] = []
     
     model_config = ConfigDict(from_attributes=True)
