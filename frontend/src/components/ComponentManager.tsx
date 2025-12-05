@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { ComponentService, ProjectsService } from '../client';
-import { Plus, Trash2, Save, X, Tag, Activity } from 'lucide-react';
+import { Plus, Trash2, Save, X, Tag, Activity, Pencil } from 'lucide-react';
 
 export default function ComponentManager() {
     const { projectId } = useParams<{ projectId: string }>();
@@ -613,9 +613,9 @@ export default function ComponentManager() {
                                 <td className="p-4">
                                     <div className="flex items-center gap-1.5">
                                         <div className={`w-2 h-2 rounded-full ${comp.lifecycle === 'Active' ? 'bg-green-500' :
-                                            comp.lifecycle === 'Legacy' ? 'bg-amber-500' :
-                                                comp.lifecycle === 'Planned' ? 'bg-blue-500' :
-                                                    'bg-slate-400'
+                                                comp.lifecycle === 'Legacy' ? 'bg-amber-500' :
+                                                    comp.lifecycle === 'Planned' ? 'bg-blue-500' :
+                                                        'bg-slate-400'
                                             }`} />
                                         <span className="text-sm text-slate-600">{comp.lifecycle || 'Active'}</span>
                                     </div>
@@ -636,6 +636,13 @@ export default function ComponentManager() {
                                 </td>
                                 <td className="p-4 text-right">
                                     <div className="flex justify-end gap-2">
+                                        <button
+                                            onClick={() => startEdit(comp)}
+                                            className="p-1 text-slate-400 hover:text-blue-600"
+                                            title="Edit Component"
+                                        >
+                                            <Pencil className="w-4 h-4" />
+                                        </button>
                                         <button
                                             onClick={() => startLinking(comp)}
                                             className="p-1 text-slate-400 hover:text-indigo-600"
