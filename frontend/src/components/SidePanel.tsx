@@ -1,5 +1,5 @@
 import { NavLink, Link } from 'react-router-dom';
-import { ArrowLeft, Users, FileText, List, Settings, Network } from 'lucide-react';
+import { ArrowLeft, Users, FileText, List, Settings, Network, Info } from 'lucide-react';
 
 import { useQuery } from '@tanstack/react-query';
 import { ProjectsService } from '../client';
@@ -94,7 +94,7 @@ export default function SidePanel({ projectId }: SidePanelProps) {
                     </NavLink>
                 </li>
             </ul>
-            <div className="mt-auto space-y-2">
+            <div className="mt-auto space-y-2 border-t border-slate-700 pt-4">
                 <NavLink
                     to={`${base}/people`}
                     className={({ isActive }) =>
@@ -134,6 +134,14 @@ export default function SidePanel({ projectId }: SidePanelProps) {
                     }
                 >
                     <Network className="w-4 h-4" /> Diagrams
+                </NavLink>
+                <NavLink
+                    to={`${base}/about`}
+                    className={({ isActive }) =>
+                        `flex items-center gap-2 p-2 rounded hover:bg-slate-700 ${isActive ? 'bg-slate-700' : ''}`
+                    }
+                >
+                    <Info className="w-4 h-4" /> About
                 </NavLink>
             </div>
         </nav>

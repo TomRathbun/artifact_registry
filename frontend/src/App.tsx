@@ -15,6 +15,7 @@ import DiagramList from './components/DiagramList';
 
 import DiagramView from './components/DiagramView';
 import LinkageListView from './components/LinkageListView';
+import AboutPage from './components/AboutPage';
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ function App() {
             <Route path="/" element={<ProjectDashboard />} />
             {/* Project layout with side panel */}
             <Route path="/project/:projectId" element={<ProjectLayout />}>
+              <Route path="about" element={<AboutPage />} />
               {/* List views */}
               <Route index element={<ArtifactListView artifactType="need" />} />
               <Route path="visions" element={<ArtifactListView artifactType="vision" />} />
