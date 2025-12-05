@@ -219,22 +219,22 @@ export default function ArtifactWizard() {
         enabled: !!realProjectId
     });
 
-    const { data: visions } = useQuery({
-        queryKey: ['visions', realProjectId],
-        queryFn: () => VisionService.listVisionStatementsApiV1VisionVisionStatementsGet(realProjectId),
-        enabled: !!realProjectId
-    });
+    // const { data: visions } = useQuery({
+    //     queryKey: ['visions', realProjectId],
+    //     queryFn: () => VisionService.listVisionStatementsApiV1VisionVisionStatementsGet(realProjectId),
+    //     enabled: !!realProjectId
+    // });
 
-    const { data: needs } = useQuery({
-        queryKey: ['needs', realProjectId],
-        queryFn: () => NeedsService.listNeedsApiV1NeedNeedsGet(realProjectId),
-        enabled: !!realProjectId
-    });
-    const { data: useCases } = useQuery({
-        queryKey: ['use_cases', realProjectId],
-        queryFn: () => UseCasesService.listUseCasesApiV1UseCaseUseCasesGet(undefined, undefined, undefined, true), // TODO: Filter by project?
-        enabled: !!realProjectId
-    });
+    // const { data: needs } = useQuery({
+    //     queryKey: ['needs', realProjectId],
+    //     queryFn: () => NeedsService.listNeedsApiV1NeedNeedsGet(realProjectId),
+    //     enabled: !!realProjectId
+    // });
+    // const { data: useCases } = useQuery({
+    //     queryKey: ['use_cases', realProjectId],
+    //     queryFn: () => UseCasesService.listUseCasesApiV1UseCaseUseCasesGet(undefined, undefined, undefined, true), // TODO: Filter by project?
+    //     enabled: !!realProjectId
+    // });
     const { data: allSites } = useQuery({
         queryKey: ['sites'],
         queryFn: () => SiteService.listSitesApiV1SitesGet()
@@ -612,6 +612,9 @@ export default function ArtifactWizard() {
                             <option key={area.code} value={area.code}>{area.code} - {area.name}</option>
                         ))}
                     </select>
+                    {isEditMode && (
+                        <p className="text-xs text-slate-500 mt-1">Area cannot be changed after creation (used in artifact ID)</p>
+                    )}
                 </div>
 
             </>
@@ -731,12 +734,15 @@ export default function ArtifactWizard() {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Area</label>
-                            <select {...register('area')} className="w-full px-3 py-2 border border-slate-300 rounded-md">
+                            <select {...register('area')} disabled={isEditMode} className="w-full px-3 py-2 border border-slate-300 rounded-md disabled:bg-slate-100 disabled:cursor-not-allowed">
                                 <option value="">Select Area...</option>
                                 {areas?.map((a: any) => (
                                     <option key={a.code} value={a.code}>{a.code} - {a.name}</option>
                                 ))}
                             </select>
+                            {isEditMode && (
+                                <p className="text-xs text-slate-500 mt-1">Area cannot be changed after creation (used in artifact ID)</p>
+                            )}
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
@@ -918,12 +924,15 @@ export default function ArtifactWizard() {
                     <>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Area</label>
-                            <select {...register('area')} className="w-full px-3 py-2 border border-slate-300 rounded-md">
+                            <select {...register('area')} disabled={isEditMode} className="w-full px-3 py-2 border border-slate-300 rounded-md disabled:bg-slate-100 disabled:cursor-not-allowed">
                                 <option value="">Select Area...</option>
                                 {areas?.map((a: any) => (
                                     <option key={a.code} value={a.code}>{a.code} - {a.name}</option>
                                 ))}
                             </select>
+                            {isEditMode && (
+                                <p className="text-xs text-slate-500 mt-1">Area cannot be changed after creation (used in artifact ID)</p>
+                            )}
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>

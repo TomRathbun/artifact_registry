@@ -176,10 +176,11 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
         linkages.forEach((l: any) => {
             if (artifactIds.has(l.source_id) && artifactIds.has(l.target_id)) {
                 newEdges.push({
-                    id: `e${l.source_id}-${l.target_id}`,
+                    id: `e${l.aid}`, // Use linkage aid for unique key instead of source-target
                     source: l.source_id,
                     target: l.target_id,
                     type: edgeType,
+                    label: l.relationship_type, // Show relationship type on edge
                     markerEnd: {
                         type: MarkerType.ArrowClosed,
                     },

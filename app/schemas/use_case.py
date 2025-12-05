@@ -133,6 +133,8 @@ class UseCaseCreate(BaseModel):
     # Required relationships
     project_id: str
 
+    model_config = ConfigDict(extra="ignore")  # Ignore deprecated fields
+
 class UseCaseOut(BaseModel):
     aid: str
     title: str

@@ -2,10 +2,26 @@ import React, { useState } from 'react';
 import { useParams, Link as RouterLink } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { LinkageService } from '../client/services/LinkageService';
+import { ProjectsService } from '../client/services/ProjectsService';
 import type { LinkageCreate } from '../client/models/LinkageCreate';
 import { Link as LinkIcon, Plus, Trash2, ExternalLink, Eye, Search, Pencil, Filter } from 'lucide-react';
-import { LinkType } from './LinkageManager'; // Reuse enum
 import ArtifactSelector from './ArtifactSelector';
+import axios from 'axios';
+
+// Enum matching backend
+enum LinkType {
+    DERIVES_FROM = "derives_from",
+    SATISFIES = "satisfies",
+    REFINES = "refines",
+    VERIFIES = "verifies",
+    PARENT = "parent",
+    TRACES_TO = "traces_to",
+    DEPENDS_ON = "depends_on",
+    ILLUSTRATED_BY = "illustrated_by",
+    DOCUMENTED_IN = "documented_in",
+    ALLOCATED_TO = "allocated_to",
+    RELATED_TO = "related_to"
+}
 
 // Helper function to get description for each link type
 function getLinkTypeDescription(linkType: LinkType): string {
@@ -26,13 +42,16 @@ function getLinkTypeDescription(linkType: LinkType): string {
 }
 
 // Component to fetch and display diagram name
-function DiagramName({ diagramId }: { diagramId: string; projectId: string }) {
+function DiagramName({ diagramId }: { diagramId: string }) {
     const { data: diagram } = useQuery({
         queryKey: ['diagram', diagramId],
         queryFn: async () => {
-            const response = await fetch(`/api/v1/diagrams/${diagramId}`);
-            if (!response.ok) return null;
-            return response.json();
+            try {
+                const response = await axios.get(`/api/v1/diagrams/${diagramId}`);
+                return response.data;
+            } catch (error) {
+                return null;
+            }
         },
         enabled: !!diagramId,
     });
@@ -45,9 +64,12 @@ function ComponentName({ componentId }: { componentId: string }) {
     const { data: component } = useQuery({
         queryKey: ['component', componentId],
         queryFn: async () => {
-            const response = await fetch(`/api/v1/components/${componentId}`);
-            if (!response.ok) return null;
-            return response.json();
+            try {
+                const response = await axios.get(`/api/v1/components/${componentId}`);
+                return response.data;
+            } catch (error) {
+                return null;
+            }
         },
         enabled: !!componentId,
     });
@@ -58,6 +80,13 @@ function ComponentName({ componentId }: { componentId: string }) {
 export default function LinkageListView() {
     const { projectId } = useParams<{ projectId: string }>();
     const queryClient = useQueryClient();
+
+    // Fetch project details to determine the real UUID
+    const { data: project } = useQuery({
+        queryKey: ['project', projectId],
+        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectsProjectIdGet(projectId!),
+        enabled: !!projectId
+    });
 
     const [isAdding, setIsAdding] = useState(false);
     const [editingLinkage, setEditingLinkage] = useState<any>(null);
@@ -76,17 +105,18 @@ export default function LinkageListView() {
     const [filterRelationship, setFilterRelationship] = useState<string>('all');
     const [filterTargetType, setFilterTargetType] = useState<string>('all');
 
-    // Fetch all linkages for project
+    // Fetch all linkages for project using the resolved UUID
     const { data: linkages, isLoading } = useQuery({
-        queryKey: ['linkages', 'all', projectId],
-        queryFn: () => LinkageService.listLinkagesApiV1LinkageLinkagesGet(projectId),
+        queryKey: ['linkages', 'all', project?.id],
+        queryFn: () => LinkageService.listLinkagesApiV1LinkageLinkagesGet(project!.id),
+        enabled: !!project?.id,
     });
 
     // Filter linkages based on selected filters
     const filteredLinkages = React.useMemo(() => {
         if (!linkages) return [];
 
-        return linkages.filter(link => {
+        return linkages.filter((link: any) => {
             const matchesSource = filterSourceType === 'all' || link.source_artifact_type === filterSourceType;
             const matchesRelationship = filterRelationship === 'all' || link.relationship_type === filterRelationship;
             const matchesTarget = filterTargetType === 'all' || link.target_artifact_type === filterTargetType;
@@ -98,24 +128,24 @@ export default function LinkageListView() {
     // Get unique values for filters
     const uniqueSourceTypes = React.useMemo(() => {
         if (!linkages) return [];
-        return Array.from(new Set(linkages.map(l => l.source_artifact_type).filter(Boolean))).sort();
+        return Array.from(new Set(linkages.map((l: any) => l.source_artifact_type).filter(Boolean))).sort();
     }, [linkages]);
 
     const uniqueRelationships = React.useMemo(() => {
         if (!linkages) return [];
-        return Array.from(new Set(linkages.map(l => l.relationship_type).filter(Boolean))).sort();
+        return Array.from(new Set(linkages.map((l: any) => l.relationship_type).filter(Boolean))).sort();
     }, [linkages]);
 
     const uniqueTargetTypes = React.useMemo(() => {
         if (!linkages) return [];
-        return Array.from(new Set(linkages.map(l => l.target_artifact_type).filter(Boolean))).sort();
+        return Array.from(new Set(linkages.map((l: any) => l.target_artifact_type).filter(Boolean))).sort();
     }, [linkages]);
 
     // Create mutation
     const createMutation = useMutation({
         mutationFn: (payload: LinkageCreate) => LinkageService.createLinkageApiV1LinkageLinkagesPost(payload),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['linkages', 'all', projectId] });
+            queryClient.invalidateQueries({ queryKey: ['linkages', 'all', project?.id] });
             setIsAdding(false);
             setSourceId('');
             setTargetId('');
@@ -127,7 +157,7 @@ export default function LinkageListView() {
         mutationFn: ({ aid, payload }: { aid: string; payload: LinkageCreate }) =>
             LinkageService.updateLinkageApiV1LinkageLinkagesAidPut(aid, payload),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['linkages', 'all', projectId] });
+            queryClient.invalidateQueries({ queryKey: ['linkages', 'all', project?.id] });
             setEditingLinkage(null);
         },
     });
@@ -136,12 +166,13 @@ export default function LinkageListView() {
     const deleteMutation = useMutation({
         mutationFn: (aid: string) => LinkageService.deleteLinkageApiV1LinkageLinkagesAidDelete(aid),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['linkages', 'all', projectId] });
+            queryClient.invalidateQueries({ queryKey: ['linkages', 'all', project?.id] });
         },
     });
 
     const handleAddLinkage = (e: React.FormEvent) => {
         e.preventDefault();
+        if (!project?.id) return;
 
         let finalTargetType = targetType;
         if (targetId.startsWith('http://') || targetId.startsWith('https://')) {
@@ -154,13 +185,13 @@ export default function LinkageListView() {
             target_artifact_type: finalTargetType,
             target_id: targetId,
             relationship_type: newLinkType,
-            project_id: projectId,
+            project_id: project.id,
         });
     };
 
     const handleUpdateLinkage = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!editingLinkage) return;
+        if (!editingLinkage || !project?.id) return;
 
         let finalTargetType = editingLinkage.target_artifact_type;
         if (editingLinkage.target_id?.startsWith('http://') || editingLinkage.target_id?.startsWith('https://')) {
@@ -175,7 +206,7 @@ export default function LinkageListView() {
                 target_artifact_type: finalTargetType,
                 target_id: editingLinkage.target_id,
                 relationship_type: editingLinkage.relationship_type,
-                project_id: projectId,
+                project_id: project.id,
             },
         });
     };
@@ -231,7 +262,7 @@ export default function LinkageListView() {
                                     <span className="truncate">
                                         {sourceId ? (
                                             sourceType === 'diagram' ? (
-                                                <DiagramName diagramId={sourceId} projectId={projectId || ''} />
+                                                <DiagramName diagramId={sourceId} />
                                             ) : sourceType === 'component' ? (
                                                 <ComponentName componentId={sourceId} />
                                             ) : (
@@ -318,7 +349,7 @@ export default function LinkageListView() {
                                             <span className="truncate">
                                                 {targetId ? (
                                                     targetType === 'diagram' ? (
-                                                        <DiagramName diagramId={targetId} projectId={projectId || ''} />
+                                                        <DiagramName diagramId={targetId} />
                                                     ) : targetType === 'component' ? (
                                                         <ComponentName componentId={targetId} />
                                                     ) : (
@@ -350,7 +381,7 @@ export default function LinkageListView() {
 
             {isSelectorOpen && (
                 <ArtifactSelector
-                    projectId={projectId || ''}
+                    projectId={project?.id || ''}
                     artifactType={selectorMode === 'source' ? sourceType : (editingLinkage ? editingLinkage.target_artifact_type : targetType)}
                     onSelect={(id) => {
                         if (editingLinkage) {
@@ -493,7 +524,7 @@ export default function LinkageListView() {
                                 className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
                                 <option value="all">All Types</option>
-                                {uniqueSourceTypes.map(type => (
+                                {uniqueSourceTypes.map((type: any) => (
                                     <option key={type} value={type as string}>{type}</option>
                                 ))}
                             </select>
@@ -508,7 +539,7 @@ export default function LinkageListView() {
                                 className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
                                 <option value="all">All Relationships</option>
-                                {uniqueRelationships.map(rel => (
+                                {uniqueRelationships.map((rel: any) => (
                                     <option key={rel} value={rel as string}>{rel}</option>
                                 ))}
                             </select>
@@ -523,7 +554,7 @@ export default function LinkageListView() {
                                 className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
                                 <option value="all">All Types</option>
-                                {uniqueTargetTypes.map(type => (
+                                {uniqueTargetTypes.map((type: any) => (
                                     <option key={type} value={type as string}>{type}</option>
                                 ))}
                             </select>
@@ -565,14 +596,14 @@ export default function LinkageListView() {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-slate-200">
-                            {filteredLinkages.map((link) => (
+                            {filteredLinkages.map((link: any) => (
                                 <tr key={link.aid} className="hover:bg-slate-50">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                                         <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded mr-2">
                                             {link.source_artifact_type}
                                         </span>
                                         {link.source_artifact_type === 'diagram' ? (
-                                            <DiagramName diagramId={link.source_id || ''} projectId={projectId || ''} />
+                                            <DiagramName diagramId={link.source_id || ''} />
                                         ) : link.source_artifact_type === 'component' ? (
                                             <ComponentName componentId={link.source_id || ''} />
                                         ) : (
@@ -600,7 +631,7 @@ export default function LinkageListView() {
                                                     {link.target_id}
                                                 </a>
                                             ) : link.target_artifact_type === 'diagram' ? (
-                                                <DiagramName diagramId={link.target_id || ''} projectId={projectId || ''} />
+                                                <DiagramName diagramId={link.target_id || ''} />
                                             ) : link.target_artifact_type === 'component' ? (
                                                 <ComponentName componentId={link.target_id || ''} />
                                             ) : (

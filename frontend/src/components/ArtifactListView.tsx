@@ -1296,7 +1296,7 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
 
                 <div className="flex gap-2">
                     {/* Export Buttons */}
-                    <div className="flex gap-1">
+                    <div className="flex gap-0.5">
                         <button
                             onClick={handleExport}
                             disabled={!artifacts || artifacts.length === 0}
@@ -1309,10 +1309,10 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
                         <button
                             onClick={handleExportMarkdown}
                             disabled={!artifacts || artifacts.length === 0}
-                            className="px-3 py-2 bg-slate-600 text-white hover:bg-slate-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2 border-l border-slate-500"
+                            className="px-3 py-2 bg-slate-600 text-white hover:bg-slate-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
                             title="Export Markdown"
                         >
-                            <FileText className="w-4 h-4" />
+                            <Download className="w-4 h-4" />
                             MD
                         </button>
                         <button
@@ -1321,7 +1321,7 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
                             className="px-3 py-2 bg-blue-600 text-white rounded-r hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
                             title="Export Word"
                         >
-                            <File className="w-4 h-4" />
+                            <Download className="w-4 h-4" />
                             DOC
                         </button>
                     </div>
@@ -1330,20 +1330,19 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
                     <button
                         onClick={() => fileInputRef.current?.click()}
                         disabled={importMutation.isPending}
-                        className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
+                        className="px-3 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
                         title="Import artifacts from JSON"
                     >
                         <Upload className="w-4 h-4" />
-                        {importMutation.isPending ? 'Importing...' : 'Import JSON'}
+                        JSON
                     </button>
                     <button
                         onClick={handlePaste}
                         disabled={importMutation.isPending}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
+                        className="px-3 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
                         title="Paste artifact from clipboard"
                     >
                         <Clipboard className="w-4 h-4" />
-                        Paste
                     </button>
                     <input
                         ref={fileInputRef}
@@ -1381,9 +1380,13 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
                     {/* Create New Button */}
                     <Link
                         to={`/project/${projectId}/${artifactType}/create`}
-                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                        className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center gap-2"
+                        title={`Create new ${artifactType.replace('_', ' ')}`}
                     >
-                        Create New {artifactType.replace('_', ' ')}
+                        <div className="bg-white rounded-full p-0.5">
+                            <Edit className="w-3 h-3 text-blue-600" />
+                        </div>
+                        {artifactType === 'use_case' ? 'Use Case' : artifactType.charAt(0).toUpperCase() + artifactType.slice(1).replace('_', ' ')}
                     </Link>
                 </div>
             </div>
@@ -1528,7 +1531,7 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
                                         <FileDown className="w-4 h-4" />
                                     </button>
                                     <Link
-                                        to={`/project/${projectId}/${artifactType}/${a.aid}`}
+                                        to={`/project/${projectId}/${artifactType}/${a.aid}/edit`}
                                         className="p-1 text-slate-400 hover:text-blue-600 transition-colors rounded hover:bg-blue-50"
                                         title="Edit"
                                     >

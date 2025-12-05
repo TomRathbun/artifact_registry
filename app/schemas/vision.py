@@ -3,6 +3,7 @@ from typing import Optional
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
+from app.enums import Status
 
 
 class VisionCreate(BaseModel):
@@ -13,6 +14,7 @@ class VisionCreate(BaseModel):
 
 class VisionOut(VisionCreate):
     aid: str
+    status: Optional[Status] = None
     created_date: Optional[datetime] = None
     last_updated: Optional[datetime] = None
 

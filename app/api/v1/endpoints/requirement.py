@@ -171,22 +171,13 @@ def create_requirement(payload: RequirementCreate, db: Session = Depends(get_db)
     if not db.query(Project).filter(Project.id == payload.project_id).first():
         raise HTTPException(status_code=400, detail="Project not found")
 
-    # 2. Validate Parent (Use Case)
-    parent_uc = db.query(UseCase).filter(UseCase.aid == payload.source_use_case_id).first()
-    if not parent_uc:
-        raise HTTPException(status_code=400, detail="Source Use Case not found")
+    # 2. Linkages are now managed separately via LinkageManager
 
-    # 3. Derive area from parent Use Case if not provided
+    # 3. Derive area code
     area_code = "GLOBAL"  # Default fallback
     if payload.area:
-        # If area is provided, look it up
-        area_obj = db.query(Area).filter(Area.name == payload.area).first()
-        if area_obj:
-            area_code = area_obj.code
-    else:
-        # Derive from parent use case
-        if parent_uc.area:
-            area_code = parent_uc.area  # Use case already stores area code
+        # Frontend sends area code (e.g., "AIC2"), use it directly
+        area_code = payload.area
 
     # 4. Create Requirement - use area code for both AID and storage
     aid = generate_artifact_id(db, Requirement, area_code, payload.project_id)
@@ -204,17 +195,7 @@ def create_requirement(payload: RequirementCreate, db: Session = Depends(get_db)
     )
     db.add(req)
     
-    # 5. Create Linkage (Requirement -> satisfies -> Use Case)
-    link = Linkage(
-        aid=str(uuid4()),
-        source_artifact_type="requirement",
-        source_id=aid,
-        target_artifact_type="use_case",
-        target_id=payload.source_use_case_id,
-        relationship_type=LinkType.SATISFIES,
-        project_id=payload.project_id
-    )
-    db.add(link)
+    # 5. Linkages are now created separately via LinkageManager
 
     db.commit()
     db.refresh(req)

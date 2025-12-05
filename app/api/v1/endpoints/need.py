@@ -89,12 +89,6 @@ def create_need(payload: NeedCreate, db: Session = Depends(get_db)):
     if not db.query(Project).filter(Project.id == payload.project_id).first():
         raise HTTPException(status_code=400, detail="Project not found")
     
-    # Validate Parent Vision - only if provided
-    if payload.source_vision_id:
-        parent_vision = db.query(Vision).filter(Vision.aid == payload.source_vision_id).first()
-        if not parent_vision:
-            raise HTTPException(status_code=400, detail="Source Vision not found")
-    
     # Look up area code from area name for AID generation
     area_code = payload.area  # Default to area name if not found
     if payload.area:
@@ -126,19 +120,6 @@ def create_need(payload: NeedCreate, db: Session = Depends(get_db)):
         db_obj.components = components
         
     db.add(db_obj)
-    
-    # Create Linkage (Need -> Vision) - only if source_vision_id provided
-    if payload.source_vision_id:
-        link = Linkage(
-            aid=str(uuid4()),
-            source_artifact_type="need",
-            source_id=aid,
-            target_artifact_type="vision",
-            target_id=payload.source_vision_id,
-            relationship_type=LinkType.DERIVES_FROM,
-            project_id=payload.project_id,
-        )
-        db.add(link)
     
     db.commit()
     db.refresh(db_obj)

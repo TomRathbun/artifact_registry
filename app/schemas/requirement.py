@@ -23,6 +23,8 @@ class RequirementCreate(BaseModel):
     owner: Optional[str] = None
     
     project_id: str
+    
+    model_config = ConfigDict(extra='ignore')  # Ignore deprecated fields
 
 class RequirementOut(BaseModel):
     aid: str

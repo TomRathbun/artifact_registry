@@ -26,27 +26,27 @@ This eight-state model is the minimum that satisfies:
 
 ```
                 +-------------+
-                |   Draft     |<--------------------+
-                +-------------+                     |
+                |   Draft     |<-------------------+
+                +-------------+                    |
                        |                           |
            author      | Ready_for_Review          | author re-opens
-       finishes ---->  +-------------+               |
+       finishes ---->  +-------------+             |
                        | In_Review   |<------------+
                        +-------------+   reviewer rejects
                               |   ^
                CCWG accepts   |   | CCWG rejects or defers
                               v   |
                        +-------------+
-                       |  Approved    |
+                       |  Approved   |
                        +-------------+
                               |
-            new version created +----> Superseded (old version)
+          new version created +----> Superseded (old version)
                               |
-                post-IOC ----+----> Retired
+                 post-IOC ----+----> Retired
                               |
-            CCB decision ----+----> Deferred
+             CCB decision ----+----> Deferred
                               |
-            CCB decision ----+----> Rejected
+             CCB decision ----+----> Rejected
 ```
 
 ### 3. Implementation Using Event Sourcing (Recommended)

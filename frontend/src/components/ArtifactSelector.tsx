@@ -22,7 +22,7 @@ export default function ArtifactSelector({ projectId, artifactType, onSelect, on
                 case 'requirement':
                     return (await axios.get(`/api/v1/requirement/requirements/?project_id=${projectId}&select_all=true`)).data;
                 case 'use_case':
-                    return (await axios.get(`/api/v1/use_case/use_cases/?project_id=${projectId}&select_all=true`)).data;
+                    return (await axios.get(`/api/v1/use_case/use-cases/?project_id=${projectId}&select_all=true`)).data;
                 case 'vision':
                     return (await axios.get(`/api/v1/vision/vision-statements/?project_id=${projectId}`)).data;
                 case 'diagram':

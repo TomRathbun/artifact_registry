@@ -80,6 +80,13 @@ def list_people(
         
     return query.all()
 
+@router.get("/people/{person_id}", response_model=PersonOut)
+def get_person(person_id: str, db: Session = Depends(get_db)):
+    person = db.query(Person).filter(Person.id == person_id).first()
+    if not person:
+        raise HTTPException(status_code=404, detail="Person not found")
+    return person
+
 @router.post("/people", response_model=PersonOut, status_code=status.HTTP_201_CREATED)
 def create_person(payload: PersonCreate, db: Session = Depends(get_db)):
     person = Person(**payload.dict())

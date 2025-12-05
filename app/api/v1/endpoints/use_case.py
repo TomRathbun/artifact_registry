@@ -160,12 +160,7 @@ def create_use_case(payload: UseCaseCreate, db: Session = Depends(get_db)):
     if not project:
         raise HTTPException(status_code=400, detail="Project not found")
 
-    # 2. Validate Parent (Need) - only if provided
-    parent_need = None
-    if payload.source_need_id:
-        parent_need = db.query(Need).filter(Need.aid == payload.source_need_id).first()
-        if not parent_need:
-            raise HTTPException(status_code=400, detail="Source Need not found")
+    # 2. Linkages are now managed separately via LinkageManager
     
     # 3. Validate and fetch reusable components
     preconditions = []
@@ -193,7 +188,7 @@ def create_use_case(payload: UseCaseCreate, db: Session = Depends(get_db)):
             raise HTTPException(status_code=400, detail="One or more stakeholders not found")
 
     # 4. Create Use Case
-    area_code = parent_need.area if (payload.source_need_id and parent_need and parent_need.area) else "GLOBAL"
+    area_code = payload.area if payload.area else "GLOBAL"
     aid = generate_artifact_id(db, UseCase, area_code, payload.project_id)    
 
     db_obj = UseCase(
@@ -204,31 +199,17 @@ def create_use_case(payload: UseCaseCreate, db: Session = Depends(get_db)):
         trigger=payload.trigger,
         primary_actor_id=payload.primary_actor_id,
         status=payload.status,
-        scope=payload.scope,
-        level=payload.level,
         preconditions=preconditions,
         postconditions=postconditions,
         exceptions=exceptions,
         stakeholders=stakeholders,
         mss=[step.model_dump() for step in payload.mss],
         extensions=[ext.model_dump() for ext in payload.extensions],
-        req_references=payload.req_references,
         project_id=payload.project_id
     )
     db.add(db_obj)
     
-    # 5. Create Linkage (UseCase -> satisfies -> Need) - only if source_need_id provided
-    if payload.source_need_id:
-        link = Linkage(
-            aid=str(uuid4()),
-            source_artifact_type="use_case",
-            source_id=aid,
-            target_artifact_type="need",
-            target_id=payload.source_need_id,
-            relationship_type=LinkType.SATISFIES,
-            project_id=payload.project_id
-        )
-        db.add(link)
+    # 5. Linkages are now created separately via LinkageManager
     
     db.commit()
     db.refresh(db_obj)
@@ -267,31 +248,8 @@ def update_use_case(aid: str, payload: UseCaseCreate, db: Session = Depends(get_
         else:
             setattr(db_obj, k, v)
     
-    # Handle linkage updates if source_need_id changed
-    if 'source_need_id' in payload.model_dump(exclude_unset=True):
-        # Delete old linkage(s) from this Use Case to any Need
-        old_linkages = db.query(Linkage).filter(
-            Linkage.source_id == aid,
-            Linkage.source_artifact_type == "use_case",
-            Linkage.target_artifact_type == "need",
-            Linkage.relationship_type == LinkType.SATISFIES
-        ).all()
-        for old_link in old_linkages:
-            db.delete(old_link)
-        
-        # Create new linkage to the new Need
-        if payload.source_need_id:
-            new_link = Linkage(
-                aid=str(uuid4()),
-                source_artifact_type="use_case",
-                source_id=aid,
-                target_artifact_type="need",
-                target_id=payload.source_need_id,
-                relationship_type=LinkType.SATISFIES,
-                project_id=payload.project_id
-            )
-            db.add(new_link)
-        
+    # Linkages are now managed separately via LinkageManager
+    
     db.commit()
     db.refresh(db_obj)
     return db_obj

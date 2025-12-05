@@ -4,6 +4,7 @@ import ProjectDashboard from './components/ProjectDashboard';
 import ProjectLayout from './components/ProjectLayout';
 import ArtifactListView from './components/ArtifactListView';
 import ArtifactWizard from './components/ArtifactWizard';
+import ArtifactPresentation from './components/ArtifactPresentation';
 import ArtifactGraphView from './components/ArtifactGraphView';
 
 import ManagementView from './components/ManagementView';
@@ -44,8 +45,10 @@ function App() {
               <Route path="graph" element={<ArtifactGraphView />} />
               {/* Create new artifact */}
               <Route path=":artifactType/create" element={<ArtifactWizard />} />
+              {/* View artifact in presentation mode (new default) */}
+              <Route path=":artifactType/:artifactId" element={<ArtifactPresentation />} />
               {/* Edit existing artifact */}
-              <Route path=":artifactType/:artifactId" element={<ArtifactWizard />} />
+              <Route path=":artifactType/:artifactId/edit" element={<ArtifactWizard />} />
             </Route>
           </Routes>
         </div>

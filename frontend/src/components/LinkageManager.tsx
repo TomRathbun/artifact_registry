@@ -43,7 +43,7 @@ function getLinkTypeDescription(linkType: LinkType): string {
 }
 
 // Component to fetch and display diagram name
-function DiagramName({ diagramId, projectId }: { diagramId: string; projectId: string }) {
+function DiagramName({ diagramId }: { diagramId: string; projectId: string }) {
     const { data: diagram } = useQuery({
         queryKey: ['diagram', diagramId],
         queryFn: async () => {
@@ -73,12 +73,23 @@ function ComponentName({ componentId }: { componentId: string }) {
 }
 
 interface LinkageManagerProps {
-    sourceArtifactType: string;
-    sourceId: string;
+    sourceArtifactType?: string;
+    sourceId?: string;
     projectId: string;
+    artifactType?: string;
+    artifactId?: string;
+    onLinkageClick?: (linkage: any) => void;
 }
 
-export const LinkageManager: React.FC<LinkageManagerProps> = ({ sourceArtifactType, sourceId, projectId }) => {
+export const LinkageManager: React.FC<LinkageManagerProps> = ({
+    sourceArtifactType,
+    sourceId,
+    projectId,
+    artifactId,
+    onLinkageClick
+}) => {
+    // Use either sourceArtifactType/sourceId or artifactType/artifactId
+    const actualSourceId = sourceId || artifactId;
     const queryClient = useQueryClient();
     const [newLinkType, setNewLinkType] = useState<LinkType>(LinkType.TRACES_TO);
     const [targetId, setTargetId] = useState('');
@@ -87,8 +98,9 @@ export const LinkageManager: React.FC<LinkageManagerProps> = ({ sourceArtifactTy
 
     // Fetch existing linkages
     const { data: linkages, isLoading } = useQuery({
-        queryKey: ['linkages', sourceId],
-        queryFn: () => LinkageService.getOutgoingLinkagesApiV1LinkageLinkagesFromSourceAidGet(sourceId),
+        queryKey: ['linkages', actualSourceId],
+        queryFn: () => LinkageService.getOutgoingLinkagesApiV1LinkageLinkagesFromSourceAidGet(actualSourceId!),
+        enabled: !!actualSourceId,
     });
 
     // Create mutation
@@ -151,7 +163,11 @@ export const LinkageManager: React.FC<LinkageManagerProps> = ({ sourceArtifactTy
                             </thead>
                             <tbody className="bg-white divide-y divide-slate-200">
                                 {linkages.map((link) => (
-                                    <tr key={link.aid}>
+                                    <tr
+                                        key={link.aid}
+                                        className={onLinkageClick ? "hover:bg-slate-50 cursor-pointer" : ""}
+                                        onClick={() => onLinkageClick && onLinkageClick(link)}
+                                    >
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
                                             {link.relationship_type}
                                         </td>
