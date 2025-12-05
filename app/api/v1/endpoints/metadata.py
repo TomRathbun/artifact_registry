@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import cast, String
 from typing import List
 
 from app.db.session import get_db
@@ -70,13 +71,10 @@ def list_people(
         
     if role:
         # Filter by role in roles JSON list
-        # SQLite JSON support might vary, but for simple string list we can use LIKE or custom check
-        # Or fetch all and filter in python if list is small (it is)
-        # But better to use database filter.
-        # For SQLite: json_extract or LIKE '%"role"%'
-        # Let's try simple LIKE for now as roles is a JSON list of strings e.g. ["actor", "owner"]
+        # For Postgres, we need to cast to String to use LIKE on a JSON column
+        # OR use specific JSON operators. Casting is a safe portable bet for now.
         term = f'%"{role}"%'
-        query = query.filter(Person.roles.like(term))
+        query = query.filter(cast(Person.roles, String).like(term))
         
     return query.all()
 

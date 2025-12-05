@@ -59,3 +59,7 @@ frontend/yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# PostgreSQL Portable
+.postgres_bin/
+postgres_data/

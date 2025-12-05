@@ -4,9 +4,12 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy import create_engine, Column, String, Text, JSON, DateTime, Enum as SQLEnum, func, ForeignKey
 from app.enums import Status
 
-DATABASE_URL = "sqlite:///./registry.db"  # Production DB
+from app.core.config import settings
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+DATABASE_URL = settings.DATABASE_URL
+
+connect_args = {"check_same_thread": False} if "sqlite" in DATABASE_URL else {}
+engine = create_engine(DATABASE_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

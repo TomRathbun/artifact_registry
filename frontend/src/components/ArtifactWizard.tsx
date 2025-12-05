@@ -305,50 +305,59 @@ export default function ArtifactWizard() {
         }
     }, [artifactData, reset, artifactType, setValue, location.state]);
 
+    const preparePayload = (data: FormData) => {
+        // Add project_id to payload
+        const payload = { ...data, project_id: realProjectId };
+
+        const sanitize = (obj: any) => {
+            const cleaned: any = { ...obj };
+            ['level', 'status', 'area', 'owner', 'stakeholder_id', 'source_vision_id', 'source_need_id', 'ears_type', 'primary_actor_id'].forEach(field => {
+                if (cleaned[field] === '' || cleaned[field] === null) {
+                    delete cleaned[field];
+                }
+            });
+            // Also sanitize EARS fields if they are empty
+            ['ears_trigger', 'ears_state', 'ears_condition', 'ears_feature'].forEach(field => {
+                if (cleaned[field] === '' || cleaned[field] === null) {
+                    delete cleaned[field];
+                }
+            });
+            return cleaned;
+        };
+
+        // Filter fields based on artifact type
+        const filterFields = (obj: any, type: ArtifactType) => {
+            const validFields: Record<ArtifactType, string[]> = {
+                vision: ['title', 'description', 'area', 'status', 'project_id'],
+                need: ['title', 'description', 'area', 'status', 'rationale', 'source_vision_id', 'owner_id', 'stakeholder_id', 'level', 'site_ids', 'component_ids', 'project_id'],
+                use_case: ['title', 'description', 'source_need_id', 'status', 'trigger', 'primary_actor_id', 'stakeholder_ids', 'precondition_ids', 'postcondition_ids', 'exception_ids', 'mss', 'extensions', 'project_id'],
+                requirement: ['short_name', 'text', 'area', 'level', 'ears_type', 'ears_trigger', 'ears_state', 'ears_condition', 'ears_feature', 'status', 'rationale', 'owner', 'source_use_case_id', 'project_id']
+            };
+            const allowed = validFields[type];
+            const filtered: any = {};
+            allowed.forEach(field => {
+                if (obj[field] !== undefined) {
+                    filtered[field] = obj[field];
+                }
+            });
+            return filtered;
+        };
+
+        const cleanPayload = sanitize(payload);
+
+        // Filter out incomplete MSS steps
+        if (cleanPayload.mss && Array.isArray(cleanPayload.mss)) {
+            cleanPayload.mss = cleanPayload.mss.filter((step: any) => step.actor && step.description);
+        }
+
+        return filterFields(cleanPayload, artifactType);
+    };
+
     // Mutations for creating/updating the main artifact
     const createMutation = useMutation({
         mutationFn: async (data: FormData) => {
-            // Add project_id to payload
-            const payload = { ...data, project_id: realProjectId };
-
-            const sanitize = (obj: any) => {
-                const cleaned: any = { ...obj };
-                ['level', 'status', 'area', 'owner', 'stakeholder_id', 'source_vision_id', 'source_need_id', 'ears_type', 'primary_actor_id'].forEach(field => {
-                    if (cleaned[field] === '' || cleaned[field] === null) {
-                        delete cleaned[field];
-                    }
-                });
-                return cleaned;
-            };
-
-            // Filter fields based on artifact type
-            const filterFields = (obj: any, type: ArtifactType) => {
-                const validFields: Record<ArtifactType, string[]> = {
-                    vision: ['title', 'description', 'area', 'status', 'project_id'],
-                    need: ['title', 'description', 'area', 'status', 'rationale', 'source_vision_id', 'owner_id', 'stakeholder_id', 'level', 'site_ids', 'component_ids', 'project_id'],
-                    use_case: ['title', 'description', 'source_need_id', 'status', 'trigger', 'primary_actor_id', 'stakeholder_ids', 'precondition_ids', 'postcondition_ids', 'exception_ids', 'mss', 'extensions', 'project_id'],
-                    requirement: ['short_name', 'text', 'area', 'level', 'ears_type', 'ears_trigger', 'ears_state', 'ears_condition', 'ears_feature', 'status', 'rationale', 'owner', 'source_use_case_id', 'project_id']
-                };
-                const allowed = validFields[type];
-                const filtered: any = {};
-                allowed.forEach(field => {
-                    if (obj[field] !== undefined) {
-                        filtered[field] = obj[field];
-                    }
-                });
-                return filtered;
-            };
-
-            const cleanPayload = sanitize(payload);
-
-            // Filter out incomplete MSS steps
-            if (cleanPayload.mss && Array.isArray(cleanPayload.mss)) {
-                cleanPayload.mss = cleanPayload.mss.filter((step: any) => step.actor && step.description);
-            }
-
-            const filteredPayload = filterFields(cleanPayload, artifactType);
-
-            console.log('Sending payload:', filteredPayload);
+            const filteredPayload = preparePayload(data);
+            console.log('Sending create payload:', filteredPayload);
 
             switch (artifactType) {
                 case 'vision':
@@ -373,15 +382,19 @@ export default function ArtifactWizard() {
         mutationFn: async (data: FormData) => {
             const aid = artifactId ?? savedAid;
             if (!aid) throw new Error('Missing artifact ID');
+
+            const filteredPayload = preparePayload(data);
+            console.log('Sending update payload:', filteredPayload);
+
             switch (artifactType) {
                 case 'vision':
-                    return await VisionService.updateVisionStatementApiV1VisionVisionStatementsAidPut(aid, data as any);
+                    return await VisionService.updateVisionStatementApiV1VisionVisionStatementsAidPut(aid, filteredPayload as any);
                 case 'need':
-                    return await NeedsService.updateNeedApiV1NeedNeedsAidPut(aid, data as any);
+                    return await NeedsService.updateNeedApiV1NeedNeedsAidPut(aid, filteredPayload as any);
                 case 'use_case':
-                    return await UseCasesService.updateUseCaseApiV1UseCaseUseCasesAidPut(aid, data as any);
+                    return await UseCasesService.updateUseCaseApiV1UseCaseUseCasesAidPut(aid, filteredPayload as any);
                 case 'requirement':
-                    return await RequirementsService.updateRequirementApiV1RequirementRequirementsAidPut(aid, data as any);
+                    return await RequirementsService.updateRequirementApiV1RequirementRequirementsAidPut(aid, filteredPayload as any);
             }
         },
         onSuccess: () => {
@@ -934,15 +947,7 @@ export default function ArtifactWizard() {
                                 <p className="text-xs text-slate-500 mt-1">Area cannot be changed after creation (used in artifact ID)</p>
                             )}
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
-                            <select {...register('status')} className="w-full px-3 py-2 border border-slate-300 rounded-md">
-                                <option value="proposed">Proposed</option>
-                                <option value="verified">Verified</option>
-                                <option value="rejected">Rejected</option>
-                                <option value="base_lined">Base Lined</option>
-                            </select>
-                        </div>
+
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Level</label>
                             <select {...register('level')} className="w-full px-3 py-2 border border-slate-300 rounded-md">
@@ -958,6 +963,37 @@ export default function ArtifactWizard() {
                                 {...register('short_name', { required: true })}
                                 className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 placeholder="e.g. SYS-001"
+                            />
+                        </div>
+                        <div>
+                            <div className="flex justify-between items-center mb-1">
+                                <label className="block text-sm font-medium text-slate-700">Owner</label>
+                                <button type="button" onClick={() => { setPersonModalType('owner'); setShowPersonModal(true); }} className="text-xs text-blue-600 hover:text-blue-800 flex items-center">
+                                    <Plus className="w-3 h-3 mr-1" /> Add Owner
+                                </button>
+                            </div>
+                            <select {...register('owner')} className="w-full px-3 py-2 border border-slate-300 rounded-md">
+                                <option value="">Select Owner...</option>
+                                {(() => {
+                                    // Deduplicate owners by name for the text-based Requirement field
+                                    const uniqueNames = new Set();
+                                    return owners?.filter((p: any) => {
+                                        if (uniqueNames.has(p.name)) return false;
+                                        uniqueNames.add(p.name);
+                                        return true;
+                                    }).map((p: any) => (
+                                        <option key={p.id} value={p.name}>{p.name}</option>
+                                    ));
+                                })()}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Requirement Text</label>
+                            <textarea
+                                {...register('text', { required: true })}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                rows={4}
+                                placeholder="The system shall..."
                             />
                         </div>
                         <div className="bg-slate-50 p-4 rounded-md border border-slate-200">

@@ -23,9 +23,11 @@ target_metadata = Base.metadata
 from app.db.base import engine
 connectable = engine
 
+from app.core.config import settings
+
 def run_migrations_offline():
     """Run migrations in 'offline' mode."""
-    url = config.get_main_option("sqlalchemy.url")
+    url = settings.DATABASE_URL
     context.configure(
         url=url, target_metadata=target_metadata, literal_binds=True, dialect_opts={"paramstyle": "named"}
     )
