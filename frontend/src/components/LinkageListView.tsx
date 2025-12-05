@@ -3,7 +3,7 @@ import { useParams, Link as RouterLink } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { LinkageService } from '../client/services/LinkageService';
 import type { LinkageCreate } from '../client/models/LinkageCreate';
-import { Link as LinkIcon, Plus, Trash2, ExternalLink, Eye, Search, Pencil } from 'lucide-react';
+import { Link as LinkIcon, Plus, Trash2, ExternalLink, Eye, Search, Pencil, Filter } from 'lucide-react';
 import { LinkType } from './LinkageManager'; // Reuse enum
 import ArtifactSelector from './ArtifactSelector';
 
@@ -26,7 +26,7 @@ function getLinkTypeDescription(linkType: LinkType): string {
 }
 
 // Component to fetch and display diagram name
-function DiagramName({ diagramId, projectId }: { diagramId: string; projectId: string }) {
+function DiagramName({ diagramId }: { diagramId: string; projectId: string }) {
     const { data: diagram } = useQuery({
         queryKey: ['diagram', diagramId],
         queryFn: async () => {
@@ -71,11 +71,45 @@ export default function LinkageListView() {
     const [isSelectorOpen, setIsSelectorOpen] = useState(false);
     const [selectorMode, setSelectorMode] = useState<'source' | 'target'>('target');
 
+    // Filter states
+    const [filterSourceType, setFilterSourceType] = useState<string>('all');
+    const [filterRelationship, setFilterRelationship] = useState<string>('all');
+    const [filterTargetType, setFilterTargetType] = useState<string>('all');
+
     // Fetch all linkages for project
     const { data: linkages, isLoading } = useQuery({
         queryKey: ['linkages', 'all', projectId],
         queryFn: () => LinkageService.listLinkagesApiV1LinkageLinkagesGet(projectId),
     });
+
+    // Filter linkages based on selected filters
+    const filteredLinkages = React.useMemo(() => {
+        if (!linkages) return [];
+
+        return linkages.filter(link => {
+            const matchesSource = filterSourceType === 'all' || link.source_artifact_type === filterSourceType;
+            const matchesRelationship = filterRelationship === 'all' || link.relationship_type === filterRelationship;
+            const matchesTarget = filterTargetType === 'all' || link.target_artifact_type === filterTargetType;
+
+            return matchesSource && matchesRelationship && matchesTarget;
+        });
+    }, [linkages, filterSourceType, filterRelationship, filterTargetType]);
+
+    // Get unique values for filters
+    const uniqueSourceTypes = React.useMemo(() => {
+        if (!linkages) return [];
+        return Array.from(new Set(linkages.map(l => l.source_artifact_type).filter(Boolean))).sort();
+    }, [linkages]);
+
+    const uniqueRelationships = React.useMemo(() => {
+        if (!linkages) return [];
+        return Array.from(new Set(linkages.map(l => l.relationship_type).filter(Boolean))).sort();
+    }, [linkages]);
+
+    const uniqueTargetTypes = React.useMemo(() => {
+        if (!linkages) return [];
+        return Array.from(new Set(linkages.map(l => l.target_artifact_type).filter(Boolean))).sort();
+    }, [linkages]);
 
     // Create mutation
     const createMutation = useMutation({
@@ -441,9 +475,85 @@ export default function LinkageListView() {
                 </div>
             )}
 
+            {/* Filters Section */}
+            {linkages && linkages.length > 0 && (
+                <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm mb-4">
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center text-slate-700 font-medium">
+                            <Filter className="w-4 h-4 mr-2" />
+                            Filters:
+                        </div>
+
+                        {/* Source Type Filter */}
+                        <div className="flex-1">
+                            <label className="block text-xs text-slate-500 mb-1">Source Type</label>
+                            <select
+                                value={filterSourceType}
+                                onChange={(e) => setFilterSourceType(e.target.value)}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="all">All Types</option>
+                                {uniqueSourceTypes.map(type => (
+                                    <option key={type} value={type as string}>{type}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Relationship Filter */}
+                        <div className="flex-1">
+                            <label className="block text-xs text-slate-500 mb-1">Relationship</label>
+                            <select
+                                value={filterRelationship}
+                                onChange={(e) => setFilterRelationship(e.target.value)}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="all">All Relationships</option>
+                                {uniqueRelationships.map(rel => (
+                                    <option key={rel} value={rel as string}>{rel}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Target Type Filter */}
+                        <div className="flex-1">
+                            <label className="block text-xs text-slate-500 mb-1">Target Type</label>
+                            <select
+                                value={filterTargetType}
+                                onChange={(e) => setFilterTargetType(e.target.value)}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="all">All Types</option>
+                                {uniqueTargetTypes.map(type => (
+                                    <option key={type} value={type as string}>{type}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Clear Filters Button */}
+                        {(filterSourceType !== 'all' || filterRelationship !== 'all' || filterTargetType !== 'all') && (
+                            <button
+                                onClick={() => {
+                                    setFilterSourceType('all');
+                                    setFilterRelationship('all');
+                                    setFilterTargetType('all');
+                                }}
+                                className="px-3 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors mt-5"
+                            >
+                                Clear All
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Results count */}
+                    <div className="mt-3 text-sm text-slate-600">
+                        Showing <span className="font-semibold text-slate-900">{filteredLinkages.length}</span> of <span className="font-semibold text-slate-900">{linkages.length}</span> linkages
+                    </div>
+                </div>
+            )}
+
             {isLoading ? (
                 <div className="text-center py-12 text-slate-500">Loading linkages...</div>
-            ) : linkages && linkages.length > 0 ? (
+            ) : filteredLinkages && filteredLinkages.length > 0 ? (
                 <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
                     <table className="min-w-full divide-y divide-slate-200">
                         <thead className="bg-slate-50">
@@ -455,7 +565,7 @@ export default function LinkageListView() {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-slate-200">
-                            {linkages.map((link) => (
+                            {filteredLinkages.map((link) => (
                                 <tr key={link.aid} className="hover:bg-slate-50">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                                         <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded mr-2">
@@ -474,70 +584,72 @@ export default function LinkageListView() {
                                             {link.relationship_type}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                                        <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded mr-2">
-                                            {link.target_artifact_type}
-                                        </span>
-                                        {link.target_artifact_type === 'url' ? (
-                                            <a href={link.target_id || '#'} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
-                                                {link.target_id}
-                                            </a>
-                                        ) : link.target_artifact_type === 'diagram' ? (
-                                            <DiagramName diagramId={link.target_id || ''} projectId={projectId || ''} />
-                                        ) : link.target_artifact_type === 'component' ? (
-                                            <ComponentName componentId={link.target_id || ''} />
-                                        ) : (
-                                            link.target_id
-                                        )}
+                                    <td className="px-6 py-4 text-sm text-slate-900">
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded mr-2 inline-block w-fit">
+                                                {link.target_artifact_type}
+                                            </span>
+                                            {link.target_artifact_type === 'url' ? (
+                                                <a
+                                                    href={link.target_id || '#'}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="text-blue-600 hover:underline break-all max-w-md"
+                                                    title={link.target_id || ''}
+                                                >
+                                                    {link.target_id}
+                                                </a>
+                                            ) : link.target_artifact_type === 'diagram' ? (
+                                                <DiagramName diagramId={link.target_id || ''} projectId={projectId || ''} />
+                                            ) : link.target_artifact_type === 'component' ? (
+                                                <ComponentName componentId={link.target_id || ''} />
+                                            ) : (
+                                                <span className="whitespace-nowrap">{link.target_id}</span>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div className="flex justify-end items-center gap-2">
-                                            {(() => {
-                                                const isUrl = link.target_artifact_type === 'url';
-                                                const targetUrl = isUrl
-                                                    ? (link.target_id || '')
-                                                    : link.target_artifact_type === 'diagram'
-                                                        ? `/project/${projectId}/diagrams/${link.target_id}`
-                                                        : link.target_artifact_type === 'component'
-                                                            ? `/project/${projectId}/components`
-                                                            : `/project/${projectId}/${link.target_artifact_type}/${link.target_id}`;
+                                            {/* View/Open button */}
+                                            {link.target_artifact_type === 'url' ? (
+                                                <a
+                                                    href={link.target_id || ''}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="text-slate-400 hover:text-blue-600 p-2 hover:bg-blue-50 rounded-full transition-colors"
+                                                    title="Open in New Tab"
+                                                >
+                                                    <ExternalLink className="w-4 h-4" />
+                                                </a>
+                                            ) : (
+                                                <RouterLink
+                                                    to={
+                                                        link.target_artifact_type === 'diagram'
+                                                            ? `/project/${projectId}/diagrams/${link.target_id}`
+                                                            : link.target_artifact_type === 'component'
+                                                                ? `/project/${projectId}/components`
+                                                                : `/project/${projectId}/${link.target_artifact_type}/${link.target_id}`
+                                                    }
+                                                    className="text-slate-400 hover:text-blue-600 p-2 hover:bg-blue-50 rounded-full transition-colors"
+                                                    title="Open"
+                                                >
+                                                    <Eye className="w-4 h-4" />
+                                                </RouterLink>
+                                            )}
 
-                                                return (
-                                                    <>
-                                                        {isUrl ? (
-                                                            <a
-                                                                href={targetUrl}
-                                                                target="_blank"
-                                                                rel="noreferrer"
-                                                                className="text-slate-400 hover:text-blue-600 p-2 hover:bg-blue-50 rounded-full transition-colors"
-                                                                title="Open in New Tab"
-                                                            >
-                                                                <ExternalLink className="w-4 h-4" />
-                                                            </a>
-                                                        ) : (
-                                                            <RouterLink
-                                                                to={targetUrl}
-                                                                className="text-slate-400 hover:text-blue-600 p-2 hover:bg-blue-50 rounded-full transition-colors"
-                                                                title="Open"
-                                                            >
-                                                                <Eye className="w-4 h-4" />
-                                                            </RouterLink>
-                                                        )}
-                                                    </>
-                                                );
-                                            })()}
-
+                                            {/* Edit button */}
                                             <button
                                                 onClick={() => setEditingLinkage(link)}
-                                                className="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded-full transition-colors"
+                                                className="bg-blue-100 text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-200 rounded-full transition-colors border border-blue-300"
                                                 title="Edit Linkage"
                                             >
                                                 <Pencil className="w-4 h-4" />
                                             </button>
 
+                                            {/* Delete button */}
                                             <button
                                                 onClick={() => deleteMutation.mutate(link.aid)}
-                                                className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-full transition-colors"
+                                                className="bg-red-100 text-red-600 hover:text-red-900 p-2 hover:bg-red-200 rounded-full transition-colors border border-red-300"
                                                 title="Delete Linkage"
                                             >
                                                 <Trash2 className="w-4 h-4" />
@@ -548,6 +660,21 @@ export default function LinkageListView() {
                             ))}
                         </tbody>
                     </table>
+                </div>
+            ) : linkages && linkages.length > 0 ? (
+                <div className="text-center py-12 text-slate-500">
+                    <Filter className="w-12 h-12 mx-auto mb-4 text-slate-300" />
+                    <p className="text-lg font-medium mb-2">No linkages match your filters</p>
+                    <button
+                        onClick={() => {
+                            setFilterSourceType('all');
+                            setFilterRelationship('all');
+                            setFilterTargetType('all');
+                        }}
+                        className="text-blue-600 hover:text-blue-700 underline"
+                    >
+                        Clear all filters
+                    </button>
                 </div>
             ) : (
                 <div className="text-center py-12 text-slate-500">
