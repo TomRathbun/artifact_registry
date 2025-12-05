@@ -275,13 +275,15 @@ export default function ManagementView({ type }: ManagementViewProps) {
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <button
                                         onClick={() => handleEdit(item)}
-                                        className="text-blue-600 hover:text-blue-900 mr-4"
+                                        className="text-slate-400 hover:text-blue-600 p-2 hover:bg-blue-50 rounded-full transition-colors"
+                                        title="Edit"
                                     >
                                         <Edit size={16} />
                                     </button>
                                     <button
                                         onClick={() => deleteMutation.mutate(item.id || item.code)}
-                                        className="text-red-600 hover:text-red-900"
+                                        className="text-slate-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-full transition-colors"
+                                        title="Delete"
                                     >
                                         <Trash2 size={16} />
                                     </button>

@@ -137,7 +137,8 @@ export default function SiteManager() {
                                     <div className="flex justify-end gap-2">
                                         <button
                                             onClick={() => startEdit(site)}
-                                            className="p-1 text-slate-400 hover:text-blue-600"
+                                            className="text-slate-400 hover:text-blue-600 p-2 hover:bg-blue-50 rounded-full transition-colors"
+                                            title="Edit Site"
                                         >
                                             <Edit2 className="w-4 h-4" />
                                         </button>
@@ -145,7 +146,8 @@ export default function SiteManager() {
                                             onClick={() => {
                                                 if (confirm('Are you sure?')) deleteMutation.mutate(site.id);
                                             }}
-                                            className="p-1 text-slate-400 hover:text-red-600"
+                                            className="text-slate-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-full transition-colors"
+                                            title="Delete Site"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>

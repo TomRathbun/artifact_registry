@@ -613,9 +613,9 @@ export default function ComponentManager() {
                                 <td className="p-4">
                                     <div className="flex items-center gap-1.5">
                                         <div className={`w-2 h-2 rounded-full ${comp.lifecycle === 'Active' ? 'bg-green-500' :
-                                                comp.lifecycle === 'Legacy' ? 'bg-amber-500' :
-                                                    comp.lifecycle === 'Planned' ? 'bg-blue-500' :
-                                                        'bg-slate-400'
+                                            comp.lifecycle === 'Legacy' ? 'bg-amber-500' :
+                                                comp.lifecycle === 'Planned' ? 'bg-blue-500' :
+                                                    'bg-slate-400'
                                             }`} />
                                         <span className="text-sm text-slate-600">{comp.lifecycle || 'Active'}</span>
                                     </div>
@@ -638,14 +638,14 @@ export default function ComponentManager() {
                                     <div className="flex justify-end gap-2">
                                         <button
                                             onClick={() => startEdit(comp)}
-                                            className="p-1 text-slate-400 hover:text-blue-600"
+                                            className="text-slate-400 hover:text-blue-600 p-2 hover:bg-blue-50 rounded-full transition-colors"
                                             title="Edit Component"
                                         >
                                             <Pencil className="w-4 h-4" />
                                         </button>
                                         <button
                                             onClick={() => startLinking(comp)}
-                                            className="p-1 text-slate-400 hover:text-indigo-600"
+                                            className="text-slate-400 hover:text-indigo-600 p-2 hover:bg-indigo-50 rounded-full transition-colors"
                                             title="Manage Links"
                                         >
                                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-link"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
@@ -654,7 +654,8 @@ export default function ComponentManager() {
                                             onClick={() => {
                                                 if (confirm('Are you sure?')) deleteMutation.mutate(comp.id);
                                             }}
-                                            className="p-1 text-slate-400 hover:text-red-600"
+                                            className="text-slate-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-full transition-colors"
+                                            title="Delete Component"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>
