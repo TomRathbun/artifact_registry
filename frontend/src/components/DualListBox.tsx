@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { ChevronRight, ChevronLeft, ChevronsRight, ChevronsLeft, Search, ArrowUpDown, Filter } from 'lucide-react';
+import { ChevronRight, ChevronLeft, ChevronsRight, ChevronsLeft, Search, ArrowUpDown, Filter, Tag, Activity } from 'lucide-react';
 
 interface DualListBoxProps<T> {
     available: T[];
@@ -29,6 +29,9 @@ export default function DualListBox<T>({
     const [searchTerm, setSearchTerm] = useState('');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | 'none'>('none');
     const [filterType, setFilterType] = useState<string>('all');
+    // New Filters
+    const [filterTag, setFilterTag] = useState<string>('all');
+    const [filterLifecycle, setFilterLifecycle] = useState<string>('all');
 
     // Extract unique types from available items if they have a 'type' property
     const availableTypes = useMemo(() => {
@@ -38,6 +41,32 @@ export default function DualListBox<T>({
         });
         return Array.from(types).sort();
     }, [available]);
+
+    // Check availability of tags/lifecycle fields
+    const hasTags = useMemo(() => available.some((item: any) => item.tags && Array.isArray(item.tags) && item.tags.length > 0), [available]);
+    const hasLifecycle = useMemo(() => available.some((item: any) => item.lifecycle), [available]);
+
+    // Extract unique tags and lifecycles
+    const availableTags = useMemo(() => {
+        if (!hasTags) return [];
+        const tags = new Set<string>();
+        available.forEach((item: any) => {
+            if (item.tags && Array.isArray(item.tags)) {
+                item.tags.forEach((t: string) => tags.add(t));
+            }
+        });
+        return Array.from(tags).sort();
+    }, [available, hasTags]);
+
+    const availableLifecycles = useMemo(() => {
+        if (!hasLifecycle) return [];
+        const lifes = new Set<string>();
+        available.forEach((item: any) => {
+            if (item.lifecycle) lifes.add(item.lifecycle);
+        });
+        return Array.from(lifes).sort();
+    }, [available, hasLifecycle]);
+
 
     // Filter out already selected items from available list
     const selectedKeys = new Set(selected.map(getKey));
@@ -49,6 +78,16 @@ export default function DualListBox<T>({
         // Filter by Type
         if (filterType !== 'all') {
             items = items.filter((item: any) => item.type === filterType);
+        }
+
+        // Filter by Tag
+        if (filterTag !== 'all') {
+            items = items.filter((item: any) => item.tags && Array.isArray(item.tags) && item.tags.includes(filterTag));
+        }
+
+        // Filter by Lifecycle
+        if (filterLifecycle !== 'all') {
+            items = items.filter((item: any) => item.lifecycle === filterLifecycle);
         }
 
         // Search
@@ -69,7 +108,7 @@ export default function DualListBox<T>({
         }
 
         return items;
-    }, [available, selectedKeys, searchTerm, sortOrder, filterType, getKey, getLabel]);
+    }, [available, selectedKeys, searchTerm, sortOrder, filterType, filterTag, filterLifecycle, getKey, getLabel]);
 
     const moveToSelected = (items: T[]) => {
         onChange([...selected, ...items]);
@@ -175,6 +214,49 @@ export default function DualListBox<T>({
                                 </select>
                             </div>
                         )}
+                        {/* New Filters for Tags and Lifecycle if present in items */}
+                        {hasTags && (
+                            <div className="relative group">
+                                <button
+                                    type="button"
+                                    className={`p-1 rounded hover:bg-slate-100 ${filterTag !== 'all' ? 'text-blue-600 bg-blue-50' : 'text-slate-400'}`}
+                                    title="Filter by Tag"
+                                >
+                                    <Tag className="w-4 h-4" />
+                                </button>
+                                <select
+                                    value={filterTag}
+                                    onChange={(e) => setFilterTag(e.target.value)}
+                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                >
+                                    <option value="all">All Tags</option>
+                                    {availableTags.map(tag => (
+                                        <option key={tag} value={tag}>{tag}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                        {hasLifecycle && (
+                            <div className="relative group">
+                                <button
+                                    type="button"
+                                    className={`p-1 rounded hover:bg-slate-100 ${filterLifecycle !== 'all' ? 'text-blue-600 bg-blue-50' : 'text-slate-400'}`}
+                                    title="Filter by Lifecycle"
+                                >
+                                    <Activity className="w-4 h-4" />
+                                </button>
+                                <select
+                                    value={filterLifecycle}
+                                    onChange={(e) => setFilterLifecycle(e.target.value)}
+                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                >
+                                    <option value="all">All Lifecycles</option>
+                                    {availableLifecycles.map(lc => (
+                                        <option key={lc} value={lc}>{lc}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                         <button
                             type="button"
                             onClick={toggleSort}
@@ -217,12 +299,27 @@ export default function DualListBox<T>({
                                             : 'hover:bg-slate-50'
                                             }`}
                                     >
-                                        {getLabel(item)}
-                                        {(item as any).type && (
-                                            <span className="ml-2 text-xs text-slate-400 border border-slate-200 px-1 rounded">
-                                                {(item as any).type}
-                                            </span>
-                                        )}
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <span>{getLabel(item)}</span>
+                                            {(item as any).type && (
+                                                <span className="text-xs text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded bg-slate-50">
+                                                    {(item as any).type}
+                                                </span>
+                                            )}
+                                            {(item as any).lifecycle && (
+                                                <span className={`text-xs px-1.5 py-0.5 rounded border ${(item as any).lifecycle === 'Active' ? 'bg-green-50 text-green-700 border-green-200' :
+                                                        (item as any).lifecycle === 'Deprecated' ? 'bg-red-50 text-red-700 border-red-200' :
+                                                            'bg-slate-50 text-slate-600 border-slate-200'
+                                                    }`}>
+                                                    {(item as any).lifecycle}
+                                                </span>
+                                            )}
+                                            {(item as any).tags && Array.isArray((item as any).tags) && (item as any).tags.map((tag: string) => (
+                                                <span key={tag} className="text-xs text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                                    <Tag className="w-3 h-3" /> {tag}
+                                                </span>
+                                            ))}
+                                        </div>
                                     </li>
                                 );
                             })}
@@ -300,12 +397,27 @@ export default function DualListBox<T>({
                                             : 'hover:bg-slate-50'
                                             }`}
                                     >
-                                        {getLabel(item)}
-                                        {(item as any).type && (
-                                            <span className="ml-2 text-xs text-slate-400 border border-slate-200 px-1 rounded">
-                                                {(item as any).type}
-                                            </span>
-                                        )}
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <span>{getLabel(item)}</span>
+                                            {(item as any).type && (
+                                                <span className="text-xs text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded bg-slate-50">
+                                                    {(item as any).type}
+                                                </span>
+                                            )}
+                                            {(item as any).lifecycle && (
+                                                <span className={`text-xs px-1.5 py-0.5 rounded border ${(item as any).lifecycle === 'Active' ? 'bg-green-50 text-green-700 border-green-200' :
+                                                        (item as any).lifecycle === 'Deprecated' ? 'bg-red-50 text-red-700 border-red-200' :
+                                                            'bg-slate-50 text-slate-600 border-slate-200'
+                                                    }`}>
+                                                    {(item as any).lifecycle}
+                                                </span>
+                                            )}
+                                            {(item as any).tags && Array.isArray((item as any).tags) && (item as any).tags.map((tag: string) => (
+                                                <span key={tag} className="text-xs text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                                    <Tag className="w-3 h-3" /> {tag}
+                                                </span>
+                                            ))}
+                                        </div>
                                     </li>
                                 );
                             })}

@@ -27,7 +27,9 @@ import {
     AlignHorizontalJustifyEnd,
     AlignVerticalJustifyStart,
     AlignVerticalJustifyCenter,
-    AlignVerticalJustifyEnd
+    AlignVerticalJustifyEnd,
+    Tag,
+    Activity
 } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { toPng, toSvg } from 'html-to-image';
@@ -55,7 +57,26 @@ const CustomNode = ({ data, style }: any) => {
             <Handle type="target" position={Position.Left} id="left-bottom" style={{ top: '70%', background: '#555' }} />
             <Handle type="source" position={Position.Left} id="left-bottom-source" style={{ top: '80%', background: '#555' }} />
 
-            <div>{data.label}</div>
+            <div className="flex flex-col items-center gap-1">
+                <div className="font-semibold">{data.label}</div>
+
+                <div className="flex flex-wrap justify-center gap-1 mt-1">
+                    {data.lifecycle && (
+                        <span className={`text-[10px] px-1 py-0.5 rounded border inline-flex items-center gap-0.5 ${data.lifecycle === 'Active' ? 'bg-green-50 text-green-700 border-green-200' :
+                                data.lifecycle === 'Deprecated' ? 'bg-red-50 text-red-700 border-red-200' :
+                                    'bg-slate-50 text-slate-600 border-slate-200'
+                            }`}>
+                            <Activity className="w-2 h-2" />
+                            {data.lifecycle}
+                        </span>
+                    )}
+                    {data.tags && Array.isArray(data.tags) && data.tags.map((tag: string) => (
+                        <span key={tag} className="text-[10px] text-blue-600 bg-blue-50 border border-blue-100 px-1 py-0.5 rounded inline-flex items-center gap-0.5">
+                            <Tag className="w-2 h-2" /> {tag}
+                        </span>
+                    ))}
+                </div>
+            </div>
         </div>
     );
 };
@@ -234,7 +255,12 @@ export default function ComponentDiagram() {
             nodes.push({
                 id: comp.id,
                 type: 'custom',
-                data: { label: comp.name, description: comp.description },
+                data: {
+                    label: comp.name,
+                    description: comp.description,
+                    tags: comp.tags,
+                    lifecycle: comp.lifecycle
+                },
                 position: { x, y },
                 style: {
                     background: comp.type === 'Hardware' ? '#fff7ed' : '#eff6ff',
