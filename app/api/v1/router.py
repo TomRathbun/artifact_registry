@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import users, linkage, need, use_case, vision, metadata, projects, site, component, diagram, artifact_event, system
+from app.api.v1.endpoints import users, linkage, need, use_case, vision, metadata, projects, site, component, diagram, artifact_event, system, document, database
 from app.api.v1.endpoints import requirement   # <-- NEW
 
 
@@ -17,4 +17,6 @@ api_router.include_router(component.router, prefix="/components", tags=["compone
 api_router.include_router(diagram.router, tags=["diagrams"])
 api_router.include_router(artifact_event.router, prefix="/events", tags=["events"])
 api_router.include_router(system.router, prefix="/system", tags=["system"])
+api_router.include_router(document.router, prefix="/documents", tags=["documents"])
+api_router.include_router(database.router, prefix="/database", tags=["database"])
 

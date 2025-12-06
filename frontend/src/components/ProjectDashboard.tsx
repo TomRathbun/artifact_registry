@@ -193,11 +193,130 @@ export default function ProjectDashboard() {
 
     if (isLoading) return <div className="p-8">Loading projects...</div>
 
+    const handleDatabaseBackup = async () => {
+        try {
+            const response = await fetch('/api/v1/database/backup');
+            if (!response.ok) throw new Error('Backup failed');
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `database_backup_${new Date().toISOString().split('T')[0]}.dump`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            setInfoModal({
+                isOpen: true,
+                title: 'Success',
+                message: 'Database backup downloaded successfully!'
+            });
+        } catch (error) {
+            console.error('Backup error:', error);
+            setInfoModal({
+                isOpen: true,
+                title: 'Backup Failed',
+                message: 'Failed to create database backup'
+            });
+        }
+    };
+
+    const handleDatabaseRestore = () => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Restore Database?',
+            message: 'This will COMPLETELY REPLACE the entire database with the backup file. ALL current data will be lost. This action cannot be undone. Are you absolutely sure?',
+            isDestructive: true,
+            confirmLabel: 'Yes, Restore Database',
+            onConfirm: () => {
+                const fileInput = document.getElementById('database-restore-file') as HTMLInputElement;
+                if (fileInput) fileInput.click();
+            }
+        });
+    };
+
+    const handleDatabaseRestoreFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('/api/v1/database/restore', {
+                method: 'POST',
+                body: await file.arrayBuffer()
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.detail || 'Restore failed');
+            }
+
+            setInfoModal({
+                isOpen: true,
+                title: 'Success',
+                message: 'Database restored successfully! Please refresh the page.'
+            });
+
+            // Refresh all queries
+            queryClient.invalidateQueries();
+        } catch (error) {
+            console.error('Restore error:', error);
+            setInfoModal({
+                isOpen: true,
+                title: 'Restore Failed',
+                message: `Failed to restore database: ${error}`
+            });
+        }
+        e.target.value = ''; // Reset
+    };
+
     return (
         <div className="max-w-4xl mx-auto p-8">
             <div className="flex items-center gap-4 mb-8">
                 <img src="/assets/logo.png" alt="Registry Logo" className="w-16 h-16 object-contain" />
                 <h1 className="text-3xl font-bold text-slate-800">Artifact Registry</h1>
+            </div>
+
+            {/* Database Backup Section */}
+            <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg border border-purple-200 mb-8">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+                            <Download className="w-4 h-4" />
+                            Full Database Backup
+                        </h3>
+                        <p className="text-sm text-slate-600">Backup or restore the entire PostgreSQL database</p>
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={handleDatabaseBackup}
+                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm"
+                            title="Download full database backup"
+                        >
+                            <Download className="w-4 h-4" />
+                            Backup Database
+                        </button>
+                        <button
+                            onClick={handleDatabaseRestore}
+                            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors flex items-center gap-2 text-sm"
+                            title="Restore database from backup file"
+                        >
+                            <Upload className="w-4 h-4" />
+                            Restore Database
+                        </button>
+                        <input
+                            id="database-restore-file"
+                            type="file"
+                            accept=".dump"
+                            className="hidden"
+                            onChange={handleDatabaseRestoreFile}
+                        />
+                    </div>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
