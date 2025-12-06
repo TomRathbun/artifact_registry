@@ -9,7 +9,7 @@ import { Download, Upload, Trash2, Edit, FileDown, FileText, File, Copy, Clipboa
 import { ConfirmationModal } from './ConfirmationModal';
 
 interface ArtifactListViewProps {
-    artifactType: 'vision' | 'need' | 'use_case' | 'requirement' | 'actor' | 'stakeholder' | 'area';
+    artifactType: 'vision' | 'need' | 'use_case' | 'requirement' | 'actor' | 'stakeholder' | 'area' | 'document';
 }
 
 const STATUS_OPTIONS = [
@@ -126,6 +126,14 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
                         debouncedSearch || undefined,
                         false
                     );
+                case 'document':
+                    // Manual fetch until client is regenerated
+                    const params = new URLSearchParams();
+                    params.append('project_id', project.id);
+                    if (debouncedSearch) params.append('search', debouncedSearch);
+                    const res = await fetch(`/api/v1/documents/?${params.toString()}`);
+                    if (!res.ok) throw new Error('Failed to fetch documents');
+                    return res.json();
                 default:
                     return [];
             }
@@ -1073,7 +1081,7 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
     });
 
     const deleteMutation = useMutation({
-        mutationFn: (aid: string) => {
+        mutationFn: async (aid: string) => {
             switch (artifactType) {
                 case 'vision':
                     return VisionService.deleteVisionStatementApiV1VisionVisionStatementsAidDelete(aid);
@@ -1083,6 +1091,10 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
                     return UseCaseService.deleteUseCaseApiV1UseCaseUseCasesAidDelete(aid);
                 case 'requirement':
                     return RequirementService.deleteRequirementApiV1RequirementRequirementsAidDelete(aid);
+                case 'document':
+                    const res = await fetch(`/api/v1/documents/${aid}`, { method: 'DELETE' });
+                    if (!res.ok) throw new Error('Failed to delete document');
+                    return res.json();
                 default:
                     throw new Error(`Delete not implemented for ${artifactType}`);
             }
@@ -1461,6 +1473,11 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
                                                         'bg-green-100 text-green-800'
                                             }`}>
                                             {a.ears_type}
+                                        </span>
+                                    )}
+                                    {artifactType === 'document' && (
+                                        <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0 bg-blue-100 text-blue-800">
+                                            {a.document_type === 'url' ? 'URL' : 'FILE'}
                                         </span>
                                     )}
                                 </Link>
