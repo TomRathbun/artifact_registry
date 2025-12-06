@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { NeedsService, UseCasesService, RequirementsService, VisionService, LinkageService, ProjectsService } from '../client';
-import { ArrowLeft, Edit, ExternalLink, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Edit, ExternalLink, X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
 import ComponentDiagram from './ComponentDiagram';
 import ArtifactGraphView from './ArtifactGraphView';
 
@@ -130,6 +130,7 @@ export default function ArtifactPresentation() {
     const queryClient = useQueryClient();
     const [selectedLink, setSelectedLink] = useState<any>(null);
     const [showStatusDialog, setShowStatusDialog] = useState(false);
+    const [zoomLevel, setZoomLevel] = useState(100);
     const [pendingStatus, setPendingStatus] = useState<string>('');
     const [statusRationale, setStatusRationale] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>(''); // Add status filter
@@ -392,6 +393,25 @@ export default function ArtifactPresentation() {
                             </div>
                         </div>
                         <div className="flex items-center gap-4">
+                            {/* Zoom Controls */}
+                            <div className="flex items-center gap-1 border-r border-slate-200 pr-4 mr-2">
+                                <button
+                                    onClick={() => setZoomLevel(prev => Math.max(50, prev - 10))}
+                                    className="p-1.5 rounded hover:bg-slate-100 text-slate-600 transition-colors"
+                                    title="Zoom Out"
+                                >
+                                    <ZoomOut className="w-4 h-4" />
+                                </button>
+                                <span className="text-xs text-slate-500 w-10 text-center">{zoomLevel}%</span>
+                                <button
+                                    onClick={() => setZoomLevel(prev => Math.min(200, prev + 10))}
+                                    className="p-1.5 rounded hover:bg-slate-100 text-slate-600 transition-colors"
+                                    title="Zoom In"
+                                >
+                                    <ZoomIn className="w-4 h-4" />
+                                </button>
+                            </div>
+
                             {/* Status Dropdown - all artifacts have status from BaseArtifact */}
                             {'status' in artifact && (
                                 <div className="flex items-center gap-2">
@@ -677,7 +697,10 @@ export default function ArtifactPresentation() {
                 />
 
                 {/* Artifact Content */}
-                <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-6">
+                <div
+                    className="bg-white rounded-lg border border-slate-200 shadow-sm p-6"
+                    style={{ zoom: zoomLevel / 100 }}
+                >
                     <div className="prose max-w-none">
                         {artifactType === 'need' && (
                             <NeedPresentation artifact={artifact} />
