@@ -13,10 +13,14 @@ interface ArtifactListViewProps {
 }
 
 const STATUS_OPTIONS = [
-    { value: 'proposed', label: 'Proposed' },
-    { value: 'verified', label: 'Verified' },
-    { value: 'rejected', label: 'Rejected' },
-    { value: 'base_lined', label: 'Base Lined' },
+    { value: 'Draft', label: 'Draft' },
+    { value: 'Ready_for_Review', label: 'Ready for Review' },
+    { value: 'In_Review', label: 'In Review' },
+    { value: 'Approved', label: 'Approved' },
+    { value: 'Rejected', label: 'Rejected' },
+    { value: 'Deferred', label: 'Deferred' },
+    { value: 'Superseded', label: 'Superseded' },
+    { value: 'Retired', label: 'Retired' },
 ];
 
 export default function ArtifactListView({ artifactType }: ArtifactListViewProps) {

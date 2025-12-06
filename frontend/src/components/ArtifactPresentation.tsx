@@ -132,6 +132,7 @@ export default function ArtifactPresentation() {
     const [showStatusDialog, setShowStatusDialog] = useState(false);
     const [pendingStatus, setPendingStatus] = useState<string>('');
     const [statusRationale, setStatusRationale] = useState('');
+    const [statusFilter, setStatusFilter] = useState<string>(''); // Add status filter
 
     // Valid status transitions from backend
     const VALID_TRANSITIONS: Record<string, string[]> = {
@@ -152,25 +153,34 @@ export default function ArtifactPresentation() {
         enabled: !!projectId
     });
 
-    // Fetch all artifacts of same type for navigation
+    // Fetch all artifacts of same type for navigation (with status filter)
     const { data: allArtifacts } = useQuery({
-        queryKey: ['artifacts', project?.id, artifactType],
+        queryKey: ['artifacts', project?.id, artifactType, statusFilter],
         queryFn: async () => {
             if (!project?.id) return [];
             switch (artifactType) {
                 case 'vision':
-                    return await VisionService.listVisionStatementsApiV1VisionVisionStatementsGet(project.id);
+                    return await VisionService.listVisionStatementsApiV1VisionVisionStatementsGet(
+                        project.id,
+                        statusFilter || undefined
+                    );
                 case 'need':
-                    // Use manual fetch to ensure project_id is passed correctly
-                    const needResponse = await fetch(`/api/v1/need/needs/?project_id=${project.id}`);
+                    // Use manual fetch to ensure project_id and status are passed correctly
+                    const params = new URLSearchParams({ project_id: project.id });
+                    if (statusFilter) params.append('status', statusFilter);
+                    const needResponse = await fetch(`/api/v1/need/needs/?${params.toString()}`);
                     return needResponse.ok ? await needResponse.json() : [];
                 case 'use_case':
                     // Use manual fetch because generated service doesn't include project_id parameter
-                    const ucResponse = await fetch(`/api/v1/use_case/use-cases/?project_id=${project.id}`);
+                    const ucParams = new URLSearchParams({ project_id: project.id });
+                    if (statusFilter) ucParams.append('status', statusFilter);
+                    const ucResponse = await fetch(`/api/v1/use_case/use-cases/?${ucParams.toString()}`);
                     return ucResponse.ok ? await ucResponse.json() : [];
                 case 'requirement':
                     // Use manual fetch because generated service doesn't handle query params correctly
-                    const reqResponse = await fetch(`/api/v1/requirement/requirements/?project_id=${project.id}`);
+                    const reqParams = new URLSearchParams({ project_id: project.id });
+                    if (statusFilter) reqParams.append('status', statusFilter);
+                    const reqResponse = await fetch(`/api/v1/requirement/requirements/?${reqParams.toString()}`);
                     return reqResponse.ok ? await reqResponse.json() : [];
                 default:
                     return [];
@@ -353,6 +363,26 @@ export default function ArtifactPresentation() {
                                     </button>
                                 </div>
                             )}
+
+                            {/* Status Filter */}
+                            <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
+                                <label className="text-sm text-slate-600 font-medium">Status:</label>
+                                <select
+                                    value={statusFilter}
+                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                    className="text-sm px-2 py-1 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="">All</option>
+                                    <option value="Draft">Draft</option>
+                                    <option value="Ready_for_Review">Ready for Review</option>
+                                    <option value="In_Review">In Review</option>
+                                    <option value="Approved">Approved</option>
+                                    <option value="Rejected">Rejected</option>
+                                    <option value="Deferred">Deferred</option>
+                                    <option value="Superseded">Superseded</option>
+                                    <option value="Retired">Retired</option>
+                                </select>
+                            </div>
 
                             <div>
                                 <h1 className="text-2xl font-bold text-slate-900">
