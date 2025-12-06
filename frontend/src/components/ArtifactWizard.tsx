@@ -110,6 +110,7 @@ export default function ArtifactWizard() {
     // EARS State
     const [earsTemplates, setEarsTemplates] = useState<any>(null);
     const [showEarsHelper, setShowEarsHelper] = useState(false);
+    const [earsValidation, setEarsValidation] = useState<{ valid: boolean; message: string; suggestions?: string[] } | null>(null);
 
     // Fetch EARS templates
     const { data: earsTemplatesData } = useQuery({
@@ -321,6 +322,41 @@ export default function ArtifactWizard() {
             }
         }
     }, [artifactType, isEditMode, location.state, setValue, getValues]);
+
+    // Debounced EARS validation
+    useEffect(() => {
+        if (artifactType !== 'requirement') return;
+
+        const requirementText = watch('text');
+        const selectedEarsType = watch('ears_type');
+
+        if (!requirementText || !selectedEarsType || selectedEarsType === 'UBIQUITOUS') {
+            setEarsValidation(null);
+            return;
+        }
+
+        const timer = setTimeout(async () => {
+            try {
+                const response = await fetch('/api/v1/requirement/requirements/ears/validate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: requirementText,
+                        pattern: selectedEarsType
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    setEarsValidation(result);
+                }
+            } catch (error) {
+                console.error('Validation error:', error);
+            }
+        }, 1000); // Debounce for 1 second
+
+        return () => clearTimeout(timer);
+    }, [watch('text'), watch('ears_type'), artifactType, watch, setEarsValidation]);
 
     // Helper function to convert EARS template placeholders to underscores
     const convertEarsTemplate = (template: string): string => {
@@ -1038,6 +1074,26 @@ export default function ArtifactWizard() {
                                 rows={4}
                                 placeholder="The system shall..."
                             />
+                            {/* EARS Validation Feedback */}
+                            {earsValidation && (
+                                <div className={`mt-2 p-3 rounded-md text-sm ${earsValidation.valid ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-red-50 border border-red-200 text-red-800'}`}>
+                                    <div className="flex items-start gap-2">
+                                        <span className="font-medium">
+                                            {earsValidation.valid ? '✓' : '✗'}
+                                        </span>
+                                        <div className="flex-1">
+                                            <p className="font-medium">{earsValidation.message}</p>
+                                            {earsValidation.suggestions && earsValidation.suggestions.length > 0 && (
+                                                <ul className="mt-2 space-y-1 text-xs">
+                                                    {earsValidation.suggestions.map((suggestion, idx) => (
+                                                        <li key={idx}>• {suggestion}</li>
+                                                    ))}
+                                                </ul>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         <div className="bg-slate-50 p-4 rounded-md border border-slate-200">
                             <div className="flex justify-between items-center mb-2">
