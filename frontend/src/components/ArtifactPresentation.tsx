@@ -661,6 +661,9 @@ export default function ArtifactPresentation() {
                         {artifactType === 'vision' && (
                             <VisionPresentation artifact={artifact} />
                         )}
+                        {artifactType === 'document' && (
+                            <DocumentPresentation artifact={artifact} />
+                        )}
                     </div>
                 </div>
             </div>
@@ -939,6 +942,89 @@ function VisionPresentation({ artifact }: { artifact: any }) {
                     </ReactMarkdown>
                 </>
             )}
+        </>
+    );
+}
+
+function DocumentPresentation({ artifact }: { artifact: any }) {
+    return (
+        <>
+            {/* Document metadata */}
+            <div className="grid grid-cols-2 gap-4 mb-4 not-prose">
+                <div>
+                    <span className="text-sm font-medium text-slate-500">Type</span>
+                    <p className="text-slate-900 capitalize">{artifact.document_type || 'Unknown'}</p>
+                </div>
+                <div>
+                    <span className="text-sm font-medium text-slate-500">MIME Type</span>
+                    <p className="text-slate-900">{artifact.mime_type || 'N/A'}</p>
+                </div>
+            </div>
+
+            {/* Description */}
+            {artifact.description && (
+                <>
+                    <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Description</h3>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {artifact.description}
+                    </ReactMarkdown>
+                </>
+            )}
+
+            {/* Content based on document type */}
+            <div className="mt-4 not-prose">
+                {artifact.document_type === 'url' && artifact.content_url && (
+                    <div className="p-4 bg-slate-50 rounded border border-slate-200">
+                        <a
+                            href={artifact.content_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-blue-600 hover:underline"
+                        >
+                            <ExternalLink className="w-4 h-4" />
+                            {artifact.content_url}
+                        </a>
+                    </div>
+                )}
+
+                {artifact.document_type === 'text' && artifact.content_text && (
+                    <div className="prose prose-sm max-w-none p-4 bg-slate-50 rounded border border-slate-200">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {artifact.content_text}
+                        </ReactMarkdown>
+                    </div>
+                )}
+
+                {artifact.document_type === 'file' && artifact.content_url && (
+                    <div className="border border-slate-200 rounded overflow-hidden">
+                        {artifact.mime_type === 'application/pdf' ? (
+                            <iframe
+                                src={artifact.content_url}
+                                className="w-full"
+                                style={{ height: '800px' }}
+                                title="PDF Document"
+                            />
+                        ) : artifact.mime_type?.startsWith('image/') ? (
+                            <img
+                                src={artifact.content_url}
+                                alt={artifact.title}
+                                className="max-w-full h-auto"
+                            />
+                        ) : (
+                            <div className="p-4 bg-slate-50">
+                                <a
+                                    href={artifact.content_url}
+                                    download
+                                    className="flex items-center gap-2 text-blue-600 hover:underline"
+                                >
+                                    <ExternalLink className="w-4 h-4" />
+                                    Download {artifact.mime_type || 'file'}
+                                </a>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
         </>
     );
 }
