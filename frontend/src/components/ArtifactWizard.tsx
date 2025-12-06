@@ -19,7 +19,7 @@ import MDEditor from '@uiw/react-md-editor';
 import { LinkageManager } from './LinkageManager';
 
 
-type ArtifactType = 'vision' | 'need' | 'use_case' | 'requirement';
+type ArtifactType = 'vision' | 'need' | 'use_case' | 'requirement' | 'document';
 
 type FormData = {
     title: string;
@@ -52,6 +52,11 @@ type FormData = {
     extensions: { step: string; condition: string; handling: string }[];
     site_ids: string[];
     component_ids: string[];
+    // Document specific
+    document_type: 'url' | 'file' | 'text';
+    content_url: string;
+    content_text: string;
+    mime_type: string;
 };
 
 export default function ArtifactWizard() {
@@ -141,6 +146,7 @@ export default function ArtifactWizard() {
         control,
         reset,
         setValue,
+        getValues,
     } = useForm<FormData>({
         defaultValues: {
             title: '',
@@ -305,6 +311,23 @@ export default function ArtifactWizard() {
         }
     }, [artifactData, reset, artifactType, setValue, location.state]);
 
+    // Set default description template for new Needs
+    useEffect(() => {
+        if (artifactType === 'need' && !isEditMode && !location.state?.duplicateData) {
+            const currentDescription = getValues('description');
+            // Only set template if description is empty
+            if (!currentDescription || currentDescription.trim() === '') {
+                setValue('description', 'As __stakeholder__ we need __the_need__ so that __benefit__.');
+            }
+        }
+    }, [artifactType, isEditMode, location.state, setValue, getValues]);
+
+    // Helper function to convert EARS template placeholders to underscores
+    const convertEarsTemplate = (template: string): string => {
+        return template
+            .replace(/<([^>]+)>/g, '__$1__');  // Convert <placeholder> to __placeholder__
+    };
+
     const preparePayload = (data: FormData) => {
         // Add project_id to payload
         const payload = { ...data, project_id: realProjectId };
@@ -331,7 +354,8 @@ export default function ArtifactWizard() {
                 vision: ['title', 'description', 'area', 'status', 'project_id'],
                 need: ['title', 'description', 'area', 'status', 'rationale', 'source_vision_id', 'owner_id', 'stakeholder_id', 'level', 'site_ids', 'component_ids', 'project_id'],
                 use_case: ['title', 'description', 'source_need_id', 'status', 'trigger', 'primary_actor_id', 'stakeholder_ids', 'precondition_ids', 'postcondition_ids', 'exception_ids', 'mss', 'extensions', 'project_id'],
-                requirement: ['short_name', 'text', 'area', 'level', 'ears_type', 'ears_trigger', 'ears_state', 'ears_condition', 'ears_feature', 'status', 'rationale', 'owner', 'source_use_case_id', 'project_id']
+                requirement: ['short_name', 'text', 'area', 'level', 'ears_type', 'ears_trigger', 'ears_state', 'ears_condition', 'ears_feature', 'status', 'rationale', 'owner', 'source_use_case_id', 'project_id'],
+                document: ['title', 'description', 'document_type', 'content_url', 'content_text', 'mime_type', 'project_id']
             };
             const allowed = validFields[type];
             const filtered: any = {};
@@ -368,6 +392,16 @@ export default function ArtifactWizard() {
                     return await UseCasesService.createUseCaseApiV1UseCaseUseCasesPost(filteredPayload as any);
                 case 'requirement':
                     return await RequirementsService.createRequirementApiV1RequirementRequirementsPost(filteredPayload as any);
+                case 'document':
+                    const response = await fetch('/api/v1/documents/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(filteredPayload),
+                    });
+                    if (!response.ok) throw new Error('Failed to create document');
+                    return await response.json();
             }
         },
         onSuccess: (result: any) => {
@@ -376,7 +410,6 @@ export default function ArtifactWizard() {
             setSavedAid(result.aid);
         },
     });
-
 
     const updateMutation = useMutation({
         mutationFn: async (data: FormData) => {
@@ -395,6 +428,16 @@ export default function ArtifactWizard() {
                     return await UseCasesService.updateUseCaseApiV1UseCaseUseCasesAidPut(aid, filteredPayload as any);
                 case 'requirement':
                     return await RequirementsService.updateRequirementApiV1RequirementRequirementsAidPut(aid, filteredPayload as any);
+                case 'document':
+                    const response = await fetch(`/api/v1/documents/${aid}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(filteredPayload),
+                    });
+                    if (!response.ok) throw new Error('Failed to update document');
+                    return await response.json();
             }
         },
         onSuccess: () => {
@@ -1014,7 +1057,7 @@ export default function ArtifactWizard() {
                                     const selectedType = e.target.value;
                                     setValue('ears_type', selectedType);
                                     if (earsTemplates && earsTemplates[selectedType]) {
-                                        setValue('text', earsTemplates[selectedType].template);
+                                        setValue('text', convertEarsTemplate(earsTemplates[selectedType].template));
                                     }
                                 }}
                             >
@@ -1044,15 +1087,12 @@ export default function ArtifactWizard() {
                                                 {...register('ears_trigger')}
                                                 onChange={(e) => {
                                                     setValue('ears_trigger', e.target.value);
-                                                    const template = earsTemplates[watch('ears_type')].template;
-                                                    let newText = template
-                                                        .replace('<system>', 'the system')
-                                                        .replace('<action>', 'shall...');
+                                                    let newText = convertEarsTemplate(earsTemplates[watch('ears_type')].template);
 
-                                                    if (e.target.value) newText = newText.replace('<trigger>', e.target.value);
-                                                    if (watch('ears_state')) newText = newText.replace('<state>', watch('ears_state'));
-                                                    if (watch('ears_feature')) newText = newText.replace('<feature>', watch('ears_feature'));
-                                                    if (watch('ears_condition')) newText = newText.replace('<condition>', watch('ears_condition'));
+                                                    if (e.target.value) newText = newText.replace('__trigger__', e.target.value);
+                                                    if (watch('ears_state')) newText = newText.replace('__state__', watch('ears_state'));
+                                                    if (watch('ears_feature')) newText = newText.replace('__feature__', watch('ears_feature'));
+                                                    if (watch('ears_condition')) newText = newText.replace('__condition__', watch('ears_condition'));
 
                                                     setValue('text', newText);
                                                 }}
@@ -1068,13 +1108,12 @@ export default function ArtifactWizard() {
                                                 {...register('ears_state')}
                                                 onChange={(e) => {
                                                     setValue('ears_state', e.target.value);
-                                                    const template = earsTemplates[watch('ears_type')].template;
-                                                    let newText = template
-                                                        .replace('<system>', 'the system')
-                                                        .replace('<action>', 'shall...');
-                                                    if (watch('ears_feature')) newText = newText.replace('<feature>', watch('ears_feature'));
-                                                    if (e.target.value) newText = newText.replace('<state>', e.target.value);
-                                                    if (watch('ears_condition')) newText = newText.replace('<condition>', watch('ears_condition'));
+                                                    let newText = convertEarsTemplate(earsTemplates[watch('ears_type')].template);
+
+                                                    if (watch('ears_feature')) newText = newText.replace('__feature__', watch('ears_feature'));
+                                                    if (e.target.value) newText = newText.replace('__state__', e.target.value);
+                                                    if (watch('ears_condition')) newText = newText.replace('__condition__', watch('ears_condition'));
+                                                    if (watch('ears_trigger')) newText = newText.replace('__trigger__', watch('ears_trigger'));
                                                     setValue('text', newText);
                                                 }}
                                                 placeholder="While..."
@@ -1087,7 +1126,106 @@ export default function ArtifactWizard() {
                         </div>
                     </>
                 );
+            case 'document': {
+                const docType = watch('document_type');
+                return (
+                    <>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Area</label>
+                            <select
+                                {...register('area')}
+                                disabled={isEditMode}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-md disabled:bg-slate-100 disabled:cursor-not-allowed"
+                            >
+                                <option value="">Select Area (Optional)...</option>
+                                {areas?.map((a: any) => (
+                                    <option key={a.code} value={a.code}>{a.code} - {a.name}</option>
+                                ))}
+                            </select>
+                            <p className="text-xs text-slate-500 mt-1">If selected, ID will be TR2-{'{'}AREA{'}'}-DOC-XXX</p>
+                        </div>
 
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Document Type</label>
+                            <select
+                                {...register('document_type')}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-md"
+                            >
+                                <option value="url">External URL</option>
+                                <option value="file">File Upload</option>
+                                <option value="text">Formatted Text (Markdown)</option>
+                            </select>
+                        </div>
+
+                        {docType === 'url' && (
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">URL</label>
+                                <input
+                                    {...register('content_url', { required: true })}
+                                    className="w-full px-3 py-2 border border-slate-300 rounded-md"
+                                    placeholder="https://example.com/doc"
+                                />
+                            </div>
+                        )}
+
+                        {docType === 'file' && (
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">File Upload</label>
+                                <input
+                                    type="file"
+                                    className="w-full px-3 py-2 border border-slate-300 rounded-md"
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            const formData = new FormData();
+                                            formData.append('file', file);
+                                            try {
+                                                const response = await fetch('/api/v1/documents/upload', {
+                                                    method: 'POST',
+                                                    body: formData,
+                                                });
+                                                if (!response.ok) throw new Error('Upload failed');
+                                                const result = await response.json();
+                                                setValue('content_url', result.url); // Store path
+                                                setValue('mime_type', file.type);
+                                            } catch (err) {
+                                                console.error(err);
+                                                alert('File upload failed');
+                                            }
+                                        }
+                                    }}
+                                />
+                                {watch('content_url') && (
+                                    <p className="text-xs text-green-600 mt-1">File uploaded successfully.</p>
+                                )}
+                            </div>
+                        )}
+
+                        {docType === 'text' && (
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                    Content
+                                </label>
+                                <Controller
+                                    control={control}
+                                    name="content_text"
+                                    render={({ field }) => (
+                                        <div data-color-mode="light">
+                                            <MDEditor
+                                                value={field.value || ''}
+                                                onChange={field.onChange}
+                                                preview="edit"
+                                                height={400}
+                                                className="border border-slate-300 rounded-md overflow-hidden"
+                                            />
+                                        </div>
+                                    )}
+                                />
+                            </div>
+                        )}
+                    </>
+                );
+            }
             default:
                 return null;
         }
@@ -1112,40 +1250,42 @@ export default function ArtifactWizard() {
             </div>
 
             {/* Status Action Bar - Only in Edit Mode */}
-            {isEditMode && (
-                <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm mb-6 flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                        <span className="text-sm font-medium text-slate-500">Current Status:</span>
-                        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${watch('status') === 'Approved' ? 'bg-green-100 text-green-800' :
-                            watch('status') === 'Rejected' ? 'bg-red-100 text-red-800' :
-                                watch('status') === 'In_Review' ? 'bg-yellow-100 text-yellow-800' :
-                                    'bg-slate-100 text-slate-800'
-                            }`}>
-                            {watch('status') || 'Draft'}
-                        </span>
-                    </div>
-                    <div className="flex gap-2">
-                        {getValidTransitions(watch('status')).map((status) => (
+            {
+                isEditMode && (
+                    <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm mb-6 flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                            <span className="text-sm font-medium text-slate-500">Current Status:</span>
+                            <span className={`px-3 py-1 rounded-full text-sm font-semibold ${watch('status') === 'Approved' ? 'bg-green-100 text-green-800' :
+                                watch('status') === 'Rejected' ? 'bg-red-100 text-red-800' :
+                                    watch('status') === 'In_Review' ? 'bg-yellow-100 text-yellow-800' :
+                                        'bg-slate-100 text-slate-800'
+                                }`}>
+                                {watch('status') || 'Draft'}
+                            </span>
+                        </div>
+                        <div className="flex gap-2">
+                            {getValidTransitions(watch('status')).map((status) => (
+                                <button
+                                    key={status}
+                                    type="button"
+                                    onClick={() => handleTransitionClick(status)}
+                                    className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
+                                >
+                                    {status.replace(/_/g, ' ')}
+                                </button>
+                            ))}
                             <button
-                                key={status}
                                 type="button"
-                                onClick={() => handleTransitionClick(status)}
-                                className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
+                                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-100"
+                                title="View History"
+                                onClick={() => setShowHistoryModal(true)}
                             >
-                                {status.replace(/_/g, ' ')}
+                                <History className="w-5 h-5" />
                             </button>
-                        ))}
-                        <button
-                            type="button"
-                            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-100"
-                            title="View History"
-                            onClick={() => setShowHistoryModal(true)}
-                        >
-                            <History className="w-5 h-5" />
-                        </button>
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
             <form onSubmit={handleSubmit(onSubmit, onError)} className="space-y-6 bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
                 {artifactType !== 'requirement' && renderCommonFields()}
                 {renderSpecificFields()}
@@ -1170,16 +1310,18 @@ export default function ArtifactWizard() {
             </form>
 
             {/* Linkage Manager - Only visible when artifact exists */}
-            {(isEditMode || savedAid) && realProjectId && (
-                <div className="mt-8 bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
-                    <h2 className="text-xl font-bold text-slate-900 mb-6">Artifact Linkages</h2>
-                    <LinkageManager
-                        sourceArtifactType={artifactType}
-                        sourceId={artifactId || savedAid || ''}
-                        projectId={realProjectId}
-                    />
-                </div>
-            )}
+            {
+                (isEditMode || savedAid) && realProjectId && (
+                    <div className="mt-8 bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                        <h2 className="text-xl font-bold text-slate-900 mb-6">Artifact Linkages</h2>
+                        <LinkageManager
+                            sourceArtifactType={artifactType}
+                            sourceId={artifactId || savedAid || ''}
+                            projectId={realProjectId}
+                        />
+                    </div>
+                )
+            }
 
             {/* Modals */}
             {
@@ -1623,7 +1765,7 @@ export default function ArtifactWizard() {
                     </div>
                 )
             }
-        </div >
+        </div>
     );
 }
 
