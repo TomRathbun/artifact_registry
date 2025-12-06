@@ -213,6 +213,10 @@ export default function ArtifactPresentation() {
                     return await UseCasesService.getUseCaseApiV1UseCaseUseCasesAidGet(artifactId!);
                 case 'requirement':
                     return await RequirementsService.getRequirementApiV1RequirementRequirementsAidGet(artifactId!);
+                case 'document':
+                    const docResponse = await fetch(`/api/v1/documents/${artifactId}`);
+                    if (!docResponse.ok) throw new Error('Document not found');
+                    return await docResponse.json();
                 default:
                     throw new Error('Unknown artifact type');
             }
@@ -597,6 +601,36 @@ export default function ArtifactPresentation() {
                                                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                                     {(linkedArtifact as any).content_text || '_No content provided_'}
                                                 </ReactMarkdown>
+                                            </div>
+                                        )}
+
+                                        {'document_type' in linkedArtifact && (linkedArtifact as any).document_type === 'file' && 'content_url' in linkedArtifact && (
+                                            <div className="mt-2 border border-slate-200 rounded overflow-hidden">
+                                                {(linkedArtifact as any).mime_type === 'application/pdf' ? (
+                                                    <iframe
+                                                        src={(linkedArtifact as any).content_url}
+                                                        className="w-full"
+                                                        style={{ height: '600px' }}
+                                                        title="PDF Document"
+                                                    />
+                                                ) : (linkedArtifact as any).mime_type?.startsWith('image/') ? (
+                                                    <img
+                                                        src={(linkedArtifact as any).content_url}
+                                                        alt="Document"
+                                                        className="max-w-full h-auto"
+                                                    />
+                                                ) : (
+                                                    <div className="p-4 bg-slate-50">
+                                                        <a
+                                                            href={(linkedArtifact as any).content_url}
+                                                            download
+                                                            className="flex items-center gap-2 text-blue-600 hover:underline"
+                                                        >
+                                                            <ExternalLink className="w-4 h-4" />
+                                                            Download {(linkedArtifact as any).mime_type || 'file'}
+                                                        </a>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>

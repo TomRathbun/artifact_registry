@@ -391,7 +391,7 @@ export default function ArtifactWizard() {
                 need: ['title', 'description', 'area', 'status', 'rationale', 'source_vision_id', 'owner_id', 'stakeholder_id', 'level', 'site_ids', 'component_ids', 'project_id'],
                 use_case: ['title', 'description', 'source_need_id', 'status', 'trigger', 'primary_actor_id', 'stakeholder_ids', 'precondition_ids', 'postcondition_ids', 'exception_ids', 'mss', 'extensions', 'project_id'],
                 requirement: ['short_name', 'text', 'area', 'level', 'ears_type', 'ears_trigger', 'ears_state', 'ears_condition', 'ears_feature', 'status', 'rationale', 'owner', 'source_use_case_id', 'project_id'],
-                document: ['title', 'description', 'document_type', 'content_url', 'content_text', 'mime_type', 'project_id']
+                document: ['title', 'description', 'document_type', 'content_url', 'content_text', 'mime_type', 'area', 'project_id']
             };
             const allowed = validFields[type];
             const filtered: any = {};
@@ -1186,21 +1186,6 @@ export default function ArtifactWizard() {
                 const docType = watch('document_type');
                 return (
                     <>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Area</label>
-                            <select
-                                {...register('area')}
-                                disabled={isEditMode}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-md disabled:bg-slate-100 disabled:cursor-not-allowed"
-                            >
-                                <option value="">Select Area (Optional)...</option>
-                                {areas?.map((a: any) => (
-                                    <option key={a.code} value={a.code}>{a.code} - {a.name}</option>
-                                ))}
-                            </select>
-                            <p className="text-xs text-slate-500 mt-1">If selected, ID will be TR2-{'{'}AREA{'}'}-DOC-XXX</p>
-                        </div>
-
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Document Type</label>
                             <select
