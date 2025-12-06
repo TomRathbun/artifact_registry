@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { NeedsService, UseCasesService, RequirementsService, VisionService, LinkageService } from '../client';
+import { NeedsService, UseCasesService, RequirementsService, VisionService, LinkageService, ProjectsService } from '../client';
 import { ArrowLeft, Edit, ExternalLink, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import ComponentDiagram from './ComponentDiagram';
 import ArtifactGraphView from './ArtifactGraphView';
@@ -145,26 +145,38 @@ export default function ArtifactPresentation() {
         'Retired': []
     };
 
+    // Fetch project details first to get the real UUID
+    const { data: project } = useQuery({
+        queryKey: ['project', projectId],
+        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectsProjectIdGet(projectId!),
+        enabled: !!projectId
+    });
+
     // Fetch all artifacts of same type for navigation
     const { data: allArtifacts } = useQuery({
-        queryKey: ['artifacts', projectId, artifactType],
+        queryKey: ['artifacts', project?.id, artifactType],
         queryFn: async () => {
+            if (!project?.id) return [];
             switch (artifactType) {
                 case 'vision':
-                    return await VisionService.listVisionStatementsApiV1VisionVisionStatementsGet(projectId!);
+                    return await VisionService.listVisionStatementsApiV1VisionVisionStatementsGet(project.id);
                 case 'need':
-                    return await NeedsService.listNeedsApiV1NeedNeedsGet(projectId!);
+                    // Use manual fetch to ensure project_id is passed correctly
+                    const needResponse = await fetch(`/api/v1/need/needs/?project_id=${project.id}`);
+                    return needResponse.ok ? await needResponse.json() : [];
                 case 'use_case':
-                    return await UseCasesService.listUseCasesApiV1UseCaseUseCasesGet(projectId!);
+                    // Use manual fetch because generated service doesn't include project_id parameter
+                    const ucResponse = await fetch(`/api/v1/use_case/use-cases/?project_id=${project.id}`);
+                    return ucResponse.ok ? await ucResponse.json() : [];
                 case 'requirement':
                     // Use manual fetch because generated service doesn't handle query params correctly
-                    const reqResponse = await fetch(`/api/v1/requirement/requirements/?project_id=${projectId}`);
+                    const reqResponse = await fetch(`/api/v1/requirement/requirements/?project_id=${project.id}`);
                     return reqResponse.ok ? await reqResponse.json() : [];
                 default:
                     return [];
             }
         },
-        enabled: !!projectId && !!artifactType,
+        enabled: !!project?.id && !!artifactType,
     });
 
     // Calculate current position
@@ -256,6 +268,9 @@ export default function ArtifactPresentation() {
                 case 'component':
                     const compResponse = await fetch(`/api/v1/components/${selectedLink.target_id}`);
                     return compResponse.ok ? await compResponse.json() : null;
+                case 'document':
+                    const docResponse = await fetch(`/api/v1/documents/${selectedLink.target_id}`);
+                    return docResponse.ok ? await docResponse.json() : null;
                 default:
                     return null;
             }
@@ -403,7 +418,7 @@ export default function ArtifactPresentation() {
                             </button>
                         </div>
                         {linkedArtifact && (
-                            <div className="bg-white rounded-md p-4">
+                            <div className="bg-white rounded-md p-4 max-h-96 overflow-y-auto">
                                 {/* Title/Name */}
                                 <h4 className="font-semibold text-slate-900 mb-2">
                                     {'title' in linkedArtifact ? linkedArtifact.title : 'name' in linkedArtifact ? linkedArtifact.name : 'text' in linkedArtifact ? linkedArtifact.text?.substring(0, 100) : ''}
@@ -541,6 +556,50 @@ export default function ArtifactPresentation() {
                                 {/* Component - show description */}
                                 {selectedLink.target_artifact_type === 'component' && 'description' in linkedArtifact && linkedArtifact.description && (
                                     <p className="text-sm text-slate-700">{linkedArtifact.description}</p>
+                                )}
+
+                                {/* Document - show details */}
+                                {selectedLink.target_artifact_type === 'document' && (
+                                    <div className="space-y-3">
+                                        <div className="grid grid-cols-2 gap-4 text-sm not-prose">
+                                            <div>
+                                                <span className="font-medium text-slate-500">Type: </span>
+                                                <span className="text-slate-900 capitalize">{('document_type' in linkedArtifact ? (linkedArtifact as any).document_type : 'Unknown')}</span>
+                                            </div>
+                                            <div>
+                                                <span className="font-medium text-slate-500">MIME: </span>
+                                                <span className="text-slate-900">{('mime_type' in linkedArtifact ? (linkedArtifact as any).mime_type : '-')}</span>
+                                            </div>
+                                        </div>
+
+                                        {('description' in linkedArtifact && linkedArtifact.description) && (
+                                            <div className="prose prose-sm max-w-none">
+                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                    {linkedArtifact.description}
+                                                </ReactMarkdown>
+                                            </div>
+                                        )}
+
+                                        {'document_type' in linkedArtifact && (linkedArtifact as any).document_type === 'url' && 'content_url' in linkedArtifact && (
+                                            <a
+                                                href={(linkedArtifact as any).content_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-2 text-blue-600 hover:underline mt-2"
+                                            >
+                                                <ExternalLink className="w-4 h-4" />
+                                                {(linkedArtifact as any).content_url}
+                                            </a>
+                                        )}
+
+                                        {'document_type' in linkedArtifact && (linkedArtifact as any).document_type === 'text' && 'content_text' in linkedArtifact && (
+                                            <div className="prose prose-sm max-w-none mt-2 p-3 bg-slate-50 rounded border border-slate-200">
+                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                    {(linkedArtifact as any).content_text || '_No content provided_'}
+                                                </ReactMarkdown>
+                                            </div>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                         )}
