@@ -79,13 +79,32 @@ async def restore_database(request: Request):
             tmp_path = tmp.name
         
         try:
-            # Run pg_restore
+            # First, drop and recreate the database to ensure clean state
+            # This avoids foreign key constraint issues
+            drop_cmd = [
+                str(PG_BIN_DIR / ("psql.exe" if os.name == 'nt' else "psql")),
+                "-h", DB_HOST,
+                "-U", DB_USER,
+                "-d", "postgres",  # Connect to postgres database
+                "-c", f"DROP DATABASE IF EXISTS {DB_NAME}; CREATE DATABASE {DB_NAME};"
+            ]
+            
+            drop_result = subprocess.run(
+                drop_cmd,
+                capture_output=True,
+                text=True,
+                env={**os.environ, "PGPASSWORD": os.getenv("DB_PASSWORD", "")}
+            )
+            
+            if drop_result.returncode != 0:
+                raise Exception(f"Failed to recreate database: {drop_result.stderr}")
+            
+            # Now restore into the clean database
             cmd = [
                 str(PG_RESTORE),
                 "-h", DB_HOST,
                 "-U", DB_USER,
                 "-d", DB_NAME,
-                "-c",  # Clean (drop) existing objects
                 tmp_path
             ]
             
@@ -98,7 +117,7 @@ async def restore_database(request: Request):
             
             # Note: pg_restore may return non-zero even on success due to warnings
             # Check if there are actual errors
-            if "ERROR" in result.stderr:
+            if "ERROR" in result.stderr and "already exists" not in result.stderr:
                 raise Exception(f"pg_restore failed: {result.stderr}")
             
             return {"message": "Database restored successfully", "warnings": result.stderr if result.stderr else None}
