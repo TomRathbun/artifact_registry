@@ -768,7 +768,10 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
 
                             for (const compName of artifact.components) {
                                 if (typeof compName === 'string') {
+                                    // First try exact name match
                                     let existing = allComponents.find((c: any) => c.name === compName);
+
+                                    // If not found, create new component
                                     if (!existing) {
                                         existing = await ComponentService.createComponentApiV1ComponentsPost({
                                             name: compName,
@@ -781,6 +784,38 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                             }
                             artifact.component_ids = componentIds;
                             delete artifact.components;
+                        }
+
+                        // Handle Owner (convert name to ID)
+                        if (artifact.owner && typeof artifact.owner === 'string') {
+                            const people = await MetadataService.listPeopleApiV1MetadataMetadataPeopleGet(targetProjectId);
+                            let existing = people.find((p: any) => p.name === artifact.owner);
+                            if (!existing) {
+                                existing = await MetadataService.createPersonApiV1MetadataMetadataPeoplePost({
+                                    name: artifact.owner,
+                                    roles: ['owner'],
+                                    project_id: targetProjectId,
+                                    person_type: 'both'
+                                });
+                            }
+                            artifact.owner_id = existing.id;
+                            delete artifact.owner;
+                        }
+
+                        // Handle Stakeholder (convert name to ID)
+                        if (artifact.stakeholder && typeof artifact.stakeholder === 'string') {
+                            const people = await MetadataService.listPeopleApiV1MetadataMetadataPeopleGet(targetProjectId);
+                            let existing = people.find((p: any) => p.name === artifact.stakeholder);
+                            if (!existing) {
+                                existing = await MetadataService.createPersonApiV1MetadataMetadataPeoplePost({
+                                    name: artifact.stakeholder,
+                                    roles: ['stakeholder'],
+                                    project_id: targetProjectId,
+                                    person_type: 'both'
+                                });
+                            }
+                            artifact.stakeholder_id = existing.id;
+                            delete artifact.stakeholder;
                         }
                     }
 
@@ -835,10 +870,14 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                     // Determine artifact types from AIDs
                     const sourceType = newSourceAid.includes('-NEED-') ? 'need' :
                         newSourceAid.includes('-UC-') ? 'use_case' :
-                            newSourceAid.includes('-REQ-') ? 'requirement' : 'vision';
+                            newSourceAid.includes('-REQ-') ? 'requirement' :
+                                newSourceAid.includes('-DOC-') ? 'document' :
+                                    newSourceAid.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i) ? 'diagram' : 'vision';
                     const targetType = newTargetAid.includes('-NEED-') ? 'need' :
                         newTargetAid.includes('-UC-') ? 'use_case' :
-                            newTargetAid.includes('-REQ-') ? 'requirement' : 'vision';
+                            newTargetAid.includes('-REQ-') ? 'requirement' :
+                                newTargetAid.includes('-DOC-') ? 'document' :
+                                    newTargetAid.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i) ? 'diagram' : 'vision';
 
                     // Determine relationship type
                     let relationshipType = 'derives_from';
