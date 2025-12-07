@@ -730,21 +730,9 @@ export default function ArtifactPresentation() {
                         style={{ zoom: zoomLevel / 100 }}
                     >
                         <div className="prose max-w-none">
-                            {artifactType === 'need' && (
-                                <NeedPresentation artifact={artifact} />
-                            )}
-                            {artifactType === 'use_case' && (
-                                <UseCasePresentation artifact={artifact} />
-                            )}
-                            {artifactType === 'requirement' && (
-                                <RequirementPresentation artifact={artifact} />
-                            )}
-                            {artifactType === 'vision' && (
-                                <VisionPresentation artifact={artifact} />
-                            )}
-                            {artifactType === 'document' && (
-                                <DocumentPresentation artifact={artifact} />
-                            )}
+                            <pre className="bg-slate-50 p-4 rounded overflow-auto">
+                                {JSON.stringify(artifact, null, 2)}
+                            </pre>
                         </div>
                     </div>
                 </div>
@@ -799,8 +787,6 @@ export default function ArtifactPresentation() {
                     </div>
                 )}
             </div>
-            );
-}
 
             {/* Comment Panel Column */}
             <div className="sticky top-20 h-[calc(100vh-6rem)] bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
