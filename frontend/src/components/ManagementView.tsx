@@ -101,7 +101,6 @@ export default function ManagementView({ type }: ManagementViewProps) {
 
     const deleteMutation = useMutation({
         mutationFn: async (id: string | number) => {
-            if (!confirm('Are you sure you want to delete this item?')) return;
             switch (type) {
                 case 'area':
                     return MetadataService.deleteAreaApiV1MetadataMetadataAreasCodeDelete(id as string);
@@ -423,7 +422,15 @@ export default function ManagementView({ type }: ManagementViewProps) {
                                             <Edit size={16} />
                                         </button>
                                         <button
-                                            onClick={() => deleteMutation.mutate(item.id)}
+                                            onClick={() => {
+                                                setConfirmation({
+                                                    isOpen: true,
+                                                    title: `Delete ${type}`,
+                                                    message: `Are you sure you want to delete "${item.name}"? This action cannot be undone.`,
+                                                    isDestructive: true,
+                                                    onConfirm: () => deleteMutation.mutate(item.id)
+                                                });
+                                            }}
                                             className="text-slate-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-full transition-colors"
                                             title="Delete"
                                         >
@@ -474,7 +481,15 @@ export default function ManagementView({ type }: ManagementViewProps) {
                                             <Edit size={16} />
                                         </button>
                                         <button
-                                            onClick={() => deleteMutation.mutate(item.id || item.code)}
+                                            onClick={() => {
+                                                setConfirmation({
+                                                    isOpen: true,
+                                                    title: `Delete ${type}`,
+                                                    message: `Are you sure you want to delete this item? This action cannot be undone.`,
+                                                    isDestructive: true,
+                                                    onConfirm: () => deleteMutation.mutate(item.id || item.code)
+                                                });
+                                            }}
                                             className="text-slate-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-full transition-colors"
                                             title="Delete"
                                         >
