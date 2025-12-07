@@ -782,9 +782,8 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                                             roles: updatedRoles
                                         } as any);
                                     }
-                                    // Convert actor name to ID
+                                    // Add actor_id but keep actor field for backend compatibility
                                     step.actor_id = existing.id;
-                                    delete step.actor;
                                 }
                             }
                         }
