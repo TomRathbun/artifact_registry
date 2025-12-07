@@ -13,10 +13,11 @@ import {
     ProjectsService,
     ArtifactEventsService,
 } from '../client';
-import { X, Plus, Trash2, History } from 'lucide-react';
+import { X, Plus, Trash2, History, ArrowLeft } from 'lucide-react';
 import DualListBox from './DualListBox';
 import MDEditor from '@uiw/react-md-editor';
 import { LinkageManager } from './LinkageManager';
+import CommentPanel from './CommentPanel';
 
 
 type ArtifactType = 'vision' | 'need' | 'use_case' | 'requirement' | 'document';
@@ -1277,92 +1278,120 @@ export default function ArtifactWizard() {
     };
 
     return (
-        <div className="max-w-4xl mx-auto p-6">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-slate-900">
-                    {isEditMode ? `Edit ${artifactType === 'use_case' ? 'Use Case' : artifactType.charAt(0).toUpperCase() + artifactType.slice(1)}` : `New ${artifactType === 'use_case' ? 'Use Case' : artifactType.charAt(0).toUpperCase() + artifactType.slice(1)}`}
-                </h1>
-                <button
-                    onClick={handleCancel}
-                    className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100"
-                >
-                    <X className="w-6 h-6" />
-                </button>
-            </div>
-
-            {/* Status Action Bar - Only in Edit Mode */}
-            {
-                isEditMode && (
-                    <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm mb-6 flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                            <span className="text-sm font-medium text-slate-500">Current Status:</span>
-                            <span className={`px-3 py-1 rounded-full text-sm font-semibold ${watch('status') === 'Approved' ? 'bg-green-100 text-green-800' :
-                                watch('status') === 'Rejected' ? 'bg-red-100 text-red-800' :
-                                    watch('status') === 'In_Review' ? 'bg-yellow-100 text-yellow-800' :
-                                        'bg-slate-100 text-slate-800'
-                                }`}>
-                                {watch('status') || 'Draft'}
-                            </span>
-                        </div>
-                        <div className="flex gap-2">
-                            {getValidTransitions(watch('status')).map((status) => (
+        <div className="min-h-screen bg-slate-50 pb-12">
+            <div className={`max-w-${isEditMode ? '7xl' : '4xl'} mx-auto px-4 sm:px-6 lg:px-8 py-8 ${isEditMode ? 'grid grid-cols-[1fr_400px] gap-6' : ''}`}>
+                <div>
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-4">
+                            {isEditMode && (
                                 <button
-                                    key={status}
-                                    type="button"
-                                    onClick={() => handleTransitionClick(status)}
-                                    className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
+                                    onClick={() => navigate(`/project/${projectId}/${routeType}/${artifactId}`)}
+                                    className="p-2 hover:bg-slate-200 rounded-full transition-colors"
+                                    title="Back to Presentation"
                                 >
-                                    {status.replace(/_/g, ' ')}
+                                    <ArrowLeft className="w-5 h-5 text-slate-600" />
                                 </button>
-                            ))}
+                            )}
+                            <h1 className="text-2xl font-bold text-slate-900">
+                                {isEditMode ? `Edit ${artifactType === 'use_case' ? 'Use Case' : artifactType.charAt(0).toUpperCase() + artifactType.slice(1)}` : `New ${artifactType === 'use_case' ? 'Use Case' : artifactType.charAt(0).toUpperCase() + artifactType.slice(1)}`}
+                            </h1>
+                        </div>
+                        <button
+                            onClick={handleCancel}
+                            className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100"
+                        >
+                            <X className="w-6 h-6" />
+                        </button>
+                    </div>
+
+                    {/* Status Action Bar - Only in Edit Mode */}
+                    {
+                        isEditMode && (
+                            <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm mb-6 flex justify-between items-center">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-sm font-medium text-slate-500">Current Status:</span>
+                                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${watch('status') === 'Approved' ? 'bg-green-100 text-green-800' :
+                                        watch('status') === 'Rejected' ? 'bg-red-100 text-red-800' :
+                                            watch('status') === 'In_Review' ? 'bg-yellow-100 text-yellow-800' :
+                                                'bg-slate-100 text-slate-800'
+                                        }`}>
+                                        {watch('status') || 'Draft'}
+                                    </span>
+                                </div>
+                                <div className="flex gap-2">
+                                    {getValidTransitions(watch('status')).map((status) => (
+                                        <button
+                                            key={status}
+                                            type="button"
+                                            onClick={() => handleTransitionClick(status)}
+                                            className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
+                                        >
+                                            {status.replace(/_/g, ' ')}
+                                        </button>
+                                    ))}
+                                    <button
+                                        type="button"
+                                        className="p-1.5 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-100"
+                                        title="View History"
+                                        onClick={() => setShowHistoryModal(true)}
+                                    >
+                                        <History className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+                        )
+                    }
+                    <form onSubmit={handleSubmit(onSubmit, onError)} className="space-y-6 bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                        {artifactType !== 'requirement' && renderCommonFields()}
+                        {renderSpecificFields()}
+
+                        <div className="flex gap-3 pt-6 border-t mt-8">
+                            <button
+                                type="submit"
+                                className="flex-1 bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 transition-colors font-medium"
+                                disabled={isEditMode ? updateMutation.isPending : createMutation.isPending}
+                            >
+                                {isEditMode || savedAid ? (updateMutation.isPending ? 'Saving...' : 'Save') : (createMutation.isPending ? 'Creating...' : 'Create Artifact')}
+                            </button>
                             <button
                                 type="button"
-                                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-100"
-                                title="View History"
-                                onClick={() => setShowHistoryModal(true)}
+                                onClick={handleSubmit(onSubmitAndClose, onError)}
+                                className="flex-1 bg-purple-600 text-white py-3 rounded-md hover:bg-purple-700 transition-colors font-medium"
+                                disabled={isEditMode ? updateMutation.isPending : createMutation.isPending}
                             >
-                                <History className="w-5 h-5" />
+                                Save & Close
                             </button>
                         </div>
-                    </div>
-                )
-            }
-            <form onSubmit={handleSubmit(onSubmit, onError)} className="space-y-6 bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
-                {artifactType !== 'requirement' && renderCommonFields()}
-                {renderSpecificFields()}
+                    </form>
 
-                <div className="flex gap-3 pt-6 border-t mt-8">
-                    <button
-                        type="submit"
-                        className="flex-1 bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 transition-colors font-medium"
-                        disabled={isEditMode ? updateMutation.isPending : createMutation.isPending}
-                    >
-                        {isEditMode || savedAid ? (updateMutation.isPending ? 'Saving...' : 'Save') : (createMutation.isPending ? 'Creating...' : 'Create Artifact')}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={handleSubmit(onSubmitAndClose, onError)}
-                        className="flex-1 bg-purple-600 text-white py-3 rounded-md hover:bg-purple-700 transition-colors font-medium"
-                        disabled={isEditMode ? updateMutation.isPending : createMutation.isPending}
-                    >
-                        Save & Close
-                    </button>
+                    {/* Linkage Manager - Only visible when artifact exists */}
+                    {
+                        (isEditMode || savedAid) && realProjectId && (
+                            <div className="mt-8 bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                                <h2 className="text-xl font-bold text-slate-900 mb-6">Artifact Linkages</h2>
+                                <LinkageManager
+                                    sourceArtifactType={artifactType}
+                                    sourceId={artifactId || savedAid || ''}
+                                    projectId={realProjectId}
+                                />
+                            </div>
+                        )
+                    }
                 </div>
-            </form>
 
-            {/* Linkage Manager - Only visible when artifact exists */}
-            {
-                (isEditMode || savedAid) && realProjectId && (
-                    <div className="mt-8 bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
-                        <h2 className="text-xl font-bold text-slate-900 mb-6">Artifact Linkages</h2>
-                        <LinkageManager
-                            sourceArtifactType={artifactType}
-                            sourceId={artifactId || savedAid || ''}
-                            projectId={realProjectId}
-                        />
+                {/* Comment Panel Sidebar - Only in Edit Mode */}
+                {isEditMode && (
+                    <div className="sticky top-8 h-[calc(100vh-4rem)]">
+                        <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden h-full">
+                            <CommentPanel
+                                artifactAid={artifactId!}
+                                selectedField={null}
+                                fieldLabel=""
+                            />
+                        </div>
                     </div>
-                )
-            }
+                )}
+            </div>
 
             {/* Modals */}
             {

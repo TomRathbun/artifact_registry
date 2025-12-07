@@ -36,13 +36,13 @@ export default function CommentPanel({ artifactAid, selectedField, fieldLabel }:
         enabled: !!artifactAid
     });
 
-    // Filter comments for selected field
-    const fieldComments = selectedField
+    // Filter comments for selected field or show all
+    const displayComments = selectedField
         ? allComments.filter(c => c.field_name === selectedField)
-        : [];
+        : allComments;
 
-    const unresolvedComments = fieldComments.filter(c => !c.resolved);
-    const resolvedComments = fieldComments.filter(c => c.resolved);
+    const unresolvedComments = displayComments.filter(c => !c.resolved);
+    const resolvedComments = displayComments.filter(c => c.resolved);
 
     // Create comment mutation
     const createMutation = useMutation({
@@ -111,25 +111,18 @@ export default function CommentPanel({ artifactAid, selectedField, fieldLabel }:
     });
 
     const handleAddComment = () => {
-        if (newComment.trim()) {
+        if (newComment.trim() && selectedField) {
             createMutation.mutate(newComment);
         }
     };
-
-    if (!selectedField) {
-        return (
-            <div className="h-full flex flex-col items-center justify-center text-slate-400 p-8 text-center">
-                <MessageSquare className="w-12 h-12 mb-4" />
-                <p className="text-sm">Click on a field to view or add comments</p>
-            </div>
-        );
-    }
 
     return (
         <div className="h-full flex flex-col">
             {/* Header */}
             <div className="p-4 border-b border-slate-200 bg-slate-50">
-                <h3 className="font-semibold text-slate-900">Comments: {fieldLabel}</h3>
+                <h3 className="font-semibold text-slate-900">
+                    {selectedField ? `Comments: ${fieldLabel}` : 'All Comments'}
+                </h3>
                 <p className="text-xs text-slate-500 mt-1">
                     {unresolvedComments.length} unresolved, {resolvedComments.length} resolved
                 </p>
@@ -144,8 +137,15 @@ export default function CommentPanel({ artifactAid, selectedField, fieldLabel }:
                             <div key={comment.id} className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm">
                                 <div className="flex items-start justify-between mb-2">
                                     <div>
-                                        <span className="text-sm font-medium text-slate-900">{comment.author}</span>
-                                        <span className="text-xs text-slate-500 ml-2">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-medium text-slate-900">{comment.author}</span>
+                                            {!selectedField && (
+                                                <span className="text-xs px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded border border-slate-200">
+                                                    {comment.field_name.replace(/_/g, ' ')}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <span className="text-xs text-slate-500">
                                             {new Date(comment.created_at).toLocaleDateString()}
                                         </span>
                                     </div>
@@ -184,8 +184,15 @@ export default function CommentPanel({ artifactAid, selectedField, fieldLabel }:
                                     <div key={comment.id} className="bg-slate-50 border border-slate-200 rounded p-2 opacity-60">
                                         <div className="flex items-start justify-between mb-1">
                                             <div>
-                                                <span className="text-xs font-medium text-slate-700">{comment.author}</span>
-                                                <span className="text-xs text-slate-500 ml-2">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs font-medium text-slate-700">{comment.author}</span>
+                                                    {!selectedField && (
+                                                        <span className="text-[10px] px-1 py-0.5 bg-white text-slate-500 rounded border border-slate-200">
+                                                            {comment.field_name.replace(/_/g, ' ')}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <span className="text-xs text-slate-500">
                                                     {new Date(comment.created_at).toLocaleDateString()}
                                                 </span>
                                             </div>
@@ -211,29 +218,42 @@ export default function CommentPanel({ artifactAid, selectedField, fieldLabel }:
                 )}
 
                 {/* No Comments */}
-                {fieldComments.length === 0 && (
-                    <div className="text-center text-slate-400 text-sm py-8">
-                        No comments yet. Add one below.
+                {displayComments.length === 0 && (
+                    <div className="h-full flex flex-col items-center justify-center text-slate-400 p-8 text-center min-h-[200px]">
+                        <MessageSquare className="w-12 h-12 mb-4 opacity-20" />
+                        <p className="text-sm">
+                            {selectedField
+                                ? "No comments on this field yet."
+                                : "No comments on this artifact yet."}
+                        </p>
                     </div>
                 )}
             </div>
 
             {/* Add Comment */}
             <div className="p-4 border-t border-slate-200 bg-slate-50">
-                <textarea
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="Add a comment..."
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    rows={3}
-                />
-                <button
-                    onClick={handleAddComment}
-                    disabled={!newComment.trim() || createMutation.isPending}
-                    className="mt-2 w-full px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                    {createMutation.isPending ? 'Adding...' : 'Add Comment'}
-                </button>
+                {selectedField ? (
+                    <>
+                        <textarea
+                            value={newComment}
+                            onChange={(e) => setNewComment(e.target.value)}
+                            placeholder={`Add a comment to ${fieldLabel}...`}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            rows={3}
+                        />
+                        <button
+                            onClick={handleAddComment}
+                            disabled={!newComment.trim() || createMutation.isPending}
+                            className="mt-2 w-full px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            {createMutation.isPending ? 'Adding...' : 'Add Comment'}
+                        </button>
+                    </>
+                ) : (
+                    <div className="text-center p-2 text-slate-500 text-sm italic bg-slate-100 rounded border border-slate-200 border-dashed">
+                        Select a field above to point out a specific issue or add a comment.
+                    </div>
+                )}
             </div>
         </div>
     );
