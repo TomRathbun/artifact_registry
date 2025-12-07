@@ -13,10 +13,15 @@ import tempfile
 router = APIRouter()
 
 DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_USER = os.getenv("DB_USER", "postgres")
-DB_NAME = os.getenv("DB_NAME", "artifact_registry")
+DB_USER = os.getenv("DB_USER", "admin")
+DB_NAME = os.getenv("DB_NAME", "registry")
 BACKUP_DIR = Path("db_backups")
 BACKUP_DIR.mkdir(exist_ok=True)
+
+# Path to portable PostgreSQL binaries
+PG_BIN_DIR = Path(".postgres_bin/pgsql/bin")
+PG_DUMP = PG_BIN_DIR / "pg_dump.exe" if os.name == 'nt' else PG_BIN_DIR / "pg_dump"
+PG_RESTORE = PG_BIN_DIR / "pg_restore.exe" if os.name == 'nt' else PG_BIN_DIR / "pg_restore"
 
 @router.get("/backup")
 async def backup_database():
@@ -26,12 +31,12 @@ async def backup_database():
     """
     try:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"artifact_registry_{timestamp}.dump"
+        filename = f"registry_backup_{timestamp}.dump"
         filepath = BACKUP_DIR / filename
         
         # Run pg_dump
         cmd = [
-            "pg_dump",
+            str(PG_DUMP),
             "-h", DB_HOST,
             "-U", DB_USER,
             "-d", DB_NAME,
@@ -73,7 +78,7 @@ async def restore_database(file: bytes):
         try:
             # Run pg_restore
             cmd = [
-                "pg_restore",
+                str(PG_RESTORE),
                 "-h", DB_HOST,
                 "-U", DB_USER,
                 "-d", DB_NAME,
