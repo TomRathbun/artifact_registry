@@ -5,7 +5,7 @@ import { VisionService, NeedsService, UseCaseService, RequirementService, Metada
 import VisionHeader from './VisionHeader';
 import { MultiSelect } from './MultiSelect';
 import ImportConflictModal from './ImportConflictModal';
-import { Download, Upload, Trash2, Edit, FileDown, FileText, File, Copy, Clipboard, Files } from 'lucide-react';
+import { Download, Upload, Trash2, Edit, FileDown, Copy, Clipboard, Files } from 'lucide-react';
 import { ConfirmationModal } from './ConfirmationModal';
 
 interface ArtifactListViewProps {

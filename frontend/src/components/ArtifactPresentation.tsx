@@ -8,7 +8,6 @@ import { ArrowLeft, Edit, ExternalLink, X, ChevronLeft, ChevronRight, ZoomIn, Zo
 import ComponentDiagram from './ComponentDiagram';
 import ArtifactGraphView from './ArtifactGraphView';
 import CommentPanel from './CommentPanel';
-import CommentableField from './CommentableField';
 
 // Component to fetch and display person name by ID
 function PersonName({ personId }: { personId: string }) {
@@ -307,17 +306,6 @@ export default function ArtifactPresentation() {
         },
         enabled: !!artifactId
     });
-
-    // Helper to get unresolved comment count for a field
-    const getCommentCount = (fieldName: string) => {
-        return comments.filter(c => c.field_name === fieldName && !c.resolved).length;
-    };
-
-    // Helper to handle field selection
-    const handleFieldClick = (fieldName: string, label: string) => {
-        setSelectedField(fieldName);
-        setFieldLabel(label);
-    };
 
     const handleEditClick = () => {
         navigate(`/project/${projectId}/${artifactType}/${artifactId}/edit`);
@@ -730,9 +718,236 @@ export default function ArtifactPresentation() {
                         style={{ zoom: zoomLevel / 100 }}
                     >
                         <div className="prose max-w-none">
-                            <pre className="bg-slate-50 p-4 rounded overflow-auto">
-                                {JSON.stringify(artifact, null, 2)}
-                            </pre>
+                            {/* Need Presentation */}
+                            {artifactType === 'need' && (
+                                <>
+                                    <div className="grid grid-cols-2 gap-4 mb-3 not-prose">
+                                        <div>
+                                            <span className="text-sm font-medium text-slate-500">Area</span>
+                                            <p className="text-slate-900">{artifact.area || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-sm font-medium text-slate-500">Level</span>
+                                            <p className="text-slate-900">{artifact.level || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-sm font-medium text-slate-500">Owner</span>
+                                            <p className="text-slate-900">{artifact.owner_id ? <PersonName personId={artifact.owner_id} /> : 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-sm font-medium text-slate-500">Stakeholder</span>
+                                            <p className="text-slate-900">{artifact.stakeholder_id ? <PersonName personId={artifact.stakeholder_id} /> : 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Description</h3>
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                        {artifact.description || 'No description provided.'}
+                                    </ReactMarkdown>
+                                    {artifact.rationale && (
+                                        <>
+                                            <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Rationale</h3>
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                {artifact.rationale}
+                                            </ReactMarkdown>
+                                        </>
+                                    )}
+                                </>
+                            )}
+
+                            {/* Use Case Presentation */}
+                            {artifactType === 'use_case' && (
+                                <>
+                                    <div className="grid grid-cols-2 gap-4 mb-3 not-prose">
+                                        <div>
+                                            <span className="text-sm font-medium text-slate-500">Area</span>
+                                            <p className="text-slate-900">{artifact.area || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-sm font-medium text-slate-500">Level</span>
+                                            <p className="text-slate-900">{artifact.level || 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Description</h3>
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                        {artifact.description || 'No description provided.'}
+                                    </ReactMarkdown>
+                                    {artifact.preconditions && (
+                                        <>
+                                            <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Preconditions</h3>
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                {artifact.preconditions}
+                                            </ReactMarkdown>
+                                        </>
+                                    )}
+                                    {artifact.postconditions && (
+                                        <>
+                                            <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Postconditions</h3>
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                {artifact.postconditions}
+                                            </ReactMarkdown>
+                                        </>
+                                    )}
+                                    {artifact.main_flow && artifact.main_flow.length > 0 && (
+                                        <>
+                                            <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Main Flow</h3>
+                                            <ol>
+                                                {artifact.main_flow.map((step: any, i: number) => (
+                                                    <li key={i}>{step.description}</li>
+                                                ))}
+                                            </ol>
+                                        </>
+                                    )}
+                                    {artifact.stakeholders && artifact.stakeholders.length > 0 && (
+                                        <>
+                                            <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Stakeholders</h3>
+                                            <ul>
+                                                {artifact.stakeholders.map((s: any, i: number) => (
+                                                    <li key={i}>{s.name}</li>
+                                                ))}
+                                            </ul>
+                                        </>
+                                    )}
+                                </>
+                            )}
+
+                            {/* Requirement Presentation */}
+                            {artifactType === 'requirement' && (
+                                <>
+                                    <div className="grid grid-cols-3 gap-4 mb-3 not-prose">
+                                        <div>
+                                            <span className="text-sm font-medium text-slate-500">Short Name</span>
+                                            <p className="text-slate-900 font-mono">{artifact.short_name}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-sm font-medium text-slate-500">Area</span>
+                                            <p className="text-slate-900">{artifact.area || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-sm font-medium text-slate-500">Level</span>
+                                            <p className="text-slate-900">{artifact.level?.toUpperCase() || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-sm font-medium text-slate-500">EARS Type</span>
+                                            <p className="text-slate-900">{artifact.ears_type || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-sm font-medium text-slate-500">Owner</span>
+                                            <p className="text-slate-900">{artifact.owner || 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Requirement Text</h3>
+                                    <div className="bg-slate-50 p-4 rounded-md border border-slate-200">
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                            {artifact.text}
+                                        </ReactMarkdown>
+                                    </div>
+                                    {artifact.rationale && (
+                                        <>
+                                            <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Rationale</h3>
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                {artifact.rationale}
+                                            </ReactMarkdown>
+                                        </>
+                                    )}
+                                </>
+                            )}
+
+                            {/* Vision Presentation */}
+                            {artifactType === 'vision' && (
+                                <>
+                                    {artifact.statement && (
+                                        <>
+                                            <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Vision Statement</h3>
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                {artifact.statement}
+                                            </ReactMarkdown>
+                                        </>
+                                    )}
+                                    {artifact.description && (
+                                        <>
+                                            <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Description</h3>
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                {artifact.description}
+                                            </ReactMarkdown>
+                                        </>
+                                    )}
+                                </>
+                            )}
+
+                            {/* Document Presentation */}
+                            {artifactType === 'document' && (
+                                <>
+                                    <div className="grid grid-cols-2 gap-4 mb-4 not-prose">
+                                        <div>
+                                            <span className="text-sm font-medium text-slate-500">Type</span>
+                                            <p className="text-slate-900 capitalize">{artifact.document_type || 'Unknown'}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-sm font-medium text-slate-500">MIME Type</span>
+                                            <p className="text-slate-900">{artifact.mime_type || 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                    {artifact.description && (
+                                        <>
+                                            <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Description</h3>
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                {artifact.description}
+                                            </ReactMarkdown>
+                                        </>
+                                    )}
+                                    <div className="mt-4 not-prose">
+                                        {artifact.document_type === 'url' && artifact.content_url && (
+                                            <div className="p-4 bg-slate-50 rounded border border-slate-200">
+                                                <a
+                                                    href={artifact.content_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-2 text-blue-600 hover:underline"
+                                                >
+                                                    <ExternalLink className="w-4 h-4" />
+                                                    {artifact.content_url}
+                                                </a>
+                                            </div>
+                                        )}
+                                        {artifact.document_type === 'text' && artifact.content_text && (
+                                            <div className="prose prose-sm max-w-none p-4 bg-slate-50 rounded border border-slate-200">
+                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                    {artifact.content_text}
+                                                </ReactMarkdown>
+                                            </div>
+                                        )}
+                                        {artifact.document_type === 'file' && artifact.content_url && (
+                                            <div className="border border-slate-200 rounded overflow-hidden">
+                                                {artifact.mime_type === 'application/pdf' ? (
+                                                    <iframe
+                                                        src={artifact.content_url}
+                                                        className="w-full"
+                                                        style={{ height: '800px' }}
+                                                        title="PDF Document"
+                                                    />
+                                                ) : artifact.mime_type?.startsWith('image/') ? (
+                                                    <img
+                                                        src={artifact.content_url}
+                                                        alt={artifact.title}
+                                                        className="max-w-full h-auto"
+                                                    />
+                                                ) : (
+                                                    <div className="p-4 bg-slate-50">
+                                                        <a
+                                                            href={artifact.content_url}
+                                                            download
+                                                            className="flex items-center gap-2 text-blue-600 hover:underline"
+                                                        >
+                                                            <ExternalLink className="w-4 h-4" />
+                                                            Download {artifact.mime_type || 'file'}
+                                                        </a>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -797,6 +1012,5 @@ export default function ArtifactPresentation() {
                 />
             </div>
         </div>
-        </div >
     );
 }
