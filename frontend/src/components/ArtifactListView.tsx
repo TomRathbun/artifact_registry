@@ -757,6 +757,37 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                             artifact.primary_actor_id = existing.id;
                             delete artifact.primary_actor;
                         }
+
+                        // Handle MSS steps - convert actor names to IDs
+                        if (artifact.mss && Array.isArray(artifact.mss)) {
+                            const people = allPeople || await MetadataService.listPeopleApiV1MetadataMetadataPeopleGet(targetProjectId);
+                            for (const step of artifact.mss) {
+                                if (step.actor && typeof step.actor === 'string') {
+                                    // Check if person exists
+                                    let existing = people.find((p: any) => p.name === step.actor);
+                                    if (!existing) {
+                                        // Create new person with actor role
+                                        existing = await MetadataService.createPersonApiV1MetadataMetadataPeoplePost({
+                                            name: step.actor,
+                                            roles: ['actor'],
+                                            project_id: targetProjectId,
+                                            person_type: 'both'
+                                        });
+                                        people.push(existing);
+                                    } else if (!(existing as any).roles?.includes('actor')) {
+                                        // Update roles if actor role is missing
+                                        const updatedRoles = [...((existing as any).roles || []), 'actor'];
+                                        await MetadataService.updatePersonApiV1MetadataMetadataPeoplePersonIdPut(existing.id, {
+                                            ...(existing as any),
+                                            roles: updatedRoles
+                                        } as any);
+                                    }
+                                    // Convert actor name to ID
+                                    step.actor_id = existing.id;
+                                    delete step.actor;
+                                }
+                            }
+                        }
                     }
 
                     // Handle Need specific imports
