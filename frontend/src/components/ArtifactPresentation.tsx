@@ -135,8 +135,6 @@ export default function ArtifactPresentation() {
     const [pendingStatus, setPendingStatus] = useState<string>('');
     const [statusRationale, setStatusRationale] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>(''); // Add status filter
-    const [selectedField, setSelectedField] = useState<string | null>(null);
-    const [fieldLabel, setFieldLabel] = useState<string>('');
 
     // Valid status transitions from backend
     const VALID_TRANSITIONS: Record<string, string[]> = {
@@ -294,17 +292,6 @@ export default function ArtifactPresentation() {
             }
         },
         enabled: !!selectedLink && selectedLink.target_artifact_type !== 'url',
-    });
-
-    // Fetch comments for this artifact
-    const { data: comments = [] } = useQuery<any[]>({
-        queryKey: ['comments', artifactId],
-        queryFn: async () => {
-            const response = await fetch(`/api/v1/comments/?artifact_aid=${artifactId}`);
-            if (!response.ok) return [];
-            return response.json();
-        },
-        enabled: !!artifactId
     });
 
     const handleEditClick = () => {
@@ -1007,8 +994,8 @@ export default function ArtifactPresentation() {
             <div className="sticky top-20 h-[calc(100vh-6rem)] bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
                 <CommentPanel
                     artifactAid={artifactId!}
-                    selectedField={selectedField}
-                    fieldLabel={fieldLabel}
+                    selectedField={null}
+                    fieldLabel=""
                 />
             </div>
         </div>
