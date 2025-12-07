@@ -3,27 +3,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { VisionService, NeedsService, UseCaseService, RequirementService, MetadataService, ProjectsService, LinkagesService, SiteService, ComponentService } from '../client';
 import VisionHeader from './VisionHeader';
-import { MultiSelect } from './MultiSelect';
 import ImportConflictModal from './ImportConflictModal';
-import { Download, Upload, Trash2, Edit, FileDown, Copy, Clipboard, Files } from 'lucide-react';
+import axios from 'axios';
+import { Download, Upload, Trash2, Edit, FileDown, Copy, Clipboard, Files, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 import { ConfirmationModal } from './ConfirmationModal';
 
 interface ArtifactListViewProps {
     artifactType: 'vision' | 'need' | 'use_case' | 'requirement' | 'actor' | 'stakeholder' | 'area' | 'document';
 }
 
-const STATUS_OPTIONS = [
-    { value: 'Draft', label: 'Draft' },
-    { value: 'Ready_for_Review', label: 'Ready for Review' },
-    { value: 'In_Review', label: 'In Review' },
-    { value: 'Approved', label: 'Approved' },
-    { value: 'Rejected', label: 'Rejected' },
-    { value: 'Deferred', label: 'Deferred' },
-    { value: 'Superseded', label: 'Superseded' },
-    { value: 'Retired', label: 'Retired' },
-];
 
-export default function ArtifactListView({ artifactType }: ArtifactListViewProps) {
+
+export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
     const { projectId } = useParams<{ projectId: string }>();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
@@ -31,9 +22,10 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
 
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
-    const [area, setArea] = useState<string[]>([]);
-    const [status, setStatus] = useState<string[]>([]);
     const [selectedItems, setSelectedItems] = useState<string[]>([]);
+    const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' | null }>({ key: null, direction: null });
+    const [activeFilterDropdown, setActiveFilterDropdown] = useState<string | null>(null);
+    const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({});
 
     // Import Conflict State
     const [showImportModal, setShowImportModal] = useState(false);
@@ -87,11 +79,11 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
         queryFn: () => MetadataService.listAreasApiV1MetadataMetadataAreasGet(),
     });
 
-    const areaOptions = areas?.map((a: any) => ({ value: a.code, label: a.name })) || [];
+
 
     // Dynamic fetch based on artifact type
     const { data: artifacts, isLoading } = useQuery({
-        queryKey: [artifactType, project?.id, area, status, debouncedSearch],
+        queryKey: [artifactType, project?.id, debouncedSearch],
         queryFn: async () => {
             if (!project?.id) return [];
             switch (artifactType) {
@@ -104,8 +96,8 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
                 case 'need':
                     return NeedsService.listNeedsApiV1NeedNeedsGet(
                         project.id,
-                        area.length > 0 ? area : undefined,
-                        status.length > 0 ? status : undefined,
+                        undefined,
+                        undefined,
                         undefined,
                         debouncedSearch || undefined,
                         false
@@ -113,8 +105,8 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
                 case 'use_case':
                     return UseCaseService.listUseCasesApiV1UseCaseUseCasesGet(
                         project.id,
-                        area.length > 0 ? area : undefined,
-                        status.length > 0 ? status : undefined,
+                        undefined,
+                        undefined,
                         undefined,
                         debouncedSearch || undefined,
                         false
@@ -122,8 +114,8 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
                 case 'requirement':
                     return RequirementService.listRequirementsApiV1RequirementRequirementsGet(
                         project.id,
-                        area.length > 0 ? area : undefined,
-                        status.length > 0 ? status : undefined,
+                        undefined,
+                        undefined,
                         undefined,
                         undefined,
                         undefined,
@@ -144,6 +136,91 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
         },
         enabled: !!project?.id,
     });
+
+
+
+    const handleSort = (key: string) => {
+        let direction: 'asc' | 'desc' | null = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        } else if (sortConfig.key === key && sortConfig.direction === 'desc') {
+            direction = null;
+        }
+        setSortConfig({ key: direction ? key : null, direction });
+    };
+
+    const getFilteredAndSortedArtifacts = () => {
+        if (!artifacts) return [];
+
+        // Apply column filters first
+        let filtered = artifacts.filter((a: any) => {
+            return Object.entries(columnFilters).every(([key, values]) => {
+                if (!values || values.length === 0) return true;
+
+                let itemValue = a[key];
+                if (key === 'title') {
+                    itemValue = a.title || a.short_name || '';
+                } else if (key === 'description') {
+                    itemValue = a.description || a.text || '';
+                }
+
+                return values.includes(itemValue);
+            });
+        });
+
+        // Then apply sorting
+        if (!sortConfig.key || !sortConfig.direction) return filtered;
+
+        return [...filtered].sort((a: any, b: any) => {
+            let aValue = a[sortConfig.key!];
+            let bValue = b[sortConfig.key!];
+
+            // Normalize for specific columns
+            if (sortConfig.key === 'title') {
+                aValue = a.title || a.short_name || '';
+                bValue = b.title || b.short_name || '';
+            } else if (sortConfig.key === 'description') {
+                aValue = a.description || a.text || '';
+                bValue = b.description || b.text || '';
+            }
+
+            if (aValue < bValue) {
+                return sortConfig.direction === 'asc' ? -1 : 1;
+            }
+            if (aValue > bValue) {
+                return sortConfig.direction === 'asc' ? 1 : -1;
+            }
+            return 0;
+        });
+    };
+
+    const getUniqueValuesForColumn = (key: string): string[] => {
+        if (!artifacts) return [];
+        const values = artifacts.map((a: any) => {
+            if (key === 'title') return a.title || a.short_name || '';
+            if (key === 'description') return a.description || a.text || '';
+            return a[key] || '';
+        });
+        return [...new Set(values)].filter(v => v).sort() as string[];
+    };
+
+    const toggleFilter = (key: string, value: string) => {
+        setColumnFilters(prev => {
+            const current = prev[key] || [];
+            const updated = current.includes(value)
+                ? current.filter(v => v !== value)
+                : [...current, value];
+            return { ...prev, [key]: updated };
+        });
+    };
+
+    const clearColumnFilter = (key: string) => {
+        setColumnFilters(prev => {
+            const updated = { ...prev };
+            delete updated[key];
+            return updated;
+        });
+    };
 
     // Fetch metadata for export mapping
     const { data: owners } = useQuery({
@@ -175,6 +252,15 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
         queryKey: ['components'],
         queryFn: () => ComponentService.listComponentsApiV1ComponentsGet(),
         enabled: artifactType === 'need' && !!artifacts
+    });
+
+    const { data: diagrams } = useQuery({
+        queryKey: ['diagrams', project?.id],
+        queryFn: async () => {
+            const res = await axios.get(`/api/v1/projects/${project?.id}/diagrams`);
+            return res.data;
+        },
+        enabled: !!project?.id
     });
 
     // Helper to prepare artifact for export (clean up IDs, etc.)
@@ -217,56 +303,24 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
             }
 
             if (exportItem.components && Array.isArray(exportItem.components)) {
-                exportItem.components = exportItem.components.map((c: any) => c.name);
+                // Export detailed component info including tags
+                exportItem.components = exportItem.components.map((c: any) => ({
+                    name: c.name,
+                    tags: c.tags || [],
+                    type: c.type,
+                    lifecycle: c.lifecycle
+                }));
             } else if (exportItem.component_ids && allComponents) {
                 exportItem.components = exportItem.component_ids.map((id: string) => {
-                    const comp = allComponents.find((c: any) => c.id === id);
-                    return comp ? comp.name : id;
+                    const comp = allComponents.find((c: any) => c.id === id) as any;
+                    return comp ? {
+                        name: comp.name,
+                        tags: comp.tags || [],
+                        type: comp.type,
+                        lifecycle: comp.lifecycle
+                    } : { name: id };
                 });
                 delete exportItem.component_ids;
-            }
-        }
-
-        // Clean up Need exports
-        if (artifactType === 'need') {
-            // Resolve Sites
-            if (exportItem.site_ids && Array.isArray(exportItem.site_ids) && allSites) {
-                exportItem.sites = exportItem.site_ids.map((id: string) => {
-                    const site = allSites.find((s: any) => s.id === id);
-                    return site ? site.name : id;
-                });
-                delete exportItem.site_ids;
-            }
-
-            // Resolve Components
-            if (exportItem.component_ids && Array.isArray(exportItem.component_ids) && allComponents) {
-                exportItem.components = exportItem.component_ids.map((id: string) => {
-                    const comp = allComponents.find((c: any) => c.id === id);
-                    return comp ? comp.name : id;
-                });
-                delete exportItem.component_ids;
-            }
-
-            // Resolve Owner
-            if (exportItem.owner_id && owners) {
-                const owner = owners.find((o: any) => o.id === exportItem.owner_id);
-                exportItem.owner = owner ? owner.name : exportItem.owner_id;
-                delete exportItem.owner_id;
-            }
-
-            // Resolve Stakeholder
-            if (stakeholders) {
-                let sId = exportItem.stakeholder_id;
-                if (!sId && exportItem.stakeholder && typeof exportItem.stakeholder === 'string' && exportItem.stakeholder.length > 30) {
-                    // Assume it's an ID if it's a long string (UUID)
-                    sId = exportItem.stakeholder;
-                }
-
-                if (sId) {
-                    const stakeholder = stakeholders.find((s: any) => s.id === sId);
-                    exportItem.stakeholder = stakeholder ? stakeholder.name : sId;
-                    delete exportItem.stakeholder_id;
-                }
             }
         }
 
@@ -317,16 +371,8 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
 
         // Remove dates and internal fields
         delete exportItem.id;
-        delete exportItem.aid; // We might want to keep aid as a reference, but user asked to remove "ids". Let's assume UUIDs. AID is user-facing ID usually.
-        // User said "remove the ids", usually meaning database UUIDs. AID (e.g. TR2-UC-001) is usually desired in export.
-        // Let's keep AID for now as it's the human readable ID.
-        // Wait, user said "remove the ids".
-        // "remove the ids, just outut the names"
-        // If I remove AID, I lose the reference. But maybe they just want the content.
-        // Let's remove 'id' (UUID) and keep 'aid' (Human ID) for now, unless 'aid' is also considered an "id" to remove.
-        // "remove the ids" usually refers to the UUIDs.
-        // Let's strictly follow "remove the ids".
-        delete exportItem.id;
+        // Keep AID as it is the human readable identifier
+        // delete exportItem.aid; 
 
         delete exportItem.created_at;
         delete exportItem.updated_at;
@@ -369,13 +415,27 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
         // Collect relevant linkages
         const relevantLinkages: string[][] = [];
         const uniqueLinkages = new Set<string>();
+
+        // Create lookup for Diagrams (UUID -> Name)
+        const diagramMap = new Map<string, string>();
+        if (diagrams) {
+            diagrams.forEach((d: any) => {
+                diagramMap.set(d.id, d.name);
+            });
+        }
+
         if (linkages) {
             const artifactIds = new Set(artifacts.map((a: any) => a.aid));
             linkages.forEach((l: any) => {
                 // Check if this linkage involves any of the exported artifacts
                 if (artifactIds.has(l.source_id) || artifactIds.has(l.target_id)) {
-                    const s = l.source_id.trim();
-                    const t = l.target_id.trim();
+                    let s = l.source_id.trim();
+                    let t = l.target_id.trim();
+
+                    // Resolve Diagram UUIDs to Names
+                    if (diagramMap.has(s)) s = diagramMap.get(s)!;
+                    if (diagramMap.has(t)) t = diagramMap.get(t)!;
+
                     const key = `${s}|${t}`;
                     if (!uniqueLinkages.has(key)) {
                         uniqueLinkages.add(key);
@@ -418,12 +478,26 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
             // Collect relevant linkages
             const relevantLinkages: string[][] = [];
             const uniqueLinkages = new Set<string>();
+
+            // Create lookup for Diagrams (UUID -> Name)
+            const diagramMap = new Map<string, string>();
+            if (diagrams) {
+                diagrams.forEach((d: any) => {
+                    diagramMap.set(d.id, d.name);
+                });
+            }
+
             if (linkages) {
                 const aid = artifact.aid;
                 linkages.forEach((l: any) => {
                     if (l.source_id === aid || l.target_id === aid) {
-                        const s = l.source_id.trim();
-                        const t = l.target_id.trim();
+                        let s = l.source_id.trim();
+                        let t = l.target_id.trim();
+
+                        // Resolve Diagram UUIDs to Names
+                        if (diagramMap.has(s)) s = diagramMap.get(s)!;
+                        if (diagramMap.has(t)) t = diagramMap.get(t)!;
+
                         const key = `${s}|${t}`;
                         if (!uniqueLinkages.has(key)) {
                             uniqueLinkages.add(key);
@@ -450,284 +524,7 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
         }
     };
 
-    // Paste from Clipboard
-    const handlePaste = async () => {
-        try {
-            const text = await navigator.clipboard.readText();
-            if (!text) return;
 
-            const jsonData = JSON.parse(text);
-
-            // Basic validation
-            if (!jsonData.artifacts || !Array.isArray(jsonData.artifacts)) {
-                alert('Invalid clipboard content: missing artifacts array');
-                return;
-            }
-
-            // Pre-process artifacts (same as handleImport)
-            const artifactsToImport = jsonData.artifacts.map((a: any) => {
-                const { id, aid, created_at, updated_at, project, ...rest } = a;
-                const artifact = { ...rest, _originalAid: aid, project_id: projectId };
-
-                // Normalize EARS type
-                if (artifact.ears_type) {
-                    const type = artifact.ears_type.toLowerCase();
-                    if (type === 'event_driven') artifact.ears_type = 'event-driven';
-                    else if (type === 'state_driven') artifact.ears_type = 'state-driven';
-                    else if (type === 'unwanted_behavior' || type === 'unwanted-behavior') artifact.ears_type = 'unwanted';
-                    else if (type === 'optional_feature' || type === 'optional-feature') artifact.ears_type = 'optional';
-                    else artifact.ears_type = type.replace('_', '-');
-                }
-
-                // Special handling for Requirements: find source_use_case_id from linkages
-                if (jsonData.artifactType === 'requirement' && jsonData.linkages) {
-                    const linkage = jsonData.linkages.find((l: any[]) => l[0] === aid);
-                    if (linkage && linkage[1]) {
-                        let ucId = linkage[1];
-                        const parts = ucId.split('-');
-                        if (parts.length > 4) {
-                            ucId = parts.slice(0, 4).join('-');
-                        }
-                        artifact.source_use_case_id = ucId;
-                    }
-                }
-
-                return artifact;
-            });
-
-            const conflicts: { type: 'Area' | 'Owner', value: string }[] = [];
-            const uniqueOwners = new Set<string>();
-            const uniqueAreas = new Set<string>();
-
-            artifactsToImport.forEach((a: any) => {
-                if (a.area) uniqueAreas.add(a.area);
-                if (a.owner) uniqueOwners.add(a.owner);
-                if (a.stakeholder) uniqueOwners.add(a.stakeholder);
-                if (a.stakeholders && Array.isArray(a.stakeholders)) {
-                    a.stakeholders.forEach((s: any) => uniqueOwners.add(s));
-                }
-                if (a.primary_actor && typeof a.primary_actor === 'string') uniqueOwners.add(a.primary_actor);
-            });
-            // Check Areas
-            if (areas) {
-                uniqueAreas.forEach(areaName => {
-                    const exists = areas.some((a: any) => a.name === areaName || a.code === areaName);
-                    if (!exists) {
-                        conflicts.push({ type: 'Area', value: areaName });
-                    }
-                });
-            }
-
-            // Check Owners
-            if (owners) {
-                const currentOwners = owners; // Capture for closure
-                uniqueOwners.forEach(ownerName => {
-                    const exists = currentOwners.some((o: any) => o.name === ownerName);
-                    if (!exists) {
-                        conflicts.push({ type: 'Owner', value: ownerName });
-                    }
-                });
-            }
-
-            if (conflicts.length > 0) {
-                setImportConflicts(conflicts);
-                setPendingImportData({
-                    artifacts: artifactsToImport,
-                    linkages: jsonData.linkages || []
-                });
-                setShowImportModal(true);
-            } else {
-                importMutation.mutate({
-                    artifacts: artifactsToImport,
-                    linkages: jsonData.linkages || [],
-                    projectId: project?.id || projectId || ''
-                });
-            }
-        } catch (err) {
-            console.error('Failed to paste:', err);
-            alert('Failed to paste from clipboard: ' + err);
-        }
-    };
-
-    const handleExportMarkdown = () => {
-        if (!artifacts) return;
-        let content = `# ${artifactType.charAt(0).toUpperCase() + artifactType.slice(1)} Export\n\n`;
-        content += `**Date**: ${new Date().toLocaleDateString()}\n\n---\n\n`;
-
-        artifacts.forEach((a: any) => {
-            switch (artifactType) {
-                case 'vision':
-                    content += `# ${a.title}\n\n`;
-                    content += `**Date**: ${new Date(a.created_at).toLocaleDateString()}\n\n`;
-                    content += `${a.vision_statement}\n\n---\n\n`;
-                    break;
-                case 'need':
-                    let stakeholderName = a.stakeholder;
-                    if (stakeholders) {
-                        const sObj = stakeholders.find((s: any) => s.id === a.stakeholder_id || s.id === a.stakeholder || s.name === a.stakeholder);
-                        if (sObj) stakeholderName = sObj.name;
-                    }
-                    content += `## ${a.aid}: ${a.title}\n\n`;
-                    content += `**Stakeholder**: ${stakeholderName || '-'} | **Status**: ${a.status || '-'}\n\n`;
-                    content += `> ${a.description}\n\n---\n\n`;
-                    break;
-                case 'use_case':
-                    content += `## ${a.aid}: ${a.title}\n\n`;
-                    content += `**Description**: ${a.description || '-'}\n\n`;
-                    content += `**Primary Actor**: ${a.primary_actor?.name || '-'}\n\n`;
-
-                    content += `### Preconditions\n`;
-                    if (a.preconditions && a.preconditions.length > 0) {
-                        content += a.preconditions.map((p: any) => `- ${p.text}`).join('\n') + '\n\n';
-                    } else {
-                        content += '-\n\n';
-                    }
-
-                    content += `### Main Flow\n`;
-                    if (a.mss && a.mss.length > 0) {
-                        content += a.mss.map((step: any) => `${step.step_num}. **${step.actor}**: ${step.description}`).join('\n') + '\n\n';
-                    } else {
-                        content += '-\n\n';
-                    }
-
-                    content += `### Postconditions\n`;
-                    if (a.postconditions && a.postconditions.length > 0) {
-                        content += a.postconditions.map((p: any) => `- ${p.text}`).join('\n') + '\n\n';
-                    } else {
-                        content += '-\n\n';
-                    }
-                    content += `---\n\n`;
-                    break;
-                case 'requirement':
-                    // Resolve owner name
-                    let ownerName = a.owner;
-                    if (owners) {
-                        const ownerObj = owners.find((o: any) => o.id === a.owner || o.name === a.owner);
-                        if (ownerObj) ownerName = ownerObj.name;
-                    }
-
-                    content += `## ${a.aid}: ${a.short_name}\n\n`;
-                    content += `**Owner**: ${ownerName || '-'} | **Status**: ${a.status || '-'} | **Type**: ${a.ears_type || '-'}\n\n`;
-                    content += `> ${a.text}\n\n`;
-                    if (a.rationale) content += `*Rationale*: ${a.rationale}\n\n`;
-                    content += `---\n\n`;
-                    break;
-            }
-        });
-
-        const blob = new Blob([content], { type: 'text/markdown' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${artifactType}_export_${new Date().toISOString().split('T')[0]}.md`;
-        link.click();
-        URL.revokeObjectURL(url);
-    };
-
-    const handleExportWord = () => {
-        if (!artifacts) return;
-        let content = `
-            <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-            <head>
-                <meta charset="utf-8">
-                <title>${artifactType} Export</title>
-                <style>
-                    body { font-family: Arial, sans-serif; line-height: 1.6; }
-                    h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-                    h2 { color: #34495e; margin-top: 30px; border-bottom: 1px solid #eee; }
-                    h3 { color: #7f8c8d; margin-top: 20px; }
-                    .meta { color: #666; font-size: 0.9em; margin-bottom: 15px; font-style: italic; }
-                    blockquote { border-left: 4px solid #ddd; padding-left: 15px; color: #555; margin: 15px 0; }
-                    ul, ol { margin-bottom: 15px; }
-                    li { margin-bottom: 5px; }
-                    .rationale { background: #f9f9f9; padding: 10px; border-radius: 4px; font-size: 0.9em; }
-                </style>
-            </head>
-            <body>
-            <h1>${artifactType.charAt(0).toUpperCase() + artifactType.slice(1)} Export</h1>
-            <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
-            <hr/>
-        `;
-
-        artifacts.forEach((a: any) => {
-            switch (artifactType) {
-                case 'vision':
-                    content += `<h1>${a.title}</h1>`;
-                    content += `<p><strong>Date:</strong> ${new Date(a.created_at).toLocaleDateString()}</p>`;
-                    content += `<p>${a.vision_statement}</p><hr/>`;
-                    break;
-                case 'need':
-                    let stakeholderName = a.stakeholder;
-                    if (stakeholders) {
-                        const sObj = stakeholders.find((s: any) => s.id === a.stakeholder_id || s.id === a.stakeholder || s.name === a.stakeholder);
-                        if (sObj) stakeholderName = sObj.name;
-                    }
-                    content += `<h2>${a.aid}: ${a.title}</h2>`;
-                    content += `<div class="meta"><strong>Stakeholder:</strong> ${stakeholderName || '-'} | <strong>Status:</strong> ${a.status || '-'}</div>`;
-                    content += `<blockquote>${a.description}</blockquote><hr/>`;
-                    break;
-                case 'use_case':
-                    content += `<h2>${a.aid}: ${a.title}</h2>`;
-                    content += `<p><strong>Description:</strong> ${a.description || '-'}</p>`;
-                    content += `<p><strong>Primary Actor:</strong> ${a.primary_actor?.name || '-'}</p>`;
-
-                    content += `<h3>Preconditions</h3><ul>`;
-                    if (a.preconditions && a.preconditions.length > 0) {
-                        content += a.preconditions.map((p: any) => `<li>${p.text}</li>`).join('');
-                    } else {
-                        content += `<li>-</li>`;
-                    }
-                    content += `</ul>`;
-
-                    content += `<h3>Main Flow</h3><ol>`;
-                    if (a.mss && a.mss.length > 0) {
-                        content += a.mss.map((step: any) => `<li><strong>${step.actor}</strong>: ${step.description}</li>`).join('');
-                    } else {
-                        content += `<li>-</li>`;
-                    }
-                    content += `</ol>`;
-
-                    content += `<h3>Postconditions</h3><ul>`;
-                    if (a.postconditions && a.postconditions.length > 0) {
-                        content += a.postconditions.map((p: any) => `<li>${p.text}</li>`).join('');
-                    } else {
-                        content += `<li>-</li>`;
-                    }
-                    content += `</ul><hr/>`;
-                    break;
-                case 'requirement':
-                    // Resolve owner name
-                    let ownerName = a.owner;
-                    if (owners) {
-                        const ownerObj = owners.find((o: any) => o.id === a.owner || o.name === a.owner);
-                        if (ownerObj) ownerName = ownerObj.name;
-                    }
-
-                    content += `<h2>${a.aid}: ${a.short_name}</h2>`;
-                    content += `<div class="meta"><strong>Owner:</strong> ${ownerName || '-'} | <strong>Status:</strong> ${a.status || '-'} | <strong>Type:</strong> ${a.ears_type || '-'}</div>`;
-                    content += `<blockquote>${a.text}</blockquote>`;
-                    if (a.rationale) content += `<div class="rationale"><strong>Rationale:</strong> ${a.rationale}</div>`;
-                    content += `<hr/>`;
-                    break;
-            }
-        });
-
-        content += `</body></html>`;
-
-        const blob = new Blob([content], { type: 'application/msword' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${artifactType}_export_${new Date().toISOString().split('T')[0]}.doc`;
-        link.click();
-        URL.revokeObjectURL(url);
-    };
-
-
-
-
-
-    // Import mutation
     const importMutation = useMutation({
         mutationFn: async (importData: { artifacts: any[], linkages: any[], projectId: string }) => {
             const { artifacts: importedArtifacts, linkages: importedLinkages, projectId: targetProjectId } = importData;
@@ -1084,6 +881,394 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
         },
     });
 
+    // Paste from Clipboard
+    const handlePaste = async () => {
+        try {
+            const text = await navigator.clipboard.readText();
+            if (!text) return;
+
+            const jsonData = JSON.parse(text);
+
+            // Basic validation
+            if (!jsonData.artifacts || !Array.isArray(jsonData.artifacts)) {
+                alert('Invalid clipboard content: missing artifacts array');
+                return;
+            }
+
+            // Pre-process artifacts (same as handleImport)
+            const artifactsToImport = jsonData.artifacts.map((a: any) => {
+                const { id, aid, created_at, updated_at, project, ...rest } = a;
+                const artifact = { ...rest, _originalAid: aid, project_id: projectId };
+
+                // Normalize EARS type
+                if (artifact.ears_type) {
+                    const type = artifact.ears_type.toLowerCase();
+                    if (type === 'event_driven') artifact.ears_type = 'event-driven';
+                    else if (type === 'state_driven') artifact.ears_type = 'state-driven';
+                    else if (type === 'unwanted_behavior' || type === 'unwanted-behavior') artifact.ears_type = 'unwanted';
+                    else if (type === 'optional_feature' || type === 'optional-feature') artifact.ears_type = 'optional';
+                    else artifact.ears_type = type.replace('_', '-');
+                }
+
+                // Special handling for Requirements: find source_use_case_id from linkages
+                if (jsonData.artifactType === 'requirement' && jsonData.linkages) {
+                    const linkage = jsonData.linkages.find((l: any[]) => l[0] === aid);
+                    if (linkage && linkage[1]) {
+                        let ucId = linkage[1];
+                        const parts = ucId.split('-');
+                        if (parts.length > 4) {
+                            ucId = parts.slice(0, 4).join('-');
+                        }
+                        artifact.source_use_case_id = ucId;
+                    }
+                }
+
+                return artifact;
+            });
+
+            const conflicts: { type: 'Area' | 'Owner', value: string }[] = [];
+            const uniqueOwners = new Set<string>();
+            const uniqueAreas = new Set<string>();
+
+            artifactsToImport.forEach((a: any) => {
+                if (a.area) uniqueAreas.add(a.area);
+                if (a.owner) uniqueOwners.add(a.owner);
+                if (a.stakeholder) uniqueOwners.add(a.stakeholder);
+                if (a.stakeholders && Array.isArray(a.stakeholders)) {
+                    a.stakeholders.forEach((s: any) => uniqueOwners.add(s));
+                }
+                if (a.primary_actor && typeof a.primary_actor === 'string') uniqueOwners.add(a.primary_actor);
+            });
+            // Check Areas
+            if (areas) {
+                uniqueAreas.forEach(areaName => {
+                    const exists = areas.some((a: any) => a.name === areaName || a.code === areaName);
+                    if (!exists) {
+                        conflicts.push({ type: 'Area', value: areaName });
+                    }
+                });
+            }
+
+            // Check Owners
+            if (owners) {
+                const currentOwners = owners; // Capture for closure
+                uniqueOwners.forEach(ownerName => {
+                    const exists = currentOwners.some((o: any) => o.name === ownerName);
+                    if (!exists) {
+                        conflicts.push({ type: 'Owner', value: ownerName });
+                    }
+                });
+            }
+
+            if (conflicts.length > 0) {
+                setImportConflicts(conflicts);
+                setPendingImportData({
+                    artifacts: artifactsToImport,
+                    linkages: jsonData.linkages || []
+                });
+                setShowImportModal(true);
+            } else {
+                importMutation.mutate({
+                    artifacts: artifactsToImport,
+                    linkages: jsonData.linkages || [],
+                    projectId: project?.id || projectId || ''
+                });
+            }
+        } catch (err) {
+            console.error('Failed to paste:', err);
+            alert('Failed to paste from clipboard: ' + err);
+        }
+    };
+
+    const handleExportMarkdown = () => {
+        if (!artifacts) return;
+        let content = `# ${artifactType.charAt(0).toUpperCase() + artifactType.slice(1)} Export\n\n`;
+        content += `**Date**: ${new Date().toLocaleDateString()}\n\n---\n\n`;
+
+        artifacts.forEach((a: any) => {
+            switch (artifactType) {
+                case 'vision':
+                    content += `# ${a.title}\n\n`;
+                    content += `**Date**: ${new Date(a.created_at).toLocaleDateString()}\n\n`;
+                    content += `${a.vision_statement}\n\n---\n\n`;
+                    break;
+                case 'need':
+                    let stakeholderName = a.stakeholder;
+                    if (stakeholders) {
+                        const sObj = stakeholders.find((s: any) => s.id === a.stakeholder_id || s.id === a.stakeholder || s.name === a.stakeholder);
+                        if (sObj) stakeholderName = sObj.name;
+                    }
+                    const areaCode = a.area || '-';
+                    const level = 'Mission';
+                    const needOwnerName = 'Air Power Commander';
+
+                    content += `## ${a.aid}: ${a.title}\n\n`;
+
+                    // Metadata Table
+                    content += `| Area | Level | Owner | Stakeholder |\n`;
+                    content += `| --- | --- | --- | --- |\n`;
+                    content += `| ${areaCode} | ${level} | ${needOwnerName} | ${stakeholderName || '-'} |\n\n`;
+
+                    content += `### Description\n\n${a.description}\n\n`;
+
+                    if (a.rationale) {
+                        content += `### Rationale\n\n> ${a.rationale}\n\n`;
+                    }
+
+                    if (a.sites && a.sites.length > 0) {
+                        content += `### Related Sites\n\n`;
+                        const siteNames = a.sites.map((site: any) => typeof site === 'string' ? site : site.name);
+                        content += siteNames.map((s: string) => `* \`${s}\``).join(' ') + '\n\n';
+                    } else if (a.site_ids && allSites) {
+                        content += `### Related Sites\n\n`;
+                        const siteNames: string[] = [];
+                        a.site_ids.forEach((sid: string) => {
+                            const site = allSites.find((s: any) => s.id === sid);
+                            if (site) siteNames.push(site.name);
+                        });
+                        content += siteNames.map((s: string) => `* \`${s}\``).join(' ') + '\n\n';
+                    }
+
+                    if (a.components && a.components.length > 0) {
+                        content += `### Related Components\n\n`;
+                        a.components.forEach((comp: any) => {
+                            const cName = comp.name || (typeof comp === 'string' ? comp : 'Unknown');
+                            let details = `**${cName}**`;
+                            if (comp.type) details += ` (${comp.type})`;
+                            if (comp.lifecycle) details += ` [${comp.lifecycle}]`;
+                            content += `* ${details}\n`;
+                        });
+                        content += '\n';
+                    } else if (a.component_ids && allComponents) {
+                        content += `### Related Components\n\n`;
+                        a.component_ids.forEach((cid: string) => {
+                            const comp = allComponents.find((c: any) => c.id === cid);
+                            if (comp) {
+                                content += `* **${comp.name}** (${comp.type || 'Unknown'})\n`;
+                            }
+                        });
+                        content += '\n';
+                    }
+
+                    content += `---\n\n`;
+                    break;
+                case 'use_case':
+                    content += `## ${a.aid}: ${a.title}\n\n`;
+                    content += `**Description**: ${a.description || '-'}\n\n`;
+                    content += `**Primary Actor**: ${a.primary_actor?.name || '-'}\n\n`;
+
+                    content += `### Preconditions\n`;
+                    if (a.preconditions && a.preconditions.length > 0) {
+                        content += a.preconditions.map((p: any) => `- ${p.text}`).join('\n') + '\n\n';
+                    } else {
+                        content += '-\n\n';
+                    }
+
+                    content += `### Main Flow\n`;
+                    if (a.mss && a.mss.length > 0) {
+                        content += a.mss.map((step: any) => `${step.step_num}. **${step.actor}**: ${step.description}`).join('\n') + '\n\n';
+                    } else {
+                        content += '-\n\n';
+                    }
+
+                    content += `### Postconditions\n`;
+                    if (a.postconditions && a.postconditions.length > 0) {
+                        content += a.postconditions.map((p: any) => `- ${p.text}`).join('\n') + '\n\n';
+                    } else {
+                        content += '-\n\n';
+                    }
+                    content += `---\n\n`;
+                    break;
+                case 'requirement':
+                    // Resolve owner name
+                    let ownerName = a.owner;
+                    if (owners) {
+                        const ownerObj = owners.find((o: any) => o.id === a.owner || o.name === a.owner);
+                        if (ownerObj) ownerName = ownerObj.name;
+                    }
+
+                    content += `## ${a.aid}: ${a.short_name}\n\n`;
+                    content += `**Owner**: ${ownerName || '-'} | **Status**: ${a.status || '-'} | **Type**: ${a.ears_type || '-'}\n\n`;
+                    content += `> ${a.text}\n\n`;
+                    if (a.rationale) content += `*Rationale*: ${a.rationale}\n\n`;
+                    content += `---\n\n`;
+                    break;
+            }
+        });
+
+        const blob = new Blob([content], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${artifactType}_export_${new Date().toISOString().split('T')[0]}.md`;
+        link.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const handleExportWord = () => {
+        if (!artifacts) return;
+        let content = `
+            <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+            <head>
+                <meta charset="utf-8">
+                <title>${artifactType} Export</title>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; }
+                    h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+                    h2 { color: #34495e; margin-top: 30px; border-bottom: 1px solid #eee; }
+                    h3 { color: #7f8c8d; margin-top: 20px; }
+                    .meta { color: #666; font-size: 0.9em; margin-bottom: 15px; font-style: italic; }
+                    blockquote { border-left: 4px solid #ddd; padding-left: 15px; color: #555; margin: 15px 0; }
+                    ul, ol { margin-bottom: 15px; }
+                    li { margin-bottom: 5px; }
+                    .rationale { background: #f9f9f9; padding: 10px; border-radius: 4px; font-size: 0.9em; }
+                </style>
+            </head>
+            <body>
+            <h1>${artifactType.charAt(0).toUpperCase() + artifactType.slice(1)} Export</h1>
+            <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+            <hr/>
+        `;
+
+        artifacts.forEach((a: any) => {
+            switch (artifactType) {
+                case 'vision':
+                    content += `<h1>${a.title}</h1>`;
+                    content += `<p><strong>Date:</strong> ${new Date(a.created_at).toLocaleDateString()}</p>`;
+                    content += `<p>${a.vision_statement}</p><hr/>`;
+                    break;
+                case 'need':
+                    let stakeholderName = a.stakeholder;
+                    if (stakeholders) {
+                        const sObj = stakeholders.find((s: any) => s.id === a.stakeholder_id || s.id === a.stakeholder || s.name === a.stakeholder);
+                        if (sObj) stakeholderName = sObj.name;
+                    }
+                    const areaCode = a.area || '-';
+                    const level = 'Mission';
+                    const needOwnerName = 'Air Power Commander';
+                    content += `<h2>${a.aid}: ${a.title}</h2>`;
+                    content += `
+                        <table style="width: 100%; margin-bottom: 20px; border-collapse: collapse;">
+                            <tr>
+                                <td style="width: 50%; padding-bottom: 15px;">
+                                    <div style="font-size: 0.8em; color: #64748b; font-weight: bold; text-transform: uppercase;">Area</div>
+                                    <div style="font-weight: 500; font-size: 1.1em;">${areaCode}</div>
+                                </td>
+                                <td style="width: 50%; padding-bottom: 15px;">
+                                    <div style="font-size: 0.8em; color: #64748b; font-weight: bold; text-transform: uppercase;">Level</div>
+                                    <div style="font-weight: 500; font-size: 1.1em;">${level}</div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="width: 50%; padding-bottom: 15px;">
+                                    <div style="font-size: 0.8em; color: #64748b; font-weight: bold; text-transform: uppercase;">Owner</div>
+                                    <div style="font-weight: 500; font-size: 1.1em;">${needOwnerName}</div>
+                                </td>
+                                <td style="width: 50%; padding-bottom: 15px;">
+                                    <div style="font-size: 0.8em; color: #64748b; font-weight: bold; text-transform: uppercase;">Stakeholder</div>
+                                    <div style="font-weight: 500; font-size: 1.1em;">${stakeholderName || '-'}</div>
+                                </td>
+                            </tr>
+                        </table>
+                    `;
+                    content += `<div style="font-size: 0.8em; color: #64748b; font-weight: bold; text-transform: uppercase; margin-bottom: 5px;">Description</div>`;
+                    content += `<p style="margin-top: 0;">${a.description}</p>`;
+                    if (a.rationale) {
+                        content += `<div style="font-size: 0.8em; color: #64748b; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; margin-top: 20px;">Rationale</div>`;
+                        content += `<p style="margin-top: 0;">${a.rationale}</p>`;
+                    }
+                    if (a.sites && a.sites.length > 0) {
+                        content += `<div style="font-size: 0.8em; color: #64748b; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; margin-top: 20px;">Related Sites</div>`;
+                        content += `<div>`;
+                        a.sites.forEach((site: any) => {
+                            const sName = typeof site === 'string' ? site : site.name;
+                            content += `<span style="display: inline-block; background-color: #eef2ff; color: #4338ca; padding: 4px 10px; border-radius: 9999px; font-size: 0.85em; font-weight: 500; border: 1px solid #e0e7ff; margin-right: 5px; margin-bottom: 5px;">${sName}</span>`;
+                        });
+                        content += `</div>`;
+                    } else if (a.site_ids && allSites) {
+                        content += `<div style="font-size: 0.8em; color: #64748b; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; margin-top: 20px;">Related Sites</div>`;
+                        content += `<div>`;
+                        a.site_ids.forEach((sid: string) => {
+                            const site = allSites.find((s: any) => s.id === sid);
+                            if (site) {
+                                content += `<span style="display: inline-block; background-color: #eef2ff; color: #4338ca; padding: 4px 10px; border-radius: 9999px; font-size: 0.85em; font-weight: 500; border: 1px solid #e0e7ff; margin-right: 5px; margin-bottom: 5px;">${site.name}</span>`;
+                            }
+                        });
+                        content += `</div>`;
+                    }
+                    if (a.components && a.components.length > 0) {
+                        content += `<div style="font-size: 0.8em; color: #64748b; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; margin-top: 20px;">Related Components</div>`;
+                        content += `<div>`;
+                        a.components.forEach((comp: any) => {
+                            const cName = comp.name || (typeof comp === 'string' ? comp : 'Unknown');
+                            content += `<span style="display: inline-block; background-color: #f8fafc; color: #0f172a; padding: 4px 10px; border-radius: 9999px; font-size: 0.85em; font-weight: 500; border: 1px solid #e2e8f0; margin-right: 5px; margin-bottom: 5px;">${cName}</span>`;
+                            if (comp.type) content += `<span style="display: inline-block; background-color: #eff6ff; color: #1e40af; padding: 4px 10px; border-radius: 9999px; font-size: 0.85em; font-weight: 500; border: 1px solid #dbeafe; margin-right: 5px; margin-bottom: 5px;">${comp.type}</span>`;
+                            if (comp.lifecycle) content += `<span style="display: inline-block; background-color: #f0fdf4; color: #166534; padding: 4px 10px; border-radius: 9999px; font-size: 0.85em; font-weight: 500; border: 1px solid #dcfce7; margin-right: 5px; margin-bottom: 5px;">${comp.lifecycle}</span>`;
+                            if (comp.tags && Array.isArray(comp.tags)) {
+                                comp.tags.forEach((tag: string) => {
+                                    content += `<span style="display: inline-block; background-color: #fff; color: #475569; padding: 4px 10px; border-radius: 6px; font-size: 0.85em; border: 1px solid #e2e8f0; margin-right: 5px; margin-bottom: 5px;">🏷️ ${tag}</span>`;
+                                });
+                            }
+                        });
+                        content += `</div>`;
+                    } else if (a.component_ids && allComponents) {
+                        content += `<div style="font-size: 0.8em; color: #64748b; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; margin-top: 20px;">Related Components</div>`;
+                        content += `<div>`;
+                        a.component_ids.forEach((cid: string) => {
+                            const comp = allComponents.find((c: any) => c.id === cid);
+                            if (comp) {
+                                content += `<span style="display: inline-block; background-color: #f8fafc; color: #0f172a; padding: 4px 10px; border-radius: 9999px; font-size: 0.85em; font-weight: 500; border: 1px solid #e2e8f0; margin-right: 5px; margin-bottom: 5px;">${comp.name}</span>`;
+                            }
+                        });
+                        content += `</div>`;
+                    }
+                    content += `<hr style="margin-top: 30px; border: 0; border-top: 1px solid #eee;" />`;
+                    break;
+                case 'use_case':
+                    content += `<h2>${a.aid}: ${a.title}</h2>`;
+                    content += `<p><strong>Description:</strong> ${a.description || '-'}</p>`;
+                    content += `<p><strong>Primary Actor:</strong> ${a.primary_actor?.name || '-'}</p>`;
+                    content += `<h3>Preconditions</h3><ul>`;
+                    if (a.preconditions && a.preconditions.length > 0) {
+                        content += a.preconditions.map((p: any) => `<li>${p.text}</li>`).join('');
+                    } else { content += `<li>-</li>`; }
+                    content += `</ul>`;
+                    content += `<h3>Main Flow</h3><ol>`;
+                    if (a.mss && a.mss.length > 0) {
+                        content += a.mss.map((step: any) => `<li><strong>${step.actor}</strong>: ${step.description}</li>`).join('');
+                    } else { content += `<li>-</li>`; }
+                    content += `</ol>`;
+                    content += `<h3>Postconditions</h3><ul>`;
+                    if (a.postconditions && a.postconditions.length > 0) {
+                        content += a.postconditions.map((p: any) => `<li>${p.text}</li>`).join('');
+                    } else { content += `<li>-</li>`; }
+                    content += `</ul><hr/>`;
+                    break;
+                case 'requirement':
+                    let ownerName = a.owner;
+                    if (owners) {
+                        const ownerObj = owners.find((o: any) => o.id === a.owner || o.name === a.owner);
+                        if (ownerObj) ownerName = ownerObj.name;
+                    }
+                    content += `<h2>${a.aid}: ${a.short_name}</h2>`;
+                    content += `<div class="meta"><strong>Owner:</strong> ${ownerName || '-'} | <strong>Status:</strong> ${a.status || '-'} | <strong>Type:</strong> ${a.ears_type || '-'}</div>`;
+                    content += `<blockquote>${a.text}</blockquote>`;
+                    if (a.rationale) content += `*Rationale*: ${a.rationale}`;
+                    content += `<hr/>`;
+                    break;
+            }
+        });
+
+        content += `</body></html>`;
+        const blob = new Blob([content], { type: 'application/msword' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${artifactType}_export_${new Date().toISOString().split('T')[0]}.doc`;
+        link.click();
+        URL.revokeObjectURL(url);
+    };
+
     const deleteMutation = useMutation({
         mutationFn: async (aid: string) => {
             switch (artifactType) {
@@ -1096,7 +1281,7 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
                 case 'requirement':
                     return RequirementService.deleteRequirementApiV1RequirementRequirementsAidDelete(aid);
                 case 'document':
-                    const res = await fetch(`/api/v1/documents/${aid}`, { method: 'DELETE' });
+                    const res = await fetch(`/ api / v1 / documents / ${aid} `, { method: 'DELETE' });
                     if (!res.ok) throw new Error('Failed to delete document');
                     return res.json();
                 default:
@@ -1119,7 +1304,7 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
 
             // Resolve Area
             if (newArtifact.area) {
-                const resolution = resolutions.get(`Area:${newArtifact.area}`);
+                const resolution = resolutions.get(`Area:${newArtifact.area} `);
                 if (resolution && resolution !== 'create_new') {
                     newArtifact.area = resolution;
                 }
@@ -1127,7 +1312,7 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
 
             // Resolve Owner
             if (newArtifact.owner) {
-                const resolution = resolutions.get(`Owner:${newArtifact.owner}`);
+                const resolution = resolutions.get(`Owner:${newArtifact.owner} `);
                 if (resolution && resolution !== 'create_new') {
                     newArtifact.owner = resolution;
                 }
@@ -1278,7 +1463,7 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
                 }}
             />
 
-            {/* Filters and Actions */}
+            {/* Actions */}
             <div className="flex justify-between items-center">
                 <div className="flex gap-4 items-center">
                     <input
@@ -1288,26 +1473,6 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
                         onChange={e => setSearch(e.target.value)}
                         className="px-3 py-2 border rounded w-64"
                     />
-                    {artifactType !== 'vision' && (
-                        <>
-                            <div className="w-64">
-                                <MultiSelect
-                                    options={areaOptions}
-                                    value={area}
-                                    onChange={setArea}
-                                    placeholder="Filter by Area"
-                                />
-                            </div>
-                            <div className="w-64">
-                                <MultiSelect
-                                    options={STATUS_OPTIONS}
-                                    value={status}
-                                    onChange={setStatus}
-                                    placeholder="Filter by Status"
-                                />
-                            </div>
-                        </>
-                    )}
                 </div>
 
                 <div className="flex gap-2">
@@ -1410,8 +1575,8 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
             {/* List */}
             <div className="bg-white border rounded-md shadow-sm">
                 {/* Header Row */}
-                <div className="grid grid-cols-12 gap-4 p-3 border-b bg-slate-50 font-medium text-slate-700">
-                    <div className="col-span-1 flex items-center">
+                <div className="grid gap-2 p-3 border-b bg-slate-50 font-medium text-slate-700" style={{ gridTemplateColumns: 'auto 80px 180px 200px 1fr 100px 100px' }}>
+                    <div className="flex items-center">
                         <input
                             type="checkbox"
                             checked={selectedItems.length === artifacts?.length && artifacts?.length > 0}
@@ -1425,19 +1590,90 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
                             className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                         />
                     </div>
-                    <div className="col-span-2">Artifact ID</div>
-                    <div className="col-span-3">Title / Name</div>
-                    <div className="col-span-4">Description</div>
-                    <div className="col-span-1">Status</div>
-                    <div className="col-span-1 text-right">Actions</div>
+                    {[
+                        ...(artifactType !== 'vision' && artifactType !== 'document' ? [{ key: 'area', label: 'Area', span: 1 }] : []),
+                        { key: 'aid', label: 'Artifact ID', span: 2 },
+                        { key: 'title', label: 'Title / Name', span: 2 },
+                        { key: 'description', label: 'Description', span: artifactType !== 'vision' && artifactType !== 'document' ? 3 : 4 },
+                        { key: 'status', label: 'Status', span: 1 },
+                    ].map((col) => (
+                        <div
+                            key={col.key}
+                            className="flex items-center gap-1 select-none relative"
+                        >
+                            <div
+                                className="flex items-center gap-1 cursor-pointer hover:bg-slate-200 px-1 py-0.5 rounded"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveFilterDropdown(activeFilterDropdown === col.key ? null : col.key);
+                                }}
+                            >
+                                <Filter className={`w-3 h-3 ${columnFilters[col.key]?.length > 0 ? 'text-blue-600' : 'text-slate-400'}`} />
+                                {columnFilters[col.key]?.length > 0 && (
+                                    <span className="text-xs bg-blue-600 text-white rounded-full w-4 h-4 flex items-center justify-center">
+                                        {columnFilters[col.key].length}
+                                    </span>
+                                )}
+                            </div>
+                            <div
+                                className="cursor-pointer hover:bg-slate-100 flex-1 flex items-center gap-1"
+                                onClick={() => handleSort(col.key)}
+                            >
+                                {col.label}
+                                {sortConfig.key === col.key && (
+                                    <span className="text-slate-400">
+                                        {sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Filter Dropdown */}
+                            {activeFilterDropdown === col.key && (
+                                <div className="absolute top-full left-0 mt-1 bg-white border rounded-md shadow-lg z-50 min-w-[200px] max-h-[300px] overflow-y-auto">
+                                    <div className="sticky top-0 bg-slate-50 p-2 border-b flex justify-between items-center">
+                                        <span className="text-xs font-medium text-slate-600">Filter by {col.label}</span>
+                                        {columnFilters[col.key]?.length > 0 && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    clearColumnFilter(col.key);
+                                                }}
+                                                className="text-xs text-blue-600 hover:text-blue-800"
+                                            >
+                                                Clear
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="p-1">
+                                        {getUniqueValuesForColumn(col.key).map((value: string) => (
+                                            <label
+                                                key={value}
+                                                className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer rounded"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={columnFilters[col.key]?.includes(value) || false}
+                                                    onChange={() => toggleFilter(col.key, value)}
+                                                    className="w-3 h-3 text-blue-600 rounded"
+                                                />
+                                                <span className="text-sm truncate">{value}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                    <div className="text-right">Actions</div>
                 </div>
 
                 <ul className="divide-y divide-slate-100">
-                    {artifacts?.map((a: any) => (
+                    {getFilteredAndSortedArtifacts()?.map((a: any) => (
                         <li key={a.aid} className="hover:bg-slate-50 transition-colors">
-                            <div className="grid grid-cols-12 gap-4 p-3 items-center">
+                            <div className="grid gap-2 p-3 items-center" style={{ gridTemplateColumns: 'auto 80px 180px 200px 1fr 100px 100px' }}>
                                 {/* Checkbox */}
-                                <div className="col-span-1 flex items-center">
+                                <div className="flex items-center">
                                     <input
                                         type="checkbox"
                                         checked={selectedItems.includes(a.aid)}
@@ -1453,10 +1689,17 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
                                     />
                                 </div>
 
+                                {/* Area (only for need, use_case, requirement) */}
+                                {(artifactType === 'need' || artifactType === 'use_case' || artifactType === 'requirement') && (
+                                    <div className="text-sm text-slate-600">
+                                        {a.area || '-'}
+                                    </div>
+                                )}
+
                                 {/* Artifact ID */}
                                 <Link
                                     to={`/project/${projectId}/${artifactType}/${a.aid}`}
-                                    className="col-span-2 font-mono text-sm text-slate-600 truncate hover:text-blue-600"
+                                    className="font-mono text-sm text-slate-600 truncate hover:text-blue-600"
                                     title={a.aid}
                                 >
                                     {a.aid}
@@ -1465,7 +1708,7 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
                                 {/* Title / Short Name */}
                                 <Link
                                     to={`/project/${projectId}/${artifactType}/${a.aid}`}
-                                    className="col-span-3 font-medium text-blue-600 hover:underline flex items-center gap-2 min-w-0"
+                                    className="font-medium text-blue-600 hover:underline flex items-center gap-2 min-w-0"
                                     title={a.title || a.short_name}
                                 >
                                     <span className="truncate">{a.title || a.short_name || '-'}</span>
@@ -1489,14 +1732,14 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
                                 {/* Description / Text */}
                                 <Link
                                     to={`/project/${projectId}/${artifactType}/${a.aid}`}
-                                    className="col-span-4 text-sm text-slate-600 truncate"
+                                    className="text-sm text-slate-600 truncate"
                                     title={a.description || a.text}
                                 >
                                     {a.description || a.text || '-'}
                                 </Link>
 
                                 {/* Status */}
-                                <div className="col-span-1">
+                                <div>
                                     {a.status ? (
                                         <span className={`text-xs px-2 py-1 rounded-full inline-block whitespace-nowrap ${a.status === 'base_lined' ? 'bg-green-100 text-green-800' :
                                             a.status === 'verified' ? 'bg-blue-100 text-blue-800' :
@@ -1511,7 +1754,7 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
                                 </div>
 
                                 {/* Actions */}
-                                <div className="col-span-1 flex justify-end gap-1">
+                                <div className="flex justify-end gap-1">
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -1520,12 +1763,33 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
                                             const exportArtifact = prepareArtifactForExport(a);
                                             // Collect relevant linkages
                                             const relevantLinkages: string[][] = [];
+                                            const uniqueLinkages = new Set<string>();
+
+                                            // Create lookup for Diagrams (UUID -> Name)
+                                            const diagramMap = new Map<string, string>();
+                                            if (diagrams) {
+                                                diagrams.forEach((d: any) => {
+                                                    diagramMap.set(d.id, d.name);
+                                                });
+                                            }
+
                                             if (linkages) {
                                                 const aid = a.aid;
                                                 linkages.forEach((l: any) => {
                                                     // Check if this linkage involves the exported artifact
                                                     if (l.source_id === aid || l.target_id === aid) {
-                                                        relevantLinkages.push([l.source_id, l.target_id]);
+                                                        let s = l.source_id.trim();
+                                                        let t = l.target_id.trim();
+
+                                                        // Resolve Diagram UUIDs to Names
+                                                        if (diagramMap.has(s)) s = diagramMap.get(s)!;
+                                                        if (diagramMap.has(t)) t = diagramMap.get(t)!;
+
+                                                        const key = `${s}|${t}`;
+                                                        if (!uniqueLinkages.has(key)) {
+                                                            uniqueLinkages.add(key);
+                                                            relevantLinkages.push([s, t]);
+                                                        }
                                                     }
                                                 });
                                             }
@@ -1676,7 +1940,6 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
                     </div>
                 </div>
             )}
-
             <ConfirmationModal
                 isOpen={confirmation.isOpen}
                 onClose={() => setConfirmation(prev => ({ ...prev, isOpen: false }))}
@@ -1688,4 +1951,6 @@ export default function ArtifactListView({ artifactType }: ArtifactListViewProps
             />
         </div>
     );
-}
+};
+
+export default ArtifactListView;

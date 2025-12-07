@@ -1,0 +1,44 @@
+{
+  "artifactType": "need",
+  "project": "TR2",
+  "exportDate": "2025-12-07T09:09:02.335Z",
+  "count": 1,
+  "artifacts": [
+    {
+      "title": "AI-Driven COA Generation",
+      "description": "As Mission Operators, we need AI-driven tools that create Optimized Course of Actions to neutrealize threats given the available resources so that protect the homeland",
+      "area": "AIC2",
+      "status": "Draft",
+      "owner": "Air Power Commander",
+      "rationale": "AI Gnerated COAs make best use of resources",
+      "stakeholder": "Mission Operator",
+      "level": "Mission",
+      "sites": [
+        "AOC - Pink",
+        "AAOC - Pink"
+      ],
+      "components": [
+        "CRC"
+      ],
+      "project": "TR2"
+    }
+  ],
+  "linkages": [
+    [
+      "TR2-AIC2-NEED-002",
+      "TR2-GLOBAL-VISION-001"
+    ],
+    [
+      "TR2-AIC2-NEED-002",
+      "9298054f-67c0-4286-a2e2-377bd82e3ffc"
+    ],
+    [
+      "TR2-AIC2-NEED-002",
+      "TR2-GEN-DOC-001"
+    ],
+    [
+      "TR2-AIC2-NEED-002",
+      "TR2-AIC2-DOC-001"
+    ]
+  ]
+}
