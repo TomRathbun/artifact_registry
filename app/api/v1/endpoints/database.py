@@ -79,14 +79,29 @@ async def restore_database(request: Request):
             tmp_path = tmp.name
         
         try:
-            # First, drop and recreate the database to ensure clean state
-            # This avoids foreign key constraint issues
+            # First, terminate all connections to the database
+            terminate_cmd = [
+                str(PG_BIN_DIR / ("psql.exe" if os.name == 'nt' else "psql")),
+                "-h", DB_HOST,
+                "-U", DB_USER,
+                "-d", "postgres",
+                "-c", f"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{DB_NAME}' AND pid <> pg_backend_pid();"
+            ]
+            
+            subprocess.run(
+                terminate_cmd,
+                capture_output=True,
+                text=True,
+                env={**os.environ, "PGPASSWORD": os.getenv("DB_PASSWORD", "")}
+            )
+            
+            # Drop the database
             drop_cmd = [
                 str(PG_BIN_DIR / ("psql.exe" if os.name == 'nt' else "psql")),
                 "-h", DB_HOST,
                 "-U", DB_USER,
-                "-d", "postgres",  # Connect to postgres database
-                "-c", f"DROP DATABASE IF EXISTS {DB_NAME}; CREATE DATABASE {DB_NAME};"
+                "-d", "postgres",
+                "-c", f"DROP DATABASE IF EXISTS {DB_NAME};"
             ]
             
             drop_result = subprocess.run(
@@ -97,7 +112,26 @@ async def restore_database(request: Request):
             )
             
             if drop_result.returncode != 0:
-                raise Exception(f"Failed to recreate database: {drop_result.stderr}")
+                raise Exception(f"Failed to drop database: {drop_result.stderr}")
+            
+            # Create the database
+            create_cmd = [
+                str(PG_BIN_DIR / ("psql.exe" if os.name == 'nt' else "psql")),
+                "-h", DB_HOST,
+                "-U", DB_USER,
+                "-d", "postgres",
+                "-c", f"CREATE DATABASE {DB_NAME};"
+            ]
+            
+            create_result = subprocess.run(
+                create_cmd,
+                capture_output=True,
+                text=True,
+                env={**os.environ, "PGPASSWORD": os.getenv("DB_PASSWORD", "")}
+            )
+            
+            if create_result.returncode != 0:
+                raise Exception(f"Failed to create database: {create_result.stderr}")
             
             # Now restore into the clean database
             cmd = [
