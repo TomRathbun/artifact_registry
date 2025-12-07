@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { NeedsService, UseCasesService, RequirementsService, VisionService, LinkageService, ProjectsService } from '../client';
-import { ArrowLeft, Edit, ExternalLink, X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, MessageSquarePlus, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Edit, ExternalLink, X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, MessageSquarePlus, MessageSquare, Tag } from 'lucide-react';
 import ComponentDiagram from './ComponentDiagram';
 import ArtifactGraphView from './ArtifactGraphView';
 import CommentPanel from './CommentPanel';
@@ -810,6 +810,58 @@ function NeedPresentation({ artifact, selectedField, onFieldClick }: Presentatio
                     </div>
                 </SelectableField>
             </div>
+
+            {/* Sites Display */}
+            {artifact.sites && artifact.sites.length > 0 && (
+                <div className="mt-4">
+                    <span className="text-sm font-medium text-slate-500 mb-2 block">Related Sites</span>
+                    <div className="flex flex-wrap gap-2">
+                        {artifact.sites.map((site: any) => (
+                            <span key={site.id} className="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium border border-indigo-100">
+                                {site.name}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Components Display */}
+            {artifact.components && artifact.components.length > 0 && (
+                <div className="mt-4">
+                    <span className="text-sm font-medium text-slate-500 mb-2 block">Related Components</span>
+                    <div className="flex flex-col gap-2">
+                        {artifact.components.map((comp: any) => (
+                            <div key={comp.id} className="flex flex-wrap items-center gap-2 text-sm bg-slate-50 p-2 rounded border border-slate-100">
+                                <span className="font-medium text-slate-900 mr-1">{comp.name}</span>
+
+                                {/* Type Badge */}
+                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${comp.type === 'Hardware' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
+                                    }`}>
+                                    {comp.type || 'Software'}
+                                </span>
+
+                                {/* Lifecycle Badge */}
+                                {comp.lifecycle && (
+                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${comp.lifecycle === 'Active' ? 'bg-green-100 text-green-700' :
+                                        comp.lifecycle === 'Legacy' ? 'bg-amber-100 text-amber-700' :
+                                            'bg-slate-100 text-slate-700'
+                                        }`}>
+                                        {comp.lifecycle}
+                                    </span>
+                                )}
+
+                                {/* Tags */}
+                                {Array.isArray(comp.tags) && comp.tags.map((tag: string) => (
+                                    <span key={tag} className="px-2 py-0.5 bg-white text-slate-600 text-xs rounded border border-slate-200 flex items-center gap-1">
+                                        <Tag className="w-3 h-3" />
+                                        {tag}
+                                    </span>
+                                ))}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </>
     );
 }
