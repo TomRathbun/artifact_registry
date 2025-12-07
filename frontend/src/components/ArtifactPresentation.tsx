@@ -1012,6 +1012,5 @@ export default function ArtifactPresentation() {
                 />
             </div>
         </div>
-    </div>
     );
 }
