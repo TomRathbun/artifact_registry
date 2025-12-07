@@ -7,6 +7,8 @@ import { NeedsService, UseCasesService, RequirementsService, VisionService, Link
 import { ArrowLeft, Edit, ExternalLink, X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
 import ComponentDiagram from './ComponentDiagram';
 import ArtifactGraphView from './ArtifactGraphView';
+import CommentPanel from './CommentPanel';
+import CommentableField from './CommentableField';
 
 // Component to fetch and display person name by ID
 function PersonName({ personId }: { personId: string }) {
@@ -134,6 +136,8 @@ export default function ArtifactPresentation() {
     const [pendingStatus, setPendingStatus] = useState<string>('');
     const [statusRationale, setStatusRationale] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>(''); // Add status filter
+    const [selectedField, setSelectedField] = useState<string | null>(null);
+    const [fieldLabel, setFieldLabel] = useState<string>('');
 
     // Valid status transitions from backend
     const VALID_TRANSITIONS: Record<string, string[]> = {
@@ -292,6 +296,28 @@ export default function ArtifactPresentation() {
         },
         enabled: !!selectedLink && selectedLink.target_artifact_type !== 'url',
     });
+
+    // Fetch comments for this artifact
+    const { data: comments = [] } = useQuery<any[]>({
+        queryKey: ['comments', artifactId],
+        queryFn: async () => {
+            const response = await fetch(`/api/v1/comments/?artifact_aid=${artifactId}`);
+            if (!response.ok) return [];
+            return response.json();
+        },
+        enabled: !!artifactId
+    });
+
+    // Helper to get unresolved comment count for a field
+    const getCommentCount = (fieldName: string) => {
+        return comments.filter(c => c.field_name === fieldName && !c.resolved).length;
+    };
+
+    // Helper to handle field selection
+    const handleFieldClick = (fieldName: string, label: string) => {
+        setSelectedField(fieldName);
+        setFieldLabel(label);
+    };
 
     const handleEditClick = () => {
         navigate(`/project/${projectId}/${artifactType}/${artifactId}/edit`);
@@ -454,630 +480,643 @@ export default function ArtifactPresentation() {
                 </div>
             </div>
 
-            <div className="max-w-7xl mx-auto px-6 py-3 space-y-3">
-                {/* Preview Pane */}
-                {selectedLink && (
-                    <div className="bg-blue-50 rounded-lg border border-blue-200 p-4">
-                        <div className="flex justify-between items-start mb-3">
-                            <div>
-                                <h3 className="text-lg font-semibold text-blue-900">
-                                    {selectedLink.relationship_type} → {selectedLink.target_artifact_type}
-                                </h3>
+            <div className="max-w-full mx-auto px-6 py-3 grid grid-cols-[1fr_400px] gap-4">
+                {/* Main Content Column */}
+                <div className="space-y-3">
+                    {/* Preview Pane */}
+                    {selectedLink && (
+                        <div className="bg-blue-50 rounded-lg border border-blue-200 p-4">
+                            <div className="flex justify-between items-start mb-3">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-blue-900">
+                                        {selectedLink.relationship_type} → {selectedLink.target_artifact_type}
+                                    </h3>
+                                </div>
+                                <button
+                                    onClick={() => setSelectedLink(null)}
+                                    className="text-blue-600 hover:text-blue-800"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
                             </div>
-                            <button
-                                onClick={() => setSelectedLink(null)}
-                                className="text-blue-600 hover:text-blue-800"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-                        {linkedArtifact && (
-                            <div className="bg-white rounded-md p-4 max-h-96 overflow-y-auto">
-                                {/* Title/Name */}
-                                <h4 className="font-semibold text-slate-900 mb-2">
-                                    {'title' in linkedArtifact ? linkedArtifact.title : 'name' in linkedArtifact ? linkedArtifact.name : 'text' in linkedArtifact ? linkedArtifact.text?.substring(0, 100) : ''}
-                                </h4>
-                                <p className="text-sm text-slate-600 mb-3">{linkedArtifact.aid || selectedLink.target_id}</p>
+                            {linkedArtifact && (
+                                <div className="bg-white rounded-md p-4 max-h-96 overflow-y-auto">
+                                    {/* Title/Name */}
+                                    <h4 className="font-semibold text-slate-900 mb-2">
+                                        {'title' in linkedArtifact ? linkedArtifact.title : 'name' in linkedArtifact ? linkedArtifact.name : 'text' in linkedArtifact ? linkedArtifact.text?.substring(0, 100) : ''}
+                                    </h4>
+                                    <p className="text-sm text-slate-600 mb-3">{linkedArtifact.aid || selectedLink.target_id}</p>
 
-                                {/* Vision - render statement or description as markdown */}
-                                {selectedLink.target_artifact_type === 'vision' && (
-                                    <div className="prose prose-sm max-w-none">
-                                        {('statement' in linkedArtifact && linkedArtifact.statement) ? (
-                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                                {linkedArtifact.statement}
-                                            </ReactMarkdown>
-                                        ) : ('description' in linkedArtifact && linkedArtifact.description) ? (
-                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                                {linkedArtifact.description}
-                                            </ReactMarkdown>
-                                        ) : null}
-                                    </div>
-                                )}
-
-                                {/* Need - render description as markdown and show owner/stakeholder names */}
-                                {selectedLink.target_artifact_type === 'need' && (
-                                    <>
-                                        {linkedArtifact.description && (
-                                            <div className="prose prose-sm max-w-none mb-3">
+                                    {/* Vision - render statement or description as markdown */}
+                                    {selectedLink.target_artifact_type === 'vision' && (
+                                        <div className="prose prose-sm max-w-none">
+                                            {('statement' in linkedArtifact && linkedArtifact.statement) ? (
+                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                    {linkedArtifact.statement}
+                                                </ReactMarkdown>
+                                            ) : ('description' in linkedArtifact && linkedArtifact.description) ? (
                                                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                                     {linkedArtifact.description}
                                                 </ReactMarkdown>
-                                            </div>
-                                        )}
-                                        <div className="grid grid-cols-2 gap-2 text-sm mt-3">
-                                            {linkedArtifact.owner_id && (
-                                                <div>
-                                                    <span className="font-medium text-slate-500">Owner: </span>
-                                                    <PersonName personId={linkedArtifact.owner_id} />
-                                                </div>
-                                            )}
-                                            {linkedArtifact.stakeholder_id && (
-                                                <div>
-                                                    <span className="font-medium text-slate-500">Stakeholder: </span>
-                                                    <PersonName personId={linkedArtifact.stakeholder_id} />
-                                                </div>
-                                            )}
+                                            ) : null}
                                         </div>
-                                    </>
-                                )}
+                                    )}
 
-                                {/* Use Case - render description, trigger, actor, preconditions, MSS, postconditions */}
-                                {selectedLink.target_artifact_type === 'use_case' && (
-                                    <div className="space-y-3">
-                                        {linkedArtifact.description && (
-                                            <div className="prose prose-sm max-w-none">
-                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                                    {linkedArtifact.description}
-                                                </ReactMarkdown>
-                                            </div>
-                                        )}
-                                        <div className="grid grid-cols-2 gap-2 text-sm">
-                                            {linkedArtifact.trigger && (
-                                                <div>
-                                                    <span className="font-medium text-slate-500">Trigger: </span>
-                                                    <span className="text-slate-900">{linkedArtifact.trigger}</span>
+                                    {/* Need - render description as markdown and show owner/stakeholder names */}
+                                    {selectedLink.target_artifact_type === 'need' && (
+                                        <>
+                                            {linkedArtifact.description && (
+                                                <div className="prose prose-sm max-w-none mb-3">
+                                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                        {linkedArtifact.description}
+                                                    </ReactMarkdown>
                                                 </div>
                                             )}
-                                            {linkedArtifact.primary_actor && (
-                                                <div>
-                                                    <span className="font-medium text-slate-500">Primary Actor: </span>
-                                                    <span className="text-slate-900">{linkedArtifact.primary_actor.name || linkedArtifact.primary_actor}</span>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Preconditions */}
-                                        {linkedArtifact.preconditions && linkedArtifact.preconditions.length > 0 && (
-                                            <div>
-                                                <h5 className="text-sm font-semibold text-slate-700 mb-1">Preconditions</h5>
-                                                <ul className="text-sm text-slate-600 list-disc list-inside space-y-0.5">
-                                                    {linkedArtifact.preconditions.map((pc: any, idx: number) => (
-                                                        <li key={idx}>{pc.text || pc}</li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        )}
-
-                                        {/* MSS */}
-                                        {linkedArtifact.mss && linkedArtifact.mss.length > 0 && (
-                                            <div>
-                                                <h5 className="text-sm font-semibold text-slate-700 mb-1">Main Success Scenario</h5>
-                                                <ol className="text-sm text-slate-600 list-decimal list-inside space-y-0.5">
-                                                    {linkedArtifact.mss.map((step: any, idx: number) => (
-                                                        <li key={idx}>{step.description || step}</li>
-                                                    ))}
-                                                </ol>
-                                            </div>
-                                        )}
-
-                                        {/* Postconditions */}
-                                        {linkedArtifact.postconditions && linkedArtifact.postconditions.length > 0 && (
-                                            <div>
-                                                <h5 className="text-sm font-semibold text-slate-700 mb-1">Postconditions</h5>
-                                                <ul className="text-sm text-slate-600 list-disc list-inside space-y-0.5">
-                                                    {linkedArtifact.postconditions.map((pc: any, idx: number) => (
-                                                        <li key={idx}>{pc.text || pc}</li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* Requirement - show text */}
-                                {selectedLink.target_artifact_type === 'requirement' && 'text' in linkedArtifact && linkedArtifact.text && (
-                                    <div className="prose prose-sm max-w-none">
-                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                            {linkedArtifact.text}
-                                        </ReactMarkdown>
-                                    </div>
-                                )}
-
-                                {/* Diagram - embed interactive diagram */}
-                                {selectedLink.target_artifact_type === 'diagram' && (
-                                    <div className="mt-3 border border-slate-200 rounded-lg overflow-hidden" style={{ height: '400px' }}>
-                                        {linkedArtifact.type === 'artifact_graph' ? (
-                                            <ArtifactGraphView
-                                                initialArea={linkedArtifact.filter_data?.area}
-                                                diagramId={selectedLink.target_id}
-                                            />
-                                        ) : (
-                                            <ComponentDiagram />
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* Component - show description */}
-                                {selectedLink.target_artifact_type === 'component' && 'description' in linkedArtifact && linkedArtifact.description && (
-                                    <p className="text-sm text-slate-700">{linkedArtifact.description}</p>
-                                )}
-
-                                {/* Document - show details */}
-                                {selectedLink.target_artifact_type === 'document' && (
-                                    <div className="space-y-3">
-                                        <div className="grid grid-cols-2 gap-4 text-sm not-prose">
-                                            <div>
-                                                <span className="font-medium text-slate-500">Type: </span>
-                                                <span className="text-slate-900 capitalize">{('document_type' in linkedArtifact ? (linkedArtifact as any).document_type : 'Unknown')}</span>
-                                            </div>
-                                            <div>
-                                                <span className="font-medium text-slate-500">MIME: </span>
-                                                <span className="text-slate-900">{('mime_type' in linkedArtifact ? (linkedArtifact as any).mime_type : '-')}</span>
-                                            </div>
-                                        </div>
-
-                                        {('description' in linkedArtifact && linkedArtifact.description) && (
-                                            <div className="prose prose-sm max-w-none">
-                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                                    {linkedArtifact.description}
-                                                </ReactMarkdown>
-                                            </div>
-                                        )}
-
-                                        {'document_type' in linkedArtifact && (linkedArtifact as any).document_type === 'url' && 'content_url' in linkedArtifact && (
-                                            <a
-                                                href={(linkedArtifact as any).content_url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="flex items-center gap-2 text-blue-600 hover:underline mt-2"
-                                            >
-                                                <ExternalLink className="w-4 h-4" />
-                                                {(linkedArtifact as any).content_url}
-                                            </a>
-                                        )}
-
-                                        {'document_type' in linkedArtifact && (linkedArtifact as any).document_type === 'text' && 'content_text' in linkedArtifact && (
-                                            <div className="prose prose-sm max-w-none mt-2 p-3 bg-slate-50 rounded border border-slate-200">
-                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                                    {(linkedArtifact as any).content_text || '_No content provided_'}
-                                                </ReactMarkdown>
-                                            </div>
-                                        )}
-
-                                        {'document_type' in linkedArtifact && (linkedArtifact as any).document_type === 'file' && 'content_url' in linkedArtifact && (
-                                            <div className="mt-2 border border-slate-200 rounded overflow-hidden">
-                                                {(linkedArtifact as any).mime_type === 'application/pdf' ? (
-                                                    <iframe
-                                                        src={(linkedArtifact as any).content_url}
-                                                        className="w-full"
-                                                        style={{ height: '600px' }}
-                                                        title="PDF Document"
-                                                    />
-                                                ) : (linkedArtifact as any).mime_type?.startsWith('image/') ? (
-                                                    <img
-                                                        src={(linkedArtifact as any).content_url}
-                                                        alt="Document"
-                                                        className="max-w-full h-auto"
-                                                    />
-                                                ) : (
-                                                    <div className="p-4 bg-slate-50">
-                                                        <a
-                                                            href={(linkedArtifact as any).content_url}
-                                                            download
-                                                            className="flex items-center gap-2 text-blue-600 hover:underline"
-                                                        >
-                                                            <ExternalLink className="w-4 h-4" />
-                                                            Download {(linkedArtifact as any).mime_type || 'file'}
-                                                        </a>
+                                            <div className="grid grid-cols-2 gap-2 text-sm mt-3">
+                                                {linkedArtifact.owner_id && (
+                                                    <div>
+                                                        <span className="font-medium text-slate-500">Owner: </span>
+                                                        <PersonName personId={linkedArtifact.owner_id} />
+                                                    </div>
+                                                )}
+                                                {linkedArtifact.stakeholder_id && (
+                                                    <div>
+                                                        <span className="font-medium text-slate-500">Stakeholder: </span>
+                                                        <PersonName personId={linkedArtifact.stakeholder_id} />
                                                     </div>
                                                 )}
                                             </div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                )}
+                                        </>
+                                    )}
 
-                {/* Compact Linkages Section */}
-                <CompactLinkages
-                    artifactId={artifactId!}
-                    onLinkClick={(link) => setSelectedLink(link)}
-                />
+                                    {/* Use Case - render description, trigger, actor, preconditions, MSS, postconditions */}
+                                    {selectedLink.target_artifact_type === 'use_case' && (
+                                        <div className="space-y-3">
+                                            {linkedArtifact.description && (
+                                                <div className="prose prose-sm max-w-none">
+                                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                        {linkedArtifact.description}
+                                                    </ReactMarkdown>
+                                                </div>
+                                            )}
+                                            <div className="grid grid-cols-2 gap-2 text-sm">
+                                                {linkedArtifact.trigger && (
+                                                    <div>
+                                                        <span className="font-medium text-slate-500">Trigger: </span>
+                                                        <span className="text-slate-900">{linkedArtifact.trigger}</span>
+                                                    </div>
+                                                )}
+                                                {linkedArtifact.primary_actor && (
+                                                    <div>
+                                                        <span className="font-medium text-slate-500">Primary Actor: </span>
+                                                        <span className="text-slate-900">{linkedArtifact.primary_actor.name || linkedArtifact.primary_actor}</span>
+                                                    </div>
+                                                )}
+                                            </div>
 
-                {/* Artifact Content */}
-                <div
-                    className="bg-white rounded-lg border border-slate-200 shadow-sm p-6"
-                    style={{ zoom: zoomLevel / 100 }}
-                >
-                    <div className="prose max-w-none">
-                        {artifactType === 'need' && (
-                            <NeedPresentation artifact={artifact} />
-                        )}
-                        {artifactType === 'use_case' && (
-                            <UseCasePresentation artifact={artifact} />
-                        )}
-                        {artifactType === 'requirement' && (
-                            <RequirementPresentation artifact={artifact} />
-                        )}
-                        {artifactType === 'vision' && (
-                            <VisionPresentation artifact={artifact} />
-                        )}
-                        {artifactType === 'document' && (
-                            <DocumentPresentation artifact={artifact} />
-                        )}
+                                            {/* Preconditions */}
+                                            {linkedArtifact.preconditions && linkedArtifact.preconditions.length > 0 && (
+                                                <div>
+                                                    <h5 className="text-sm font-semibold text-slate-700 mb-1">Preconditions</h5>
+                                                    <ul className="text-sm text-slate-600 list-disc list-inside space-y-0.5">
+                                                        {linkedArtifact.preconditions.map((pc: any, idx: number) => (
+                                                            <li key={idx}>{pc.text || pc}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+
+                                            {/* MSS */}
+                                            {linkedArtifact.mss && linkedArtifact.mss.length > 0 && (
+                                                <div>
+                                                    <h5 className="text-sm font-semibold text-slate-700 mb-1">Main Success Scenario</h5>
+                                                    <ol className="text-sm text-slate-600 list-decimal list-inside space-y-0.5">
+                                                        {linkedArtifact.mss.map((step: any, idx: number) => (
+                                                            <li key={idx}>{step.description || step}</li>
+                                                        ))}
+                                                    </ol>
+                                                </div>
+                                            )}
+
+                                            {/* Postconditions */}
+                                            {linkedArtifact.postconditions && linkedArtifact.postconditions.length > 0 && (
+                                                <div>
+                                                    <h5 className="text-sm font-semibold text-slate-700 mb-1">Postconditions</h5>
+                                                    <ul className="text-sm text-slate-600 list-disc list-inside space-y-0.5">
+                                                        {linkedArtifact.postconditions.map((pc: any, idx: number) => (
+                                                            <li key={idx}>{pc.text || pc}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Requirement - show text */}
+                                    {selectedLink.target_artifact_type === 'requirement' && 'text' in linkedArtifact && linkedArtifact.text && (
+                                        <div className="prose prose-sm max-w-none">
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                {linkedArtifact.text}
+                                            </ReactMarkdown>
+                                        </div>
+                                    )}
+
+                                    {/* Diagram - embed interactive diagram */}
+                                    {selectedLink.target_artifact_type === 'diagram' && (
+                                        <div className="mt-3 border border-slate-200 rounded-lg overflow-hidden" style={{ height: '400px' }}>
+                                            {linkedArtifact.type === 'artifact_graph' ? (
+                                                <ArtifactGraphView
+                                                    initialArea={linkedArtifact.filter_data?.area}
+                                                    diagramId={selectedLink.target_id}
+                                                />
+                                            ) : (
+                                                <ComponentDiagram />
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Component - show description */}
+                                    {selectedLink.target_artifact_type === 'component' && 'description' in linkedArtifact && linkedArtifact.description && (
+                                        <p className="text-sm text-slate-700">{linkedArtifact.description}</p>
+                                    )}
+
+                                    {/* Document - show details */}
+                                    {selectedLink.target_artifact_type === 'document' && (
+                                        <div className="space-y-3">
+                                            <div className="grid grid-cols-2 gap-4 text-sm not-prose">
+                                                <div>
+                                                    <span className="font-medium text-slate-500">Type: </span>
+                                                    <span className="text-slate-900 capitalize">{('document_type' in linkedArtifact ? (linkedArtifact as any).document_type : 'Unknown')}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="font-medium text-slate-500">MIME: </span>
+                                                    <span className="text-slate-900">{('mime_type' in linkedArtifact ? (linkedArtifact as any).mime_type : '-')}</span>
+                                                </div>
+                                            </div>
+
+                                            {('description' in linkedArtifact && linkedArtifact.description) && (
+                                                <div className="prose prose-sm max-w-none">
+                                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                        {linkedArtifact.description}
+                                                    </ReactMarkdown>
+                                                </div>
+                                            )}
+
+                                            {'document_type' in linkedArtifact && (linkedArtifact as any).document_type === 'url' && 'content_url' in linkedArtifact && (
+                                                <a
+                                                    href={(linkedArtifact as any).content_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-2 text-blue-600 hover:underline mt-2"
+                                                >
+                                                    <ExternalLink className="w-4 h-4" />
+                                                    {(linkedArtifact as any).content_url}
+                                                </a>
+                                            )}
+
+                                            {'document_type' in linkedArtifact && (linkedArtifact as any).document_type === 'text' && 'content_text' in linkedArtifact && (
+                                                <div className="prose prose-sm max-w-none mt-2 p-3 bg-slate-50 rounded border border-slate-200">
+                                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                        {(linkedArtifact as any).content_text || '_No content provided_'}
+                                                    </ReactMarkdown>
+                                                </div>
+                                            )}
+
+                                            {'document_type' in linkedArtifact && (linkedArtifact as any).document_type === 'file' && 'content_url' in linkedArtifact && (
+                                                <div className="mt-2 border border-slate-200 rounded overflow-hidden">
+                                                    {(linkedArtifact as any).mime_type === 'application/pdf' ? (
+                                                        <iframe
+                                                            src={(linkedArtifact as any).content_url}
+                                                            className="w-full"
+                                                            style={{ height: '600px' }}
+                                                            title="PDF Document"
+                                                        />
+                                                    ) : (linkedArtifact as any).mime_type?.startsWith('image/') ? (
+                                                        <img
+                                                            src={(linkedArtifact as any).content_url}
+                                                            alt="Document"
+                                                            className="max-w-full h-auto"
+                                                        />
+                                                    ) : (
+                                                        <div className="p-4 bg-slate-50">
+                                                            <a
+                                                                href={(linkedArtifact as any).content_url}
+                                                                download
+                                                                className="flex items-center gap-2 text-blue-600 hover:underline"
+                                                            >
+                                                                <ExternalLink className="w-4 h-4" />
+                                                                Download {(linkedArtifact as any).mime_type || 'file'}
+                                                            </a>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Compact Linkages Section */}
+                    <CompactLinkages
+                        artifactId={artifactId!}
+                        onLinkClick={(link) => setSelectedLink(link)}
+                    />
+
+                    {/* Artifact Content */}
+                    <div
+                        className="bg-white rounded-lg border border-slate-200 shadow-sm p-6"
+                        style={{ zoom: zoomLevel / 100 }}
+                    >
+                        <div className="prose max-w-none">
+                            {artifactType === 'need' && (
+                                <NeedPresentation artifact={artifact} />
+                            )}
+                            {artifactType === 'use_case' && (
+                                <UseCasePresentation artifact={artifact} />
+                            )}
+                            {artifactType === 'requirement' && (
+                                <RequirementPresentation artifact={artifact} />
+                            )}
+                            {artifactType === 'vision' && (
+                                <VisionPresentation artifact={artifact} />
+                            )}
+                            {artifactType === 'document' && (
+                                <DocumentPresentation artifact={artifact} />
+                            )}
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Status Change Confirmation Dialog */}
-            {showStatusDialog && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 max-w-md w-full">
-                        <h2 className="text-xl font-bold mb-3">Confirm Status Change</h2>
-                        <p className="text-sm text-slate-600 mb-3">
-                            Change status from <span className="font-semibold">{('status' in artifact && artifact.status) ? artifact.status : 'Draft'}</span> to <span className="font-semibold">{pendingStatus}</span>
-                        </p>
-                        <div className="mb-3">
-                            <label className="block text-sm font-medium text-slate-700 mb-2">
-                                Rationale <span className="text-red-500">*</span>
-                            </label>
-                            <textarea
-                                value={statusRationale}
-                                onChange={(e) => setStatusRationale(e.target.value)}
-                                placeholder="Enter rationale for this status change..."
-                                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                rows={4}
-                            />
-                        </div>
-                        <div className="flex justify-end gap-2">
-                            <button
-                                onClick={() => {
-                                    setShowStatusDialog(false);
-                                    setPendingStatus('');
-                                    setStatusRationale('');
-                                }}
-                                className="px-4 py-2 text-slate-600 hover:text-slate-800 rounded-md hover:bg-slate-100"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={() => {
-                                    if (statusRationale.trim()) {
-                                        updateStatusMutation.mutate(pendingStatus);
+                {/* Status Change Confirmation Dialog */}
+                {showStatusDialog && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-lg p-6 max-w-md w-full">
+                            <h2 className="text-xl font-bold mb-3">Confirm Status Change</h2>
+                            <p className="text-sm text-slate-600 mb-3">
+                                Change status from <span className="font-semibold">{('status' in artifact && artifact.status) ? artifact.status : 'Draft'}</span> to <span className="font-semibold">{pendingStatus}</span>
+                            </p>
+                            <div className="mb-3">
+                                <label className="block text-sm font-medium text-slate-700 mb-2">
+                                    Rationale <span className="text-red-500">*</span>
+                                </label>
+                                <textarea
+                                    value={statusRationale}
+                                    onChange={(e) => setStatusRationale(e.target.value)}
+                                    placeholder="Enter rationale for this status change..."
+                                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    rows={4}
+                                />
+                            </div>
+                            <div className="flex justify-end gap-2">
+                                <button
+                                    onClick={() => {
                                         setShowStatusDialog(false);
                                         setPendingStatus('');
                                         setStatusRationale('');
-                                    }
-                                }}
-                                disabled={!statusRationale.trim()}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed"
-                            >
-                                Confirm
-                            </button>
+                                    }}
+                                    className="px-4 py-2 text-slate-600 hover:text-slate-800 rounded-md hover:bg-slate-100"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (statusRationale.trim()) {
+                                            updateStatusMutation.mutate(pendingStatus);
+                                            setShowStatusDialog(false);
+                                            setPendingStatus('');
+                                            setStatusRationale('');
+                                        }
+                                    }}
+                                    disabled={!statusRationale.trim()}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed"
+                                >
+                                    Confirm
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
-    );
+                )}
+            </div>
+            );
 }
 
-// Presentation components for each artifact type
-function NeedPresentation({ artifact }: { artifact: any }) {
+            // Presentation components for each artifact type
+            function NeedPresentation({artifact}: {artifact: any }) {
     return (
-        <>
-            <div className="grid grid-cols-2 gap-4 mb-3 not-prose">
-                <div>
-                    <span className="text-sm font-medium text-slate-500">Area</span>
-                    <p className="text-slate-900">{artifact.area || 'N/A'}</p>
+            <>
+                <div className="grid grid-cols-2 gap-4 mb-3 not-prose">
+                    <div>
+                        <span className="text-sm font-medium text-slate-500">Area</span>
+                        <p className="text-slate-900">{artifact.area || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <span className="text-sm font-medium text-slate-500">Level</span>
+                        <p className="text-slate-900">{artifact.level || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <span className="text-sm font-medium text-slate-500">Owner</span>
+                        <p className="text-slate-900">{artifact.owner_id ? <PersonName personId={artifact.owner_id} /> : 'N/A'}</p>
+                    </div>
+                    <div>
+                        <span className="text-sm font-medium text-slate-500">Stakeholder</span>
+                        <p className="text-slate-900">{artifact.stakeholder_id ? <PersonName personId={artifact.stakeholder_id} /> : 'N/A'}</p>
+                    </div>
                 </div>
-                <div>
-                    <span className="text-sm font-medium text-slate-500">Level</span>
-                    <p className="text-slate-900">{artifact.level || 'N/A'}</p>
-                </div>
-                <div>
-                    <span className="text-sm font-medium text-slate-500">Owner</span>
-                    <p className="text-slate-900">{artifact.owner_id ? <PersonName personId={artifact.owner_id} /> : 'N/A'}</p>
-                </div>
-                <div>
-                    <span className="text-sm font-medium text-slate-500">Stakeholder</span>
-                    <p className="text-slate-900">{artifact.stakeholder_id ? <PersonName personId={artifact.stakeholder_id} /> : 'N/A'}</p>
-                </div>
-            </div>
 
-            <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Description</h3>
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {artifact.description || 'No description provided.'}
-            </ReactMarkdown>
-
-            {artifact.rationale && (
-                <>
-                    <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Rationale</h3>
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {artifact.rationale}
-                    </ReactMarkdown>
-                </>
-            )}
-        </>
-    );
-}
-
-function UseCasePresentation({ artifact }: { artifact: any }) {
-    return (
-        <>
-            <div className="grid grid-cols-2 gap-4 mb-3 not-prose">
-                <div>
-                    <span className="text-sm font-medium text-slate-500">Area</span>
-                    <p className="text-slate-900">{artifact.area || 'N/A'}</p>
-                </div>
-                <div>
-                    <span className="text-sm font-medium text-slate-500">Primary Actor</span>
-                    <p className="text-slate-900">{artifact.primary_actor?.name || 'N/A'}</p>
-                </div>
-            </div>
-
-            <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Description</h3>
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {artifact.description || 'No description provided.'}
-            </ReactMarkdown>
-
-            {artifact.trigger && (
-                <>
-                    <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Trigger</h3>
-                    <p>{artifact.trigger}</p>
-                </>
-            )}
-
-            {artifact.preconditions && artifact.preconditions.length > 0 && (
-                <>
-                    <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Preconditions</h3>
-                    <ol>
-                        {artifact.preconditions.map((p: any, i: number) => (
-                            <li key={i}>{p.text}</li>
-                        ))}
-                    </ol>
-                </>
-            )}
-
-            {artifact.mss && artifact.mss.length > 0 && (
-                <>
-                    <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Main Success Scenario</h3>
-                    <ol>
-                        {artifact.mss.map((step: any, i: number) => (
-                            <li key={i}>
-                                <strong>{step.actor}:</strong> {step.description}
-                            </li>
-                        ))}
-                    </ol>
-                </>
-            )}
-
-            {artifact.extensions && artifact.extensions.length > 0 && (
-                <>
-                    <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Extensions</h3>
-                    <ul>
-                        {artifact.extensions.map((ext: any, i: number) => (
-                            <li key={i}>
-                                <strong>{ext.step}:</strong> {ext.condition} → {ext.handling}
-                            </li>
-                        ))}
-                    </ul>
-                </>
-            )}
-
-            {artifact.postconditions && artifact.postconditions.length > 0 && (
-                <>
-                    <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Postconditions</h3>
-                    <ol>
-                        {artifact.postconditions.map((p: any, i: number) => (
-                            <li key={i}>{p.text}</li>
-                        ))}
-                    </ol>
-                </>
-            )}
-
-            {artifact.stakeholders && artifact.stakeholders.length > 0 && (
-                <>
-                    <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Stakeholders</h3>
-                    <ul>
-                        {artifact.stakeholders.map((s: any, i: number) => (
-                            <li key={i}>{s.name}</li>
-                        ))}
-                    </ul>
-                </>
-            )}
-        </>
-    );
-}
-
-function RequirementPresentation({ artifact }: { artifact: any }) {
-    return (
-        <>
-            <div className="grid grid-cols-3 gap-4 mb-3 not-prose">
-                <div>
-                    <span className="text-sm font-medium text-slate-500">Short Name</span>
-                    <p className="text-slate-900 font-mono">{artifact.short_name}</p>
-                </div>
-                <div>
-                    <span className="text-sm font-medium text-slate-500">Area</span>
-                    <p className="text-slate-900">{artifact.area || 'N/A'}</p>
-                </div>
-                <div>
-                    <span className="text-sm font-medium text-slate-500">Level</span>
-                    <p className="text-slate-900">{artifact.level?.toUpperCase() || 'N/A'}</p>
-                </div>
-                <div>
-                    <span className="text-sm font-medium text-slate-500">EARS Type</span>
-                    <p className="text-slate-900">{artifact.ears_type || 'N/A'}</p>
-                </div>
-                <div>
-                    <span className="text-sm font-medium text-slate-500">Owner</span>
-                    <p className="text-slate-900">{artifact.owner || 'N/A'}</p>
-                </div>
-            </div>
-
-            <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Requirement Text</h3>
-            <div className="bg-slate-50 p-4 rounded-md border border-slate-200">
+                <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Description</h3>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {artifact.text}
+                    {artifact.description || 'No description provided.'}
                 </ReactMarkdown>
-            </div>
 
-            {artifact.ears_trigger && (
-                <>
-                    <h4>Trigger</h4>
-                    <p>{artifact.ears_trigger}</p>
-                </>
-            )}
-
-            {artifact.ears_state && (
-                <>
-                    <h4>State</h4>
-                    <p>{artifact.ears_state}</p>
-                </>
-            )}
-
-            {artifact.ears_condition && (
-                <>
-                    <h4>Condition</h4>
-                    <p>{artifact.ears_condition}</p>
-                </>
-            )}
-
-            {artifact.ears_feature && (
-                <>
-                    <h4>Feature</h4>
-                    <p>{artifact.ears_feature}</p>
-                </>
-            )}
-
-            {artifact.rationale && (
-                <>
-                    <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Rationale</h3>
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {artifact.rationale}
-                    </ReactMarkdown>
-                </>
-            )}
-        </>
-    );
-}
-
-function VisionPresentation({ artifact }: { artifact: any }) {
-    return (
-        <>
-            {artifact.statement && (
-                <>
-                    <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Vision Statement</h3>
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {artifact.statement}
-                    </ReactMarkdown>
-                </>
-            )}
-
-            {artifact.description && (
-                <>
-                    <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Description</h3>
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {artifact.description}
-                    </ReactMarkdown>
-                </>
-            )}
-        </>
-    );
-}
-
-function DocumentPresentation({ artifact }: { artifact: any }) {
-    return (
-        <>
-            {/* Document metadata */}
-            <div className="grid grid-cols-2 gap-4 mb-4 not-prose">
-                <div>
-                    <span className="text-sm font-medium text-slate-500">Type</span>
-                    <p className="text-slate-900 capitalize">{artifact.document_type || 'Unknown'}</p>
-                </div>
-                <div>
-                    <span className="text-sm font-medium text-slate-500">MIME Type</span>
-                    <p className="text-slate-900">{artifact.mime_type || 'N/A'}</p>
-                </div>
-            </div>
-
-            {/* Description */}
-            {artifact.description && (
-                <>
-                    <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Description</h3>
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {artifact.description}
-                    </ReactMarkdown>
-                </>
-            )}
-
-            {/* Content based on document type */}
-            <div className="mt-4 not-prose">
-                {artifact.document_type === 'url' && artifact.content_url && (
-                    <div className="p-4 bg-slate-50 rounded border border-slate-200">
-                        <a
-                            href={artifact.content_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-blue-600 hover:underline"
-                        >
-                            <ExternalLink className="w-4 h-4" />
-                            {artifact.content_url}
-                        </a>
-                    </div>
-                )}
-
-                {artifact.document_type === 'text' && artifact.content_text && (
-                    <div className="prose prose-sm max-w-none p-4 bg-slate-50 rounded border border-slate-200">
+                {artifact.rationale && (
+                    <>
+                        <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Rationale</h3>
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {artifact.content_text}
+                            {artifact.rationale}
                         </ReactMarkdown>
+                    </>
+                )}
+            </>
+            );
+}
+
+            function UseCasePresentation({artifact}: {artifact: any }) {
+    return (
+            <>
+                <div className="grid grid-cols-2 gap-4 mb-3 not-prose">
+                    <div>
+                        <span className="text-sm font-medium text-slate-500">Area</span>
+                        <p className="text-slate-900">{artifact.area || 'N/A'}</p>
                     </div>
+                    <div>
+                        <span className="text-sm font-medium text-slate-500">Primary Actor</span>
+                        <p className="text-slate-900">{artifact.primary_actor?.name || 'N/A'}</p>
+                    </div>
+                </div>
+
+                <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Description</h3>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {artifact.description || 'No description provided.'}
+                </ReactMarkdown>
+
+                {artifact.trigger && (
+                    <>
+                        <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Trigger</h3>
+                        <p>{artifact.trigger}</p>
+                    </>
                 )}
 
-                {artifact.document_type === 'file' && artifact.content_url && (
-                    <div className="border border-slate-200 rounded overflow-hidden">
-                        {artifact.mime_type === 'application/pdf' ? (
-                            <iframe
-                                src={artifact.content_url}
-                                className="w-full"
-                                style={{ height: '800px' }}
-                                title="PDF Document"
-                            />
-                        ) : artifact.mime_type?.startsWith('image/') ? (
-                            <img
-                                src={artifact.content_url}
-                                alt={artifact.title}
-                                className="max-w-full h-auto"
-                            />
-                        ) : (
-                            <div className="p-4 bg-slate-50">
-                                <a
-                                    href={artifact.content_url}
-                                    download
-                                    className="flex items-center gap-2 text-blue-600 hover:underline"
-                                >
-                                    <ExternalLink className="w-4 h-4" />
-                                    Download {artifact.mime_type || 'file'}
-                                </a>
-                            </div>
-                        )}
-                    </div>
+                {artifact.preconditions && artifact.preconditions.length > 0 && (
+                    <>
+                        <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Preconditions</h3>
+                        <ol>
+                            {artifact.preconditions.map((p: any, i: number) => (
+                                <li key={i}>{p.text}</li>
+                            ))}
+                        </ol>
+                    </>
                 )}
+
+                {artifact.mss && artifact.mss.length > 0 && (
+                    <>
+                        <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Main Success Scenario</h3>
+                        <ol>
+                            {artifact.mss.map((step: any, i: number) => (
+                                <li key={i}>
+                                    <strong>{step.actor}:</strong> {step.description}
+                                </li>
+                            ))}
+                        </ol>
+                    </>
+                )}
+
+                {artifact.extensions && artifact.extensions.length > 0 && (
+                    <>
+                        <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Extensions</h3>
+                        <ul>
+                            {artifact.extensions.map((ext: any, i: number) => (
+                                <li key={i}>
+                                    <strong>{ext.step}:</strong> {ext.condition} → {ext.handling}
+                                </li>
+                            ))}
+                        </ul>
+                    </>
+                )}
+
+                {artifact.postconditions && artifact.postconditions.length > 0 && (
+                    <>
+                        <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Postconditions</h3>
+                        <ol>
+                            {artifact.postconditions.map((p: any, i: number) => (
+                                <li key={i}>{p.text}</li>
+                            ))}
+                        </ol>
+                    </>
+                )}
+
+                {artifact.stakeholders && artifact.stakeholders.length > 0 && (
+                    <>
+                        <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Stakeholders</h3>
+                        <ul>
+                            {artifact.stakeholders.map((s: any, i: number) => (
+                                <li key={i}>{s.name}</li>
+                            ))}
+                        </ul>
+                    </>
+                )}
+            </>
+            );
+}
+
+            function RequirementPresentation({artifact}: {artifact: any }) {
+    return (
+            <>
+                <div className="grid grid-cols-3 gap-4 mb-3 not-prose">
+                    <div>
+                        <span className="text-sm font-medium text-slate-500">Short Name</span>
+                        <p className="text-slate-900 font-mono">{artifact.short_name}</p>
+                    </div>
+                    <div>
+                        <span className="text-sm font-medium text-slate-500">Area</span>
+                        <p className="text-slate-900">{artifact.area || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <span className="text-sm font-medium text-slate-500">Level</span>
+                        <p className="text-slate-900">{artifact.level?.toUpperCase() || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <span className="text-sm font-medium text-slate-500">EARS Type</span>
+                        <p className="text-slate-900">{artifact.ears_type || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <span className="text-sm font-medium text-slate-500">Owner</span>
+                        <p className="text-slate-900">{artifact.owner || 'N/A'}</p>
+                    </div>
+                </div>
+
+                <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Requirement Text</h3>
+                <div className="bg-slate-50 p-4 rounded-md border border-slate-200">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {artifact.text}
+                    </ReactMarkdown>
+                </div>
+
+                {artifact.ears_trigger && (
+                    <>
+                        <h4>Trigger</h4>
+                        <p>{artifact.ears_trigger}</p>
+                    </>
+                )}
+
+                {artifact.ears_state && (
+                    <>
+                        <h4>State</h4>
+                        <p>{artifact.ears_state}</p>
+                    </>
+                )}
+
+                {artifact.ears_condition && (
+                    <>
+                        <h4>Condition</h4>
+                        <p>{artifact.ears_condition}</p>
+                    </>
+                )}
+
+                {artifact.ears_feature && (
+                    <>
+                        <h4>Feature</h4>
+                        <p>{artifact.ears_feature}</p>
+                    </>
+                )}
+
+                {artifact.rationale && (
+                    <>
+                        <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Rationale</h3>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {artifact.rationale}
+                        </ReactMarkdown>
+                    </>
+                )}
+            </>
+            );
+}
+
+            function VisionPresentation({artifact}: {artifact: any }) {
+    return (
+            <>
+                {artifact.statement && (
+                    <>
+                        <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Vision Statement</h3>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {artifact.statement}
+                        </ReactMarkdown>
+                    </>
+                )}
+
+                {artifact.description && (
+                    <>
+                        <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Description</h3>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {artifact.description}
+                        </ReactMarkdown>
+                    </>
+                )}
+            </>
+            );
+}
+
+            function DocumentPresentation({artifact}: {artifact: any }) {
+    return (
+            <>
+                {/* Document metadata */}
+                <div className="grid grid-cols-2 gap-4 mb-4 not-prose">
+                    <div>
+                        <span className="text-sm font-medium text-slate-500">Type</span>
+                        <p className="text-slate-900 capitalize">{artifact.document_type || 'Unknown'}</p>
+                    </div>
+                    <div>
+                        <span className="text-sm font-medium text-slate-500">MIME Type</span>
+                        <p className="text-slate-900">{artifact.mime_type || 'N/A'}</p>
+                    </div>
+                </div>
+
+                {/* Description */}
+                {artifact.description && (
+                    <>
+                        <h3 className="text-lg font-semibold text-slate-900 mt-3 mb-2">Description</h3>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {artifact.description}
+                        </ReactMarkdown>
+                    </>
+                )}
+
+                {/* Content based on document type */}
+                <div className="mt-4 not-prose">
+                    {artifact.document_type === 'url' && artifact.content_url && (
+                        <div className="p-4 bg-slate-50 rounded border border-slate-200">
+                            <a
+                                href={artifact.content_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 text-blue-600 hover:underline"
+                            >
+                                <ExternalLink className="w-4 h-4" />
+                                {artifact.content_url}
+                            </a>
+                        </div>
+                    )}
+
+                    {artifact.document_type === 'text' && artifact.content_text && (
+                        <div className="prose prose-sm max-w-none p-4 bg-slate-50 rounded border border-slate-200">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {artifact.content_text}
+                            </ReactMarkdown>
+                        </div>
+                    )}
+
+                    {artifact.document_type === 'file' && artifact.content_url && (
+                        <div className="border border-slate-200 rounded overflow-hidden">
+                            {artifact.mime_type === 'application/pdf' ? (
+                                <iframe
+                                    src={artifact.content_url}
+                                    className="w-full"
+                                    style={{ height: '800px' }}
+                                    title="PDF Document"
+                                />
+                            ) : artifact.mime_type?.startsWith('image/') ? (
+                                <img
+                                    src={artifact.content_url}
+                                    alt={artifact.title}
+                                    className="max-w-full h-auto"
+                                />
+                            ) : (
+                                <div className="p-4 bg-slate-50">
+                                    <a
+                                        href={artifact.content_url}
+                                        download
+                                        className="flex items-center gap-2 text-blue-600 hover:underline"
+                                    >
+                                        <ExternalLink className="w-4 h-4" />
+                                        Download {artifact.mime_type || 'file'}
+                                    </a>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
-        </>
+
+            {/* Comment Panel Column */}
+            <div className="sticky top-20 h-[calc(100vh-6rem)] bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                <CommentPanel
+                    artifactAid={artifactId!}
+                    selectedField={selectedField}
+                    fieldLabel={fieldLabel}
+                />
+            </div>
+        </div>
+        </div >
     );
 }

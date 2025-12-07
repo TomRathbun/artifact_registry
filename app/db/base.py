@@ -41,3 +41,5 @@ from app.db.models.linkage import Linkage
 from app.db.models.metadata import Area, Person
 from app.db.models.site import Site
 from app.db.models.artifact_event import ArtifactEvent
+from app.db.models.document import Document
+from app.db.models.comment import Comment

@@ -173,10 +173,17 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
 
         // Process Linkages
         const artifactIds = new Set(newNodes.map(n => n.id));
+        const processedLinkages = new Set<string>();
+
         linkages.forEach((l: any) => {
-            if (artifactIds.has(l.source_id) && artifactIds.has(l.target_id)) {
+            // Ensure we only process unique linkages and those where both endpoints exist in the graph
+            // Use a composite key as fallback if aid is missing, though aid should be present
+            const uniqueKey = l.aid || `${l.source_id}-${l.target_id}-${l.relationship_type}`;
+
+            if (artifactIds.has(l.source_id) && artifactIds.has(l.target_id) && !processedLinkages.has(uniqueKey)) {
+                processedLinkages.add(uniqueKey);
                 newEdges.push({
-                    id: `e${l.aid}`, // Use linkage aid for unique key instead of source-target
+                    id: `e${uniqueKey}`,
                     source: l.source_id,
                     target: l.target_id,
                     type: edgeType,

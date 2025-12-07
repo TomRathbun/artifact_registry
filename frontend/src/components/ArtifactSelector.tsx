@@ -29,6 +29,8 @@ export default function ArtifactSelector({ projectId, artifactType, onSelect, on
                     return (await axios.get(`/api/v1/projects/${projectId}/diagrams`)).data;
                 case 'component':
                     return (await axios.get(`/api/v1/components/`)).data;
+                case 'document':
+                    return (await axios.get(`/api/v1/documents/?project_id=${projectId}`)).data;
                 default:
                     return [];
             }

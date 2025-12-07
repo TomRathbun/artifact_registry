@@ -35,6 +35,11 @@ function App() {
               <Route path="needs" element={<ArtifactListView artifactType="need" />} />
               <Route path="use-cases" element={<ArtifactListView artifactType="use_case" />} />
               <Route path="requirements" element={<ArtifactListView artifactType="requirement" />} />
+              <Route path="requirements/create" element={<ArtifactWizard />} />
+              <Route path="requirements/:artifactId" element={<ArtifactPresentation />} />
+              <Route path="documents" element={<ArtifactListView artifactType="document" />} />
+              <Route path="documents/create" element={<ArtifactWizard />} />
+              <Route path="documents/:artifactId" element={<ArtifactPresentation />} />
               <Route path="people" element={<ManagementView type="people" />} />
               <Route path="areas" element={<ManagementView type="area" />} />
               <Route path="sites" element={<SiteManager />} />

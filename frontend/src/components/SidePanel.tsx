@@ -75,12 +75,12 @@ export default function SidePanel({ projectId }: SidePanelProps) {
                 </li>
                 <li>
                     <NavLink
-                        to={`${base}/graph`}
+                        to={`${base}/documents`}
                         className={({ isActive }) =>
                             `flex items-center gap-2 p-2 rounded hover:bg-slate-700 ${isActive ? 'bg-slate-700' : ''}`
                         }
                     >
-                        <Network className="w-4 h-4" /> Graph View
+                        <FileText className="w-4 h-4" /> Documents
                     </NavLink>
                 </li>
                 <li>
@@ -144,6 +144,6 @@ export default function SidePanel({ projectId }: SidePanelProps) {
                     <Info className="w-4 h-4" /> About
                 </NavLink>
             </div>
-        </nav>
+        </nav >
     );
 }

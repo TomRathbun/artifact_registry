@@ -7,6 +7,7 @@ from app.db.models.need import Need
 from app.db.models.use_case import UseCase
 from app.db.models.requirement import Requirement
 from app.db.models.project import Project
+from app.db.models.document import Document
 
 # ----------------------------------------------------------------------
 # Mapping: artifact class → short type code used in the ID
@@ -16,6 +17,7 @@ TYPE_CODE: Dict[Type, str] = {
     Need:            "NEED",
     UseCase:         "UC",
     Requirement:     "REQ",
+    Document:        "DOC",
 }
 
 def generate_artifact_id(db: Session, model, area: str, project_id: str) -> str:

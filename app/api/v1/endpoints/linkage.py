@@ -21,6 +21,7 @@ def _artifact_exists(db: Session, typ: str, aid: str) -> bool:
         "requirement": "Requirement",
         "diagram": "Diagram",
         "component": "Component",
+        "document": "Document",
     }
     model_name = model_map.get(typ)
 

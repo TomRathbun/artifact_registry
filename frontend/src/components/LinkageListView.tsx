@@ -585,7 +585,7 @@ export default function LinkageListView() {
             {isLoading ? (
                 <div className="text-center py-12 text-slate-500">Loading linkages...</div>
             ) : filteredLinkages && filteredLinkages.length > 0 ? (
-                <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+                <div className="bg-white rounded-lg border border-slate-200 overflow-x-auto shadow-sm">
                     <table className="min-w-full divide-y divide-slate-200">
                         <thead className="bg-slate-50">
                             <tr>

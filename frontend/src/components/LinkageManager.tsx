@@ -293,6 +293,7 @@ export const LinkageManager: React.FC<LinkageManagerProps> = ({
                             <option value="vision">Vision</option>
                             <option value="diagram">Diagram</option>
                             <option value="component">Component</option>
+                            <option value="document">Document</option>
                             <option value="url">URL/External</option>
                         </select>
                         <div className="flex-1">
