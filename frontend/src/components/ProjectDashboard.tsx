@@ -202,7 +202,7 @@ export default function ProjectDashboard() {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `database_backup_${new Date().toISOString().split('T')[0]}.dump`;
+            a.download = `database_backup_${new Date().toISOString().split('T')[0]}.sql`;
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
@@ -311,7 +311,7 @@ export default function ProjectDashboard() {
                         <input
                             id="database-restore-file"
                             type="file"
-                            accept=".dump"
+                            accept=".sql"
                             className="hidden"
                             onChange={handleDatabaseRestoreFile}
                         />

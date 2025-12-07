@@ -31,17 +31,20 @@ async def backup_database():
     """
     try:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"registry_backup_{timestamp}.dump"
+        filename = f"registry_backup_{timestamp}.sql"
         filepath = BACKUP_DIR / filename
         
-        # Run pg_dump
+        # Run pg_dump with plain SQL format
         cmd = [
             str(PG_DUMP),
             "-h", DB_HOST,
             "-U", DB_USER,
             "-d", DB_NAME,
-            "-F", "c",  # Custom format (compressed)
-            "-f", str(filepath)
+            "-f", str(filepath),
+            "--clean",  # Include DROP commands
+            "--if-exists",  # Don't error if objects don't exist
+            "--no-owner",  # Don't include ownership commands
+            "--no-privileges"  # Don't include privilege commands
         ]
         
         result = subprocess.run(
@@ -79,7 +82,7 @@ async def restore_database(request: Request):
             tmp_path = tmp.name
         
         try:
-            # First, terminate all connections to the database
+            # Terminate all connections to the database
             terminate_cmd = [
                 str(PG_BIN_DIR / ("psql.exe" if os.name == 'nt' else "psql")),
                 "-h", DB_HOST,
@@ -133,13 +136,14 @@ async def restore_database(request: Request):
             if create_result.returncode != 0:
                 raise Exception(f"Failed to create database: {create_result.stderr}")
             
-            # Now restore into the clean database
+            # Restore using psql (for SQL format backups)
             cmd = [
-                str(PG_RESTORE),
+                str(PG_BIN_DIR / ("psql.exe" if os.name == 'nt' else "psql")),
                 "-h", DB_HOST,
                 "-U", DB_USER,
                 "-d", DB_NAME,
-                tmp_path
+                "-f", tmp_path,
+                "-q"  # Quiet mode
             ]
             
             result = subprocess.run(
@@ -149,10 +153,9 @@ async def restore_database(request: Request):
                 env={**os.environ, "PGPASSWORD": os.getenv("DB_PASSWORD", "")}
             )
             
-            # Note: pg_restore may return non-zero even on success due to warnings
-            # Check if there are actual errors
-            if "ERROR" in result.stderr and "already exists" not in result.stderr:
-                raise Exception(f"pg_restore failed: {result.stderr}")
+            # Check for errors (psql returns non-zero on errors)
+            if result.returncode != 0 and "ERROR" in result.stderr:
+                raise Exception(f"Restore failed: {result.stderr}")
             
             return {"message": "Database restored successfully", "warnings": result.stderr if result.stderr else None}
             
@@ -170,7 +173,7 @@ async def list_backups():
     """
     try:
         backups = []
-        for backup_file in sorted(BACKUP_DIR.glob("*.dump"), reverse=True):
+        for backup_file in sorted(BACKUP_DIR.glob("*.sql"), reverse=True):
             backups.append({
                 "filename": backup_file.name,
                 "size_mb": round(backup_file.stat().st_size / 1024 / 1024, 2),
