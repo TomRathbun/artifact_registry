@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { NeedsService, UseCasesService, RequirementsService, VisionService, LinkageService, ProjectsService } from '../client';
-import { ArrowLeft, Edit, ExternalLink, X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, MessageSquarePlus } from 'lucide-react';
+import { ArrowLeft, Edit, ExternalLink, X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, MessageSquarePlus, MessageSquare } from 'lucide-react';
 import ComponentDiagram from './ComponentDiagram';
 import ArtifactGraphView from './ArtifactGraphView';
 import CommentPanel from './CommentPanel';
@@ -183,15 +183,15 @@ export default function ArtifactPresentation() {
     const { projectId, artifactType, artifactId } = useParams<{ projectId: string; artifactType: string; artifactId: string }>();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const [selectedLink, setSelectedLink] = useState<any>(null);
-    const [showStatusDialog, setShowStatusDialog] = useState(false);
+    const [selectedLink, setSelectedLink] = useState<any | null>(null);
+    const [selectedField, setSelectedField] = useState<string | null>(null);
     const [zoomLevel, setZoomLevel] = useState(100);
+    const [showComments, setShowComments] = useState(true);
+    const [showStatusDialog, setShowStatusDialog] = useState(false);
     const [pendingStatus, setPendingStatus] = useState<string>('');
     const [statusRationale, setStatusRationale] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('');
-    const [selectedField, setSelectedField] = useState<string | null>(null);
 
-    // Valid status transitions from backend
     const VALID_TRANSITIONS: Record<string, string[]> = {
         'Draft': ['Ready_for_Review'],
         'Ready_for_Review': ['In_Review', 'Draft'],
@@ -468,6 +468,18 @@ export default function ArtifactPresentation() {
                                 </button>
                             </div>
 
+                            {/* Comment Toggle */}
+                            <button
+                                onClick={() => setShowComments(!showComments)}
+                                className={`p-2 rounded-md transition-colors mr-2 ${showComments
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : 'text-slate-600 hover:bg-slate-100'
+                                    }`}
+                                title={showComments ? "Hide Comments" : "Show Comments"}
+                            >
+                                <MessageSquare className="w-4 h-4" />
+                            </button>
+
                             {/* Status Dropdown */}
                             {'status' in artifact && (
                                 <div className="flex items-center gap-2">
@@ -507,7 +519,8 @@ export default function ArtifactPresentation() {
                 </div>
             </div>
 
-            <div className="max-w-7xl mx-auto px-6 py-3 grid grid-cols-[1fr_400px] gap-4">
+            <div className={`max-w-7xl mx-auto px-6 py-3 grid gap-4 transition-all duration-300 ${showComments ? 'grid-cols-[1fr_400px]' : 'grid-cols-1'
+                }`}>
                 <div className="space-y-3">
                     {/* Preview Pane */}
                     {selectedLink && (
@@ -666,16 +679,18 @@ export default function ArtifactPresentation() {
                 </div>
 
                 {/* Comment Panel Column */}
-                <div
-                    className="sticky top-20 h-[calc(100vh-6rem)] bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden"
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <CommentPanel
-                        artifactAid={artifactId!}
-                        selectedField={selectedField}
-                        fieldLabel={selectedField ? selectedField.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : ''}
-                    />
-                </div>
+                {showComments && (
+                    <div
+                        className="sticky top-20 h-[calc(100vh-6rem)] bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <CommentPanel
+                            artifactAid={artifactId!}
+                            selectedField={selectedField}
+                            fieldLabel={selectedField ? selectedField.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : ''}
+                        />
+                    </div>
+                )}
             </div>
 
             {/* Status Change Confirmation Dialog */}
