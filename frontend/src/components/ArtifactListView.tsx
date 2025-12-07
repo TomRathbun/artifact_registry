@@ -631,20 +631,32 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
 
                     // Handle Use Case specific imports
                     if (artifactType === 'use_case') {
+                        // Fetch all people once for efficiency
+                        const allPeople = await MetadataService.listPeopleApiV1MetadataMetadataPeopleGet(targetProjectId);
+
                         // Convert stakeholders array of names to array of IDs
                         if (artifact.stakeholders && Array.isArray(artifact.stakeholders)) {
                             const stakeholderIds = [];
                             for (const stakeholderName of artifact.stakeholders) {
                                 if (typeof stakeholderName === 'string') {
-                                    const people = await MetadataService.listPeopleApiV1MetadataMetadataPeopleGet('stakeholder');
-                                    let existing = people.find((p: any) => p.name === stakeholderName);
+                                    // Check if person already exists
+                                    let existing = allPeople.find((p: any) => p.name === stakeholderName);
                                     if (!existing) {
+                                        // Create new person
                                         existing = await MetadataService.createPersonApiV1MetadataMetadataPeoplePost({
                                             name: stakeholderName,
                                             roles: ['stakeholder'],
                                             project_id: targetProjectId,
                                             person_type: 'both'
                                         });
+                                        allPeople.push(existing); // Add to cache
+                                    } else if (!(existing as any).roles?.includes('stakeholder')) {
+                                        // Update roles if stakeholder role is missing
+                                        const updatedRoles = [...((existing as any).roles || []), 'stakeholder'];
+                                        await MetadataService.updatePersonApiV1MetadataMetadataPeoplePersonIdPut(existing.id, {
+                                            ...(existing as any),
+                                            roles: updatedRoles
+                                        } as any);
                                     }
                                     stakeholderIds.push(existing.id);
                                 }
@@ -721,9 +733,10 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                             delete artifact.exceptions;
                         }
 
-                        // Convert primary_actor name to ID (if it's a string)
+                        // Handle primary_actor name to ID (if it's a string)
                         if (artifact.primary_actor && typeof artifact.primary_actor === 'string') {
-                            const people = await MetadataService.listPeopleApiV1MetadataMetadataPeopleGet('both');
+                            // Reuse allPeople if available, otherwise fetch
+                            const people = allPeople || await MetadataService.listPeopleApiV1MetadataMetadataPeopleGet(targetProjectId);
                             let existing = people.find((p: any) => p.name === artifact.primary_actor);
                             if (!existing) {
                                 existing = await MetadataService.createPersonApiV1MetadataMetadataPeoplePost({
@@ -732,6 +745,14 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                                     project_id: targetProjectId,
                                     person_type: 'both'
                                 });
+                                if (allPeople) allPeople.push(existing);
+                            } else if (!(existing as any).roles?.includes('actor')) {
+                                // Update roles if actor role is missing
+                                const updatedRoles = [...((existing as any).roles || []), 'actor'];
+                                await MetadataService.updatePersonApiV1MetadataMetadataPeoplePersonIdPut(existing.id, {
+                                    ...(existing as any),
+                                    roles: updatedRoles
+                                } as any);
                             }
                             artifact.primary_actor_id = existing.id;
                             delete artifact.primary_actor;
