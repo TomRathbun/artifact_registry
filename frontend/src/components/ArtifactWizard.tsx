@@ -735,7 +735,7 @@ export default function ArtifactWizard() {
                                 </div>
                                 <select {...register('owner_id')} className="w-full px-3 py-2 border border-slate-300 rounded-md">
                                     <option value="">Select Owner...</option>
-                                    {owners?.map((p: any) => (
+                                    {owners?.sort((a: any, b: any) => a.name.localeCompare(b.name)).map((p: any) => (
                                         <option key={p.id} value={p.id}>{p.name}</option>
                                     ))}
                                 </select>
@@ -749,7 +749,7 @@ export default function ArtifactWizard() {
                                 </div>
                                 <select {...register('stakeholder_id')} className="w-full px-3 py-2 border border-slate-300 rounded-md">
                                     <option value="">Select Stakeholder...</option>
-                                    {stakeholders?.map((p: any) => (
+                                    {stakeholders?.sort((a: any, b: any) => a.name.localeCompare(b.name)).map((p: any) => (
                                         <option key={p.id} value={p.id}>{p.name}</option>
                                     ))}
                                 </select>
