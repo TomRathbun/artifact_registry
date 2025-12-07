@@ -2,7 +2,7 @@
 Database backup and restore endpoints.
 Provides full PostgreSQL database export/import functionality.
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
 import subprocess
 import os
@@ -64,15 +64,18 @@ async def backup_database():
         raise HTTPException(status_code=500, detail=f"Backup failed: {str(e)}")
 
 @router.post("/restore")
-async def restore_database(file: bytes):
+async def restore_database(request: Request):
     """
     Restore database from uploaded dump file.
     WARNING: This will overwrite the current database!
     """
     try:
-        # Save uploaded file temporarily
+        # Read the raw bytes from request body
+        file_bytes = await request.body()
+        
+        # Save to temporary file
         with tempfile.NamedTemporaryFile(delete=False, suffix=".dump") as tmp:
-            tmp.write(file)
+            tmp.write(file_bytes)
             tmp_path = tmp.name
         
         try:
@@ -90,7 +93,7 @@ async def restore_database(file: bytes):
                 cmd,
                 capture_output=True,
                 text=True,
-                env={**os.environ, "PGPASSWORD": os.getenv("DB_PASSWORD", "postgres")}
+                env={**os.environ, "PGPASSWORD": os.getenv("DB_PASSWORD", "")}
             )
             
             # Note: pg_restore may return non-zero even on success due to warnings
