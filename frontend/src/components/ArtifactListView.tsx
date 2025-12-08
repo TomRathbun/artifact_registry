@@ -282,6 +282,28 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
         });
     };
 
+    // Clear all filters
+    const clearAllFilters = () => {
+        setSearch('');
+        setDebouncedSearch('');
+        setSortConfig({ key: null, direction: null });
+        setColumnFilters({});
+    };
+
+    // Close filter dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = () => {
+            if (activeFilterDropdown) {
+                setActiveFilterDropdown(null);
+            }
+        };
+
+        if (activeFilterDropdown) {
+            document.addEventListener('click', handleClickOutside);
+            return () => document.removeEventListener('click', handleClickOutside);
+        }
+    }, [activeFilterDropdown]);
+
     // Get filtered AIDs for presentation mode navigation
     const getFilteredAIDs = () => {
         const filtered = getFilteredAndSortedArtifacts();
@@ -1688,6 +1710,18 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                         onChange={handleImport}
                         className="hidden"
                     />
+
+                    {/* Clear All Filters Button - show when any filters are active */}
+                    {(search || sortConfig.key || Object.keys(columnFilters).length > 0) && (
+                        <button
+                            onClick={clearAllFilters}
+                            className="px-3 py-2 bg-slate-600 text-white rounded hover:bg-slate-700 transition-colors flex items-center gap-2"
+                            title="Clear all filters and sorting"
+                        >
+                            <Filter className="w-4 h-4" />
+                            Clear Filters
+                        </button>
+                    )}
 
                     {/* Bulk Delete Button - only show when items are selected */}
                     {selectedItems.length > 0 && (
