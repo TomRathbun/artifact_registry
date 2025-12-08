@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 
 import axios from 'axios';
-import { Plus, Network, Pencil, Trash2, GitGraph, ArrowUp, ArrowDown, Filter } from 'lucide-react';
+import { Plus, Network, Edit, Trash2, GitGraph, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 import { MetadataService } from '../client';
 
 export default function DiagramList() {
@@ -616,14 +616,14 @@ export default function DiagramList() {
                                     <div className="flex justify-end gap-2">
                                         <button
                                             onClick={() => setEditingDiagram(diagram)}
-                                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md"
+                                            className="p-1 text-slate-400 hover:text-blue-600 transition-colors rounded hover:bg-blue-50"
                                             title="Edit"
                                         >
-                                            <Pencil className="w-4 h-4" />
+                                            <Edit className="w-4 h-4" />
                                         </button>
                                         <button
                                             onClick={() => setDeletingDiagramId(diagram.id)}
-                                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md"
+                                            className="p-1 text-slate-400 hover:text-red-600 transition-colors rounded hover:bg-red-50"
                                             title="Delete"
                                         >
                                             <Trash2 className="w-4 h-4" />

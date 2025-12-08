@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link as RouterLink } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { LinkageService } from '../client/services/LinkageService';
 import { ProjectsService } from '../client/services/ProjectsService';
 import type { LinkageCreate } from '../client/models/LinkageCreate';
-import { Link as LinkIcon, Plus, Trash2, ExternalLink, Eye, Search, Pencil, Filter } from 'lucide-react';
+import { Link as LinkIcon, Plus, Trash2, ExternalLink, Eye, Search, Edit, Filter, ArrowUp, ArrowDown } from 'lucide-react';
 import ArtifactSelector from './ArtifactSelector';
 import axios from 'axios';
 
@@ -100,48 +100,126 @@ export default function LinkageListView() {
     const [isSelectorOpen, setIsSelectorOpen] = useState(false);
     const [selectorMode, setSelectorMode] = useState<'source' | 'target'>('target');
 
-    // Filter states
-    const [filterSourceType, setFilterSourceType] = useState<string>('all');
-    const [filterRelationship, setFilterRelationship] = useState<string>('all');
-    const [filterTargetType, setFilterTargetType] = useState<string>('all');
+    // Filter & Sort States
+    const [search, setSearch] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' | null }>({ key: null, direction: null });
+    const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({});
+    const [activeFilterDropdown, setActiveFilterDropdown] = useState<string | null>(null);
 
-    // Fetch all linkages for project using the resolved UUID
+    // Debounce search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(search);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [search]);
+
+    // Close dropdown on click outside
+    useEffect(() => {
+        const handleClickOutside = () => {
+            if (activeFilterDropdown) {
+                setActiveFilterDropdown(null);
+            }
+        };
+        if (activeFilterDropdown) {
+            document.addEventListener('click', handleClickOutside);
+            return () => document.removeEventListener('click', handleClickOutside);
+        }
+    }, [activeFilterDropdown]);
+
+    // Fetch all linkages
     const { data: linkages, isLoading } = useQuery({
         queryKey: ['linkages', 'all', project?.id],
         queryFn: () => LinkageService.listLinkagesApiV1LinkageLinkagesGet(project!.id),
         enabled: !!project?.id,
     });
 
-    // Filter linkages based on selected filters
-    const filteredLinkages = React.useMemo(() => {
+    // Filtering and Sorting Logic
+    const getFilteredAndSortedLinkages = () => {
         if (!linkages) return [];
 
-        return linkages.filter((link: any) => {
-            const matchesSource = filterSourceType === 'all' || link.source_artifact_type === filterSourceType;
-            const matchesRelationship = filterRelationship === 'all' || link.relationship_type === filterRelationship;
-            const matchesTarget = filterTargetType === 'all' || link.target_artifact_type === filterTargetType;
+        let filtered = linkages;
 
-            return matchesSource && matchesRelationship && matchesTarget;
+        // Global Search
+        if (debouncedSearch) {
+            const lowerSearch = debouncedSearch.toLowerCase();
+            filtered = filtered.filter((l: any) =>
+                l.source_id.toLowerCase().includes(lowerSearch) ||
+                l.target_id.toLowerCase().includes(lowerSearch) ||
+                l.relationship_type.toLowerCase().includes(lowerSearch) ||
+                l.source_artifact_type.toLowerCase().includes(lowerSearch) ||
+                l.target_artifact_type.toLowerCase().includes(lowerSearch)
+            );
+        }
+
+        // Column Filters
+        filtered = filtered.filter((l: any) => {
+            return Object.entries(columnFilters).every(([key, values]) => {
+                if (!values || values.length === 0) return true;
+                return values.includes(l[key]);
+            });
         });
-    }, [linkages, filterSourceType, filterRelationship, filterTargetType]);
 
-    // Get unique values for filters
-    const uniqueSourceTypes = React.useMemo(() => {
+        // Sorting
+        if (sortConfig.key && sortConfig.direction) {
+            filtered = [...filtered].sort((a: any, b: any) => {
+                const aValue = a[sortConfig.key!] || '';
+                const bValue = b[sortConfig.key!] || '';
+
+                if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+
+        return filtered;
+    };
+
+    const getUniqueValuesForColumn = (key: string): string[] => {
         if (!linkages) return [];
-        return Array.from(new Set(linkages.map((l: any) => l.source_artifact_type).filter(Boolean))).sort();
-    }, [linkages]);
+        const values = linkages.map((l: any) => l[key] || '');
+        return [...new Set(values)].filter(v => v).sort() as string[];
+    };
 
-    const uniqueRelationships = React.useMemo(() => {
-        if (!linkages) return [];
-        return Array.from(new Set(linkages.map((l: any) => l.relationship_type).filter(Boolean))).sort();
-    }, [linkages]);
+    const handleSort = (key: string) => {
+        let direction: 'asc' | 'desc' | null = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        } else if (sortConfig.key === key && sortConfig.direction === 'desc') {
+            direction = null;
+        }
+        setSortConfig({ key: direction ? key : null, direction });
+    };
 
-    const uniqueTargetTypes = React.useMemo(() => {
-        if (!linkages) return [];
-        return Array.from(new Set(linkages.map((l: any) => l.target_artifact_type).filter(Boolean))).sort();
-    }, [linkages]);
+    const toggleFilter = (key: string, value: string) => {
+        setColumnFilters(prev => {
+            const current = prev[key] || [];
+            const updated = current.includes(value)
+                ? current.filter(v => v !== value)
+                : [...current, value];
+            return { ...prev, [key]: updated };
+        });
+    };
 
-    // Create mutation
+    const clearColumnFilter = (key: string) => {
+        setColumnFilters(prev => {
+            const updated = { ...prev };
+            delete updated[key];
+            return updated;
+        });
+    };
+
+    const clearAllFilters = () => {
+        setSearch('');
+        setDebouncedSearch('');
+        setSortConfig({ key: null, direction: null });
+        setColumnFilters({});
+    };
+
+    const filteredLinkages = getFilteredAndSortedLinkages();
+
+    // Mutations
     const createMutation = useMutation({
         mutationFn: (payload: LinkageCreate) => LinkageService.createLinkageApiV1LinkageLinkagesPost(payload),
         onSuccess: () => {
@@ -152,7 +230,6 @@ export default function LinkageListView() {
         },
     });
 
-    // Update mutation
     const updateMutation = useMutation({
         mutationFn: ({ aid, payload }: { aid: string; payload: LinkageCreate }) =>
             LinkageService.updateLinkageApiV1LinkageLinkagesAidPut(aid, payload),
@@ -162,7 +239,6 @@ export default function LinkageListView() {
         },
     });
 
-    // Delete mutation
     const deleteMutation = useMutation({
         mutationFn: (aid: string) => LinkageService.deleteLinkageApiV1LinkageLinkagesAidDelete(aid),
         onSuccess: () => {
@@ -218,13 +294,36 @@ export default function LinkageListView() {
                     <LinkIcon className="w-6 h-6 mr-2" />
                     All Linkages
                 </h1>
-                <button
-                    onClick={() => setIsAdding(!isAdding)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center"
-                >
-                    <Plus className="w-4 h-4 mr-2" />
-                    {isAdding ? 'Cancel' : 'Add Linkage'}
-                </button>
+                <div className='flex gap-2'>
+                    {(search || sortConfig.key || Object.keys(columnFilters).length > 0) && (
+                        <button
+                            onClick={clearAllFilters}
+                            className="px-3 py-2 bg-slate-600 text-white rounded hover:bg-slate-700 transition-colors flex items-center gap-2"
+                            title="Clear all filters and sorting"
+                        >
+                            <Filter className="w-4 h-4" />
+                            Clear Filters
+                        </button>
+                    )}
+                    <button
+                        onClick={() => setIsAdding(!isAdding)}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center"
+                    >
+                        <Plus className="w-4 h-4 mr-2" />
+                        {isAdding ? 'Cancel' : 'Add Linkage'}
+                    </button>
+                </div>
+            </div>
+
+            {/* Quick Search */}
+            <div className="mb-4">
+                <input
+                    type="text"
+                    placeholder="Search linkages..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="px-3 py-2 border rounded w-full md:w-64"
+                />
             </div>
 
             {isAdding && (
@@ -506,92 +605,90 @@ export default function LinkageListView() {
                 </div>
             )}
 
-            {/* Filters Section */}
-            {linkages && linkages.length > 0 && (
-                <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm mb-4">
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center text-slate-700 font-medium">
-                            <Filter className="w-4 h-4 mr-2" />
-                            Filters:
-                        </div>
-
-                        {/* Source Type Filter */}
-                        <div className="flex-1">
-                            <label className="block text-xs text-slate-500 mb-1">Source Type</label>
-                            <select
-                                value={filterSourceType}
-                                onChange={(e) => setFilterSourceType(e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value="all">All Types</option>
-                                {uniqueSourceTypes.map((type: any) => (
-                                    <option key={type} value={type as string}>{type}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {/* Relationship Filter */}
-                        <div className="flex-1">
-                            <label className="block text-xs text-slate-500 mb-1">Relationship</label>
-                            <select
-                                value={filterRelationship}
-                                onChange={(e) => setFilterRelationship(e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value="all">All Relationships</option>
-                                {uniqueRelationships.map((rel: any) => (
-                                    <option key={rel} value={rel as string}>{rel}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {/* Target Type Filter */}
-                        <div className="flex-1">
-                            <label className="block text-xs text-slate-500 mb-1">Target Type</label>
-                            <select
-                                value={filterTargetType}
-                                onChange={(e) => setFilterTargetType(e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value="all">All Types</option>
-                                {uniqueTargetTypes.map((type: any) => (
-                                    <option key={type} value={type as string}>{type}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {/* Clear Filters Button */}
-                        {(filterSourceType !== 'all' || filterRelationship !== 'all' || filterTargetType !== 'all') && (
-                            <button
-                                onClick={() => {
-                                    setFilterSourceType('all');
-                                    setFilterRelationship('all');
-                                    setFilterTargetType('all');
-                                }}
-                                className="px-3 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors mt-5"
-                            >
-                                Clear All
-                            </button>
-                        )}
-                    </div>
-
-                    {/* Results count */}
-                    <div className="mt-3 text-sm text-slate-600">
-                        Showing <span className="font-semibold text-slate-900">{filteredLinkages.length}</span> of <span className="font-semibold text-slate-900">{linkages.length}</span> linkages
-                    </div>
-                </div>
-            )}
-
             {isLoading ? (
                 <div className="text-center py-12 text-slate-500">Loading linkages...</div>
             ) : filteredLinkages && filteredLinkages.length > 0 ? (
-                <div className="bg-white rounded-lg border border-slate-200 overflow-x-auto shadow-sm">
+                <div className="bg-white rounded-lg border border-slate-200 overflow-visible shadow-sm">
                     <table className="min-w-full divide-y divide-slate-200">
                         <thead className="bg-slate-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Source</th>
-                                <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Relationship</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Target</th>
+                                {[
+                                    { key: 'source_artifact_type', label: 'Source Type' },
+                                    { key: 'source_id', label: 'Source ID' },
+                                    { key: 'relationship_type', label: 'Relationship' },
+                                    { key: 'target_artifact_type', label: 'Target Type' },
+                                    { key: 'target_id', label: 'Target ID' }
+                                ].map((col) => (
+                                    <th
+                                        key={col.key}
+                                        className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider relative group select-none"
+                                    >
+                                        <div className="flex items-center gap-1">
+                                            <div
+                                                className="flex items-center gap-1 cursor-pointer hover:bg-slate-200 px-1 py-0.5 rounded"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setActiveFilterDropdown(activeFilterDropdown === col.key ? null : col.key);
+                                                }}
+                                            >
+                                                <Filter className={`w-3 h-3 ${columnFilters[col.key]?.length > 0 ? 'text-blue-600' : 'text-slate-400'}`} />
+                                                {columnFilters[col.key]?.length > 0 && (
+                                                    <span className="text-xs bg-blue-600 text-white rounded-full w-4 h-4 flex items-center justify-center">
+                                                        {columnFilters[col.key].length}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div
+                                                className="cursor-pointer hover:bg-slate-200 px-1 py-0.5 rounded flex items-center gap-1"
+                                                onClick={() => handleSort(col.key)}
+                                            >
+                                                {col.label}
+                                                {sortConfig.key === col.key && (
+                                                    <span className="text-slate-600">
+                                                        {sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Filter Dropdown */}
+                                        {activeFilterDropdown === col.key && (
+                                            <div className="absolute top-full left-0 mt-1 bg-white border rounded-md shadow-lg z-50 min-w-[200px] max-h-[300px] overflow-y-auto normal-case">
+                                                <div className="sticky top-0 bg-slate-50 p-2 border-b flex justify-between items-center">
+                                                    <span className="text-xs font-medium text-slate-600">Filter by {col.label}</span>
+                                                    {columnFilters[col.key]?.length > 0 && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                clearColumnFilter(col.key);
+                                                            }}
+                                                            className="text-xs text-blue-600 hover:text-blue-800"
+                                                        >
+                                                            Clear
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <div className="p-1">
+                                                    {getUniqueValuesForColumn(col.key).map((value: string) => (
+                                                        <label
+                                                            key={value}
+                                                            className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer rounded"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={columnFilters[col.key]?.includes(value) || false}
+                                                                onChange={() => toggleFilter(col.key, value)}
+                                                                className="w-3 h-3 text-blue-600 rounded"
+                                                            />
+                                                            <span className="text-sm truncate">{value}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </th>
+                                ))}
                                 <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
@@ -599,9 +696,11 @@ export default function LinkageListView() {
                             {filteredLinkages.map((link: any) => (
                                 <tr key={link.aid} className="hover:bg-slate-50">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                                        <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded mr-2">
+                                        <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded">
                                             {link.source_artifact_type}
                                         </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                                         {link.source_artifact_type === 'diagram' ? (
                                             <DiagramName diagramId={link.source_id || ''} />
                                         ) : link.source_artifact_type === 'component' ? (
@@ -611,15 +710,19 @@ export default function LinkageListView() {
                                         )}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-blue-600">
-                                        <span className="bg-blue-50 px-3 py-1 rounded-full">
+                                        <span className="bg-blue-50 px-3 py-1 rounded-full text-left inline-block w-full text-center">
                                             {link.relationship_type}
                                         </span>
                                     </td>
+
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                                        <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded inline-block">
+                                            {link.target_artifact_type}
+                                        </span>
+                                    </td>
+
                                     <td className="px-6 py-4 text-sm text-slate-900">
                                         <div className="flex flex-col gap-1">
-                                            <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded mr-2 inline-block w-fit">
-                                                {link.target_artifact_type}
-                                            </span>
                                             {link.target_artifact_type === 'url' ? (
                                                 <a
                                                     href={link.target_id || '#'}
@@ -647,7 +750,7 @@ export default function LinkageListView() {
                                                     href={link.target_id || ''}
                                                     target="_blank"
                                                     rel="noreferrer"
-                                                    className="text-slate-400 hover:text-blue-600 p-2 hover:bg-blue-50 rounded-full transition-colors"
+                                                    className="p-1 text-slate-400 hover:text-blue-600 transition-colors rounded hover:bg-blue-50"
                                                     title="Open in New Tab"
                                                 >
                                                     <ExternalLink className="w-4 h-4" />
@@ -661,7 +764,7 @@ export default function LinkageListView() {
                                                                 ? `/project/${projectId}/components`
                                                                 : `/project/${projectId}/${link.target_artifact_type}/${link.target_id}`
                                                     }
-                                                    className="text-slate-400 hover:text-blue-600 p-2 hover:bg-blue-50 rounded-full transition-colors"
+                                                    className="p-1 text-slate-400 hover:text-blue-600 transition-colors rounded hover:bg-blue-50"
                                                     title="Open"
                                                 >
                                                     <Eye className="w-4 h-4" />
@@ -671,16 +774,16 @@ export default function LinkageListView() {
                                             {/* Edit button */}
                                             <button
                                                 onClick={() => setEditingLinkage(link)}
-                                                className="bg-blue-100 text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-200 rounded-full transition-colors border border-blue-300"
+                                                className="p-1 text-slate-400 hover:text-blue-600 transition-colors rounded hover:bg-blue-50"
                                                 title="Edit Linkage"
                                             >
-                                                <Pencil className="w-4 h-4" />
+                                                <Edit className="w-4 h-4" />
                                             </button>
 
                                             {/* Delete button */}
                                             <button
                                                 onClick={() => deleteMutation.mutate(link.aid)}
-                                                className="bg-red-100 text-red-600 hover:text-red-900 p-2 hover:bg-red-200 rounded-full transition-colors border border-red-300"
+                                                className="p-1 text-slate-400 hover:text-red-600 transition-colors rounded hover:bg-red-50"
                                                 title="Delete Linkage"
                                             >
                                                 <Trash2 className="w-4 h-4" />
@@ -697,11 +800,7 @@ export default function LinkageListView() {
                     <Filter className="w-12 h-12 mx-auto mb-4 text-slate-300" />
                     <p className="text-lg font-medium mb-2">No linkages match your filters</p>
                     <button
-                        onClick={() => {
-                            setFilterSourceType('all');
-                            setFilterRelationship('all');
-                            setFilterTargetType('all');
-                        }}
+                        onClick={clearAllFilters}
                         className="text-blue-600 hover:text-blue-700 underline"
                     >
                         Clear all filters

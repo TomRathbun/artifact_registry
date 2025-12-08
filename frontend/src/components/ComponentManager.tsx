@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { ComponentService, ProjectsService } from '../client';
-import { Plus, Trash2, Save, X, Pencil, ArrowUp, ArrowDown, Filter } from 'lucide-react';
+import { Plus, Trash2, Save, X, Link as LinkIcon, Edit, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 import { ConfirmationModal } from './ConfirmationModal';
 
 export default function ComponentManager() {
@@ -983,17 +983,17 @@ export default function ComponentManager() {
                                     <div className="flex justify-end gap-1">
                                         <button
                                             onClick={() => startEdit(comp)}
-                                            className="text-slate-400 hover:text-blue-600 p-2 hover:bg-blue-50 rounded-full transition-colors"
+                                            className="p-1 text-slate-400 hover:text-blue-600 transition-colors rounded hover:bg-blue-50"
                                             title="Edit Component"
                                         >
-                                            <Pencil className="w-4 h-4" />
+                                            <Edit className="w-4 h-4" />
                                         </button>
                                         <button
                                             onClick={() => startLinking(comp)}
-                                            className="text-slate-400 hover:text-indigo-600 p-2 hover:bg-indigo-50 rounded-full transition-colors"
+                                            className="p-1 text-slate-400 hover:text-indigo-600 transition-colors rounded hover:bg-indigo-50"
                                             title="Manage Links"
                                         >
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-link"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
+                                            <LinkIcon className="w-4 h-4" />
                                         </button>
                                         <button
                                             onClick={() => {
@@ -1005,7 +1005,7 @@ export default function ComponentManager() {
                                                     onConfirm: () => deleteMutation.mutate(comp.id)
                                                 });
                                             }}
-                                            className="text-slate-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-full transition-colors"
+                                            className="p-1 text-slate-400 hover:text-red-600 transition-colors rounded hover:bg-red-50"
                                             title="Delete Component"
                                         >
                                             <Trash2 className="w-4 h-4" />
