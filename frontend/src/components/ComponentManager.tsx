@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { ComponentService, ProjectsService } from '../client';
-import { Plus, Trash2, Save, X, Tag, Activity, Pencil } from 'lucide-react';
+import { Plus, Trash2, Save, X, Tag, Activity, Pencil, ArrowUp, ArrowDown, Filter } from 'lucide-react';
+import { ConfirmationModal } from './ConfirmationModal';
 
 export default function ComponentManager() {
     const { projectId } = useParams<{ projectId: string }>();
@@ -49,6 +50,27 @@ export default function ComponentManager() {
     const [filterType, setFilterType] = useState('all');
     const [filterLifecycle, setFilterLifecycle] = useState('all');
     const [filterTag, setFilterTag] = useState('all');
+
+    // New filter/sort state
+    const [selectedItems, setSelectedItems] = useState<string[]>([]);
+    const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' | null }>({
+        key: null, direction: null
+    });
+    const [activeFilterDropdown, setActiveFilterDropdown] = useState<string | null>(null);
+    const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({});
+    const [confirmation, setConfirmation] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        isDestructive: boolean;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { },
+        isDestructive: false
+    });
 
     const { data: components, isLoading } = useQuery({
         queryKey: ['components'],
