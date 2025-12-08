@@ -61,6 +61,7 @@ export default function SiteManager() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['sites'] });
             setIsEditing(null);
+            setIsCreating(false);
             setFormData({ name: '', security_domain: '' });
         },
     });
@@ -193,7 +194,7 @@ export default function SiteManager() {
                         type="submit"
                         className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                     >
-                        {isEditing ? 'Update' : 'Create'}
+                        Save
                     </button>
                 </div>
             </form>
