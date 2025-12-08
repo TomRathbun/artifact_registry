@@ -159,6 +159,13 @@ export default function ManagementView({ type }: ManagementViewProps) {
         let filtered = items.filter((item: any) => {
             return Object.entries(columnFilters).every(([key, values]) => {
                 if (!values || values.length === 0) return true;
+
+                // Special handling for roles (array field)
+                if (key === 'roles') {
+                    const itemRoles = item.roles || [];
+                    return values.some(v => itemRoles.includes(v));
+                }
+
                 const itemValue = item[key] || '';
                 return values.includes(itemValue);
             });
@@ -183,8 +190,21 @@ export default function ManagementView({ type }: ManagementViewProps) {
 
     const getUniqueValuesForColumn = (key: string): string[] => {
         if (!items) return [];
+
+        // Special handling for roles (array field)
+        if (key === 'roles') {
+            const allRoles = items.flatMap((item: any) => item.roles || []);
+            return [...new Set(allRoles)].sort() as string[];
+        }
+
         const values = items.map((item: any) => item[key] || '');
         return [...new Set(values)].filter(v => v).sort() as string[];
+    };
+
+    // Clear all filters
+    const clearAllFilters = () => {
+        setColumnFilters({});
+        setSortConfig({ key: null, direction: null });
     };
 
     const toggleFilter = (key: string, value: string) => {
@@ -328,6 +348,17 @@ export default function ManagementView({ type }: ManagementViewProps) {
             <div className="flex justify-between items-center">
                 <h2 className="text-xl font-bold capitalize">{type}s</h2>
                 <div className="flex gap-2">
+                    {/* Clear All Filters Button */}
+                    {(sortConfig.key || Object.keys(columnFilters).length > 0) && (
+                        <button
+                            onClick={clearAllFilters}
+                            className="px-3 py-2 bg-slate-600 text-white rounded hover:bg-slate-700 transition-colors flex items-center gap-2"
+                            title="Clear all filters and sorting"
+                        >
+                            <Filter className="w-4 h-4" />
+                            Clear Filters
+                        </button>
+                    )}
                     {selectedItems.length > 0 && (
                         <button
                             onClick={() => {
@@ -419,7 +450,7 @@ export default function ManagementView({ type }: ManagementViewProps) {
 
                             {/* Filter Dropdown */}
                             {activeFilterDropdown === 'name' && (
-                                <div className="absolute top-full left-0 mt-1 bg-white border rounded-md shadow-lg z-50 min-w-[200px] max-h-[300px] overflow-y-auto">
+                                <div className="absolute top-full left-0 mt-1 bg-white border rounded-md shadow-lg z-50 min-w-[200px] max-h-[300px] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                                     <div className="sticky top-0 bg-slate-50 p-2 border-b flex justify-between items-center">
                                         <span className="text-xs font-medium text-slate-600">Filter by Name</span>
                                         {columnFilters['name']?.length > 0 && (
@@ -451,8 +482,124 @@ export default function ManagementView({ type }: ManagementViewProps) {
                             )}
                         </div>
 
-                        <div>Roles</div>
-                        <div>Description</div>
+                        {/* Roles Column with Filter */}
+                        <div className="flex items-center gap-1 select-none relative">
+                            <div
+                                className="flex items-center gap-1 cursor-pointer hover:bg-slate-200 px-1 py-0.5 rounded"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveFilterDropdown(activeFilterDropdown === 'roles' ? null : 'roles');
+                                }}
+                            >
+                                <Filter className={`w-3 h-3 ${columnFilters['roles']?.length > 0 ? 'text-blue-600' : 'text-slate-400'}`} />
+                                {columnFilters['roles']?.length > 0 && (
+                                    <span className="text-xs bg-blue-600 text-white rounded-full w-4 h-4 flex items-center justify-center">
+                                        {columnFilters['roles'].length}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="cursor-pointer hover:bg-slate-100 flex-1 flex items-center gap-1" onClick={() => handleSort('roles')}>
+                                Roles
+                                {sortConfig.key === 'roles' && (
+                                    <span className="text-slate-400">
+                                        {sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Filter Dropdown */}
+                            {activeFilterDropdown === 'roles' && (
+                                <div className="absolute top-full left-0 mt-1 bg-white border rounded-md shadow-lg z-50 min-w-[200px] max-h-[300px] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                                    <div className="sticky top-0 bg-slate-50 p-2 border-b flex justify-between items-center">
+                                        <span className="text-xs font-medium text-slate-600">Filter by Roles</span>
+                                        {columnFilters['roles']?.length > 0 && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    clearColumnFilter('roles');
+                                                }}
+                                                className="text-xs text-blue-600 hover:text-blue-800"
+                                            >
+                                                Clear
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="p-1">
+                                        {getUniqueValuesForColumn('roles').map((value: string) => (
+                                            <label key={value} className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer rounded">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={columnFilters['roles']?.includes(value) || false}
+                                                    onChange={() => toggleFilter('roles', value)}
+                                                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                                />
+                                                <span className="text-sm truncate capitalize">{value}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Description Column with Filter */}
+                        <div className="flex items-center gap-1 select-none relative">
+                            <div
+                                className="flex items-center gap-1 cursor-pointer hover:bg-slate-200 px-1 py-0.5 rounded"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveFilterDropdown(activeFilterDropdown === 'description' ? null : 'description');
+                                }}
+                            >
+                                <Filter className={`w-3 h-3 ${columnFilters['description']?.length > 0 ? 'text-blue-600' : 'text-slate-400'}`} />
+                                {columnFilters['description']?.length > 0 && (
+                                    <span className="text-xs bg-blue-600 text-white rounded-full w-4 h-4 flex items-center justify-center">
+                                        {columnFilters['description'].length}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="cursor-pointer hover:bg-slate-100 flex-1 flex items-center gap-1" onClick={() => handleSort('description')}>
+                                Description
+                                {sortConfig.key === 'description' && (
+                                    <span className="text-slate-400">
+                                        {sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Filter Dropdown */}
+                            {activeFilterDropdown === 'description' && (
+                                <div className="absolute top-full left-0 mt-1 bg-white border rounded-md shadow-lg z-50 min-w-[200px] max-h-[300px] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                                    <div className="sticky top-0 bg-slate-50 p-2 border-b flex justify-between items-center">
+                                        <span className="text-xs font-medium text-slate-600">Filter by Description</span>
+                                        {columnFilters['description']?.length > 0 && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    clearColumnFilter('description');
+                                                }}
+                                                className="text-xs text-blue-600 hover:text-blue-800"
+                                            >
+                                                Clear
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="p-1">
+                                        {getUniqueValuesForColumn('description').map((value: string) => (
+                                            <label key={value} className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer rounded">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={columnFilters['description']?.includes(value) || false}
+                                                    onChange={() => toggleFilter('description', value)}
+                                                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                                />
+                                                <span className="text-sm truncate">{value}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                         <div className="text-right">Actions</div>
                     </div>
 
