@@ -675,31 +675,236 @@ export default function ManagementView({ type }: ManagementViewProps) {
                     </ul>
                 </div>
             ) : (
-                <div className="bg-white border rounded-lg overflow-hidden">
-                    <table className="min-w-full divide-y divide-slate-200">
-                        <thead className="bg-slate-50">
-                            <tr>
-                                {type === 'area' && (
-                                    <>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Code</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Name</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Description</th>
-                                    </>
+                <div className="bg-white border rounded-md shadow-sm">
+                    {/* Header Row */}
+                    <div className="grid gap-2 p-3 border-b bg-slate-50 font-medium text-slate-700" style={{ gridTemplateColumns: 'auto 120px 200px 1fr 100px' }}>
+                        <div className="flex items-center">
+                            <input
+                                type="checkbox"
+                                checked={selectedItems.length === getFilteredAndSortedItems()?.length && getFilteredAndSortedItems()?.length > 0}
+                                onChange={(e) => {
+                                    if (e.target.checked) {
+                                        setSelectedItems(getFilteredAndSortedItems()?.map((item: any) => item.code) || []);
+                                    } else {
+                                        setSelectedItems([]);
+                                    }
+                                }}
+                                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                            />
+                        </div>
+
+                        {/* Code Column with Filter */}
+                        <div className="flex items-center gap-1 select-none relative">
+                            <div
+                                className="flex items-center gap-1 cursor-pointer hover:bg-slate-200 px-1 py-0.5 rounded"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveFilterDropdown(activeFilterDropdown === 'code' ? null : 'code');
+                                }}
+                            >
+                                <Filter className={`w-3 h-3 ${columnFilters['code']?.length > 0 ? 'text-blue-600' : 'text-slate-400'}`} />
+                                {columnFilters['code']?.length > 0 && (
+                                    <span className="text-xs bg-blue-600 text-white rounded-full w-4 h-4 flex items-center justify-center">
+                                        {columnFilters['code'].length}
+                                    </span>
                                 )}
-                                <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-slate-200">
-                            {items?.map((item: any) => (
-                                <tr key={item.id || item.code}>
-                                    {type === 'area' && (
-                                        <>
-                                            <td className="px-6 py-4 whitespace-nowrap font-mono text-sm">{item.code}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap">{item.name}</td>
-                                            <td className="px-6 py-4 text-sm text-slate-500">{item.description}</td>
-                                        </>
-                                    )}
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            </div>
+                            <div className="cursor-pointer hover:bg-slate-100 flex-1 flex items-center gap-1" onClick={() => handleSort('code')}>
+                                Code
+                                {sortConfig.key === 'code' && (
+                                    <span className="text-slate-400">
+                                        {sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Filter Dropdown */}
+                            {activeFilterDropdown === 'code' && (
+                                <div className="absolute top-full left-0 mt-1 bg-white border rounded-md shadow-lg z-50 min-w-[200px] max-h-[300px] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                                    <div className="sticky top-0 bg-slate-50 p-2 border-b flex justify-between items-center">
+                                        <span className="text-xs font-medium text-slate-600">Filter by Code</span>
+                                        {columnFilters['code']?.length > 0 && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    clearColumnFilter('code');
+                                                }}
+                                                className="text-xs text-blue-600 hover:text-blue-800"
+                                            >
+                                                Clear
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="p-1">
+                                        {getUniqueValuesForColumn('code').map((value: string) => (
+                                            <label key={value} className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer rounded">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={columnFilters['code']?.includes(value) || false}
+                                                    onChange={() => toggleFilter('code', value)}
+                                                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                                />
+                                                <span className="text-sm truncate font-mono">{value}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Name Column with Filter */}
+                        <div className="flex items-center gap-1 select-none relative">
+                            <div
+                                className="flex items-center gap-1 cursor-pointer hover:bg-slate-200 px-1 py-0.5 rounded"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveFilterDropdown(activeFilterDropdown === 'name' ? null : 'name');
+                                }}
+                            >
+                                <Filter className={`w-3 h-3 ${columnFilters['name']?.length > 0 ? 'text-blue-600' : 'text-slate-400'}`} />
+                                {columnFilters['name']?.length > 0 && (
+                                    <span className="text-xs bg-blue-600 text-white rounded-full w-4 h-4 flex items-center justify-center">
+                                        {columnFilters['name'].length}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="cursor-pointer hover:bg-slate-100 flex-1 flex items-center gap-1" onClick={() => handleSort('name')}>
+                                Name
+                                {sortConfig.key === 'name' && (
+                                    <span className="text-slate-400">
+                                        {sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Filter Dropdown */}
+                            {activeFilterDropdown === 'name' && (
+                                <div className="absolute top-full left-0 mt-1 bg-white border rounded-md shadow-lg z-50 min-w-[200px] max-h-[300px] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                                    <div className="sticky top-0 bg-slate-50 p-2 border-b flex justify-between items-center">
+                                        <span className="text-xs font-medium text-slate-600">Filter by Name</span>
+                                        {columnFilters['name']?.length > 0 && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    clearColumnFilter('name');
+                                                }}
+                                                className="text-xs text-blue-600 hover:text-blue-800"
+                                            >
+                                                Clear
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="p-1">
+                                        {getUniqueValuesForColumn('name').map((value: string) => (
+                                            <label key={value} className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer rounded">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={columnFilters['name']?.includes(value) || false}
+                                                    onChange={() => toggleFilter('name', value)}
+                                                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                                />
+                                                <span className="text-sm truncate">{value}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Description Column with Filter */}
+                        <div className="flex items-center gap-1 select-none relative">
+                            <div
+                                className="flex items-center gap-1 cursor-pointer hover:bg-slate-200 px-1 py-0.5 rounded"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveFilterDropdown(activeFilterDropdown === 'description' ? null : 'description');
+                                }}
+                            >
+                                <Filter className={`w-3 h-3 ${columnFilters['description']?.length > 0 ? 'text-blue-600' : 'text-slate-400'}`} />
+                                {columnFilters['description']?.length > 0 && (
+                                    <span className="text-xs bg-blue-600 text-white rounded-full w-4 h-4 flex items-center justify-center">
+                                        {columnFilters['description'].length}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="cursor-pointer hover:bg-slate-100 flex-1 flex items-center gap-1" onClick={() => handleSort('description')}>
+                                Description
+                                {sortConfig.key === 'description' && (
+                                    <span className="text-slate-400">
+                                        {sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Filter Dropdown */}
+                            {activeFilterDropdown === 'description' && (
+                                <div className="absolute top-full left-0 mt-1 bg-white border rounded-md shadow-lg z-50 min-w-[200px] max-h-[300px] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                                    <div className="sticky top-0 bg-slate-50 p-2 border-b flex justify-between items-center">
+                                        <span className="text-xs font-medium text-slate-600">Filter by Description</span>
+                                        {columnFilters['description']?.length > 0 && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    clearColumnFilter('description');
+                                                }}
+                                                className="text-xs text-blue-600 hover:text-blue-800"
+                                            >
+                                                Clear
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="p-1">
+                                        {getUniqueValuesForColumn('description').map((value: string) => (
+                                            <label key={value} className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer rounded">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={columnFilters['description']?.includes(value) || false}
+                                                    onChange={() => toggleFilter('description', value)}
+                                                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                                />
+                                                <span className="text-sm truncate">{value}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="text-right">Actions</div>
+                    </div>
+
+                    <ul className="divide-y divide-slate-100">
+                        {getFilteredAndSortedItems()?.map((item: any) => (
+                            <li key={item.code} className="hover:bg-slate-50 transition-colors">
+                                <div className="grid gap-2 p-3 items-center" style={{ gridTemplateColumns: 'auto 120px 200px 1fr 100px' }}>
+                                    {/* Checkbox */}
+                                    <div className="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedItems.includes(item.code)}
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    setSelectedItems([...selectedItems, item.code]);
+                                                } else {
+                                                    setSelectedItems(selectedItems.filter(id => id !== item.code));
+                                                }
+                                            }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                        />
+                                    </div>
+
+                                    {/* Code */}
+                                    <div className="font-mono text-sm">{item.code}</div>
+
+                                    {/* Name */}
+                                    <div className="font-medium">{item.name}</div>
+
+                                    {/* Description */}
+                                    <div className="text-sm text-slate-600 truncate">{item.description || '-'}</div>
+
+                                    {/* Actions */}
+                                    <div className="flex justify-end gap-1">
                                         <button
                                             onClick={() => handleEdit(item)}
                                             className="text-slate-400 hover:text-blue-600 p-2 hover:bg-blue-50 rounded-full transition-colors"
@@ -714,7 +919,7 @@ export default function ManagementView({ type }: ManagementViewProps) {
                                                     title: `Delete ${type}`,
                                                     message: `Are you sure you want to delete this item? This action cannot be undone.`,
                                                     isDestructive: true,
-                                                    onConfirm: () => deleteMutation.mutate(item.id || item.code)
+                                                    onConfirm: () => deleteMutation.mutate(item.code)
                                                 });
                                             }}
                                             className="text-slate-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-full transition-colors"
@@ -722,18 +927,16 @@ export default function ManagementView({ type }: ManagementViewProps) {
                                         >
                                             <Trash2 size={16} />
                                         </button>
-                                    </td>
-                                </tr>
-                            ))}
-                            {items?.length === 0 && (
-                                <tr>
-                                    <td colSpan={4} className="px-6 py-4 text-center text-slate-500 italic">
-                                        No {type}s found.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+                                    </div>
+                                </div>
+                            </li>
+                        ))}
+                        {getFilteredAndSortedItems()?.length === 0 && (
+                            <li className="p-6 text-center text-slate-500 italic">
+                                No {type}s found.
+                            </li>
+                        )}
+                    </ul>
                 </div>
             )}
         </div>
