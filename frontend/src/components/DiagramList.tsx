@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 
 import axios from 'axios';
-import { Plus, Network, Pencil, Trash2, GitGraph } from 'lucide-react';
+import { Plus, Network, Pencil, Trash2, GitGraph, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 import { MetadataService } from '../client';
 
 export default function DiagramList() {
@@ -18,6 +18,14 @@ export default function DiagramList() {
     // Edit/Delete state
     const [editingDiagram, setEditingDiagram] = useState<any>(null);
     const [deletingDiagramId, setDeletingDiagramId] = useState<string | null>(null);
+
+    // Filter & Sort State
+    const [selectedItems, setSelectedItems] = useState<string[]>([]);
+    const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' | null }>({
+        key: null, direction: null
+    });
+    const [activeFilterDropdown, setActiveFilterDropdown] = useState<string | null>(null);
+    const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({});
 
     const { data: diagrams, isLoading, isError, error } = useQuery({
         queryKey: ['diagrams', projectId],
@@ -106,6 +114,79 @@ export default function DiagramList() {
         });
     };
 
+    // Filter & Sort Logic
+    const filteredDiagrams = useMemo(() => {
+        if (!diagrams) return [];
+
+        let filtered = diagrams.filter((item: any) => {
+            return Object.entries(columnFilters).every(([key, values]) => {
+                if (!values || values.length === 0) return true;
+                const itemValue = item[key] || '';
+                return values.includes(String(itemValue));
+            });
+        });
+
+        if (sortConfig.key && sortConfig.direction) {
+            filtered = [...filtered].sort((a: any, b: any) => {
+                const aValue = a[sortConfig.key!] || '';
+                const bValue = b[sortConfig.key!] || '';
+                if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return filtered;
+    }, [diagrams, columnFilters, sortConfig]);
+
+    useEffect(() => {
+        const handleClickOutside = () => {
+            if (activeFilterDropdown) setActiveFilterDropdown(null);
+        };
+        if (activeFilterDropdown) {
+            document.addEventListener('click', handleClickOutside);
+            return () => document.removeEventListener('click', handleClickOutside);
+        }
+    }, [activeFilterDropdown]);
+
+    const getUniqueValuesForColumn = (key: string): string[] => {
+        if (!diagrams) return [];
+        const values = new Set<string>();
+        diagrams.forEach((d: any) => {
+            if (d[key]) values.add(String(d[key]));
+        });
+        return Array.from(values).sort();
+    };
+
+    const toggleFilter = (key: string, value: string) => {
+        setColumnFilters(prev => {
+            const current = prev[key] || [];
+            const updated = current.includes(value)
+                ? current.filter(v => v !== value)
+                : [...current, value];
+            return { ...prev, [key]: updated };
+        });
+    };
+
+    const clearColumnFilter = (key: string) => {
+        setColumnFilters(prev => {
+            const next = { ...prev };
+            delete next[key];
+            return next;
+        });
+    };
+
+    const clearAllFilters = () => {
+        setColumnFilters({});
+        setSortConfig({ key: null, direction: null });
+    };
+
+    const handleSort = (key: string) => {
+        setSortConfig(current => ({
+            key,
+            direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+        }));
+    };
+
     if (isLoading) return <div className="p-8 text-center text-slate-500">Loading diagrams...</div>;
     if (isError) return <div className="p-8 text-center text-red-500">Error loading diagrams: {(error as Error).message}</div>;
 
@@ -117,6 +198,15 @@ export default function DiagramList() {
                     <p className="text-slate-600">Manage component diagrams and artifact graphs</p>
                 </div>
                 <div className="flex gap-3">
+                    {(sortConfig.key || Object.keys(columnFilters).length > 0) && (
+                        <button
+                            onClick={clearAllFilters}
+                            className="px-3 py-2 bg-slate-600 text-white rounded hover:bg-slate-700 transition-colors flex items-center gap-2"
+                        >
+                            <Filter className="w-4 h-4" />
+                            Clear Filters
+                        </button>
+                    )}
                     <button
                         onClick={() => setIsCreating(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -304,26 +394,190 @@ export default function DiagramList() {
                 </div>
             )}
 
-            <div className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
-                <table className="w-full text-left border-collapse">
-                    <thead className="bg-slate-50 border-b border-slate-200">
-                        <tr>
-                            <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</th>
-                            <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Type</th>
-                            <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Description</th>
-                            <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Details</th>
-                            <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200">
-                        {diagrams?.map((diagram: any) => (
-                            <tr key={diagram.id} className="hover:bg-slate-50 transition-colors">
-                                <td className="px-6 py-4">
-                                    <Link to={`${diagram.id}`} className="font-medium text-slate-900 hover:text-blue-600">
+            <div className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden overflow-x-auto">
+                <div className="min-w-[1000px]">
+                    <div className="grid gap-2 p-3 border-b bg-slate-50 font-medium text-slate-700"
+                        style={{ gridTemplateColumns: '30px 250px 150px 1fr 200px 100px' }}>
+
+                        {/* Checkbox */}
+                        <div className="flex items-center justify-center">
+                            <input
+                                type="checkbox"
+                                className="rounded border-slate-300"
+                                checked={filteredDiagrams.length > 0 && filteredDiagrams.every((d: any) => selectedItems.includes(d.id))}
+                                onChange={() => {
+                                    if (filteredDiagrams.every((d: any) => selectedItems.includes(d.id))) {
+                                        setSelectedItems([]);
+                                    } else {
+                                        setSelectedItems(filteredDiagrams.map((d: any) => d.id));
+                                    }
+                                }}
+                            />
+                        </div>
+
+                        {/* Name Column */}
+                        <div className="flex items-center gap-1 select-none relative">
+                            <div className="flex items-center gap-1 cursor-pointer hover:bg-slate-200 px-1 py-0.5 rounded"
+                                onClick={(e) => { e.stopPropagation(); setActiveFilterDropdown(activeFilterDropdown === 'name' ? null : 'name'); }}>
+                                <Filter className={`w-3 h-3 ${columnFilters['name']?.length > 0 ? 'text-blue-600' : 'text-slate-400'}`} />
+                                {columnFilters['name']?.length > 0 && (
+                                    <span className="text-xs bg-blue-600 text-white rounded-full w-4 h-4 flex items-center justify-center">
+                                        {columnFilters['name'].length}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="cursor-pointer hover:bg-slate-100 flex-1 flex items-center gap-1" onClick={() => handleSort('name')}>
+                                Name
+                                {sortConfig.key === 'name' && (
+                                    <span className="text-slate-400">
+                                        {sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                                    </span>
+                                )}
+                            </div>
+                            {activeFilterDropdown === 'name' && (
+                                <div className="absolute top-8 left-0 bg-white border shadow-lg rounded-md p-2 z-50 w-64 max-h-60 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                                    <div className="flex justify-between items-center mb-2 pb-2 border-b">
+                                        <span className="text-xs font-semibold text-slate-500">Filter Name</span>
+                                        <button onClick={() => clearColumnFilter('name')} className="text-xs text-blue-600 hover:underline">Clear</button>
+                                    </div>
+                                    <div className="space-y-1">
+                                        {getUniqueValuesForColumn('name').map((value: string) => (
+                                            <label key={value} className="flex items-center gap-2 p-1 hover:bg-slate-50 rounded cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={columnFilters['name']?.includes(value)}
+                                                    onChange={() => toggleFilter('name', value)}
+                                                    className="rounded border-slate-300"
+                                                />
+                                                <span className="text-sm truncate" title={value}>{value}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Type Column */}
+                        <div className="flex items-center gap-1 select-none relative">
+                            <div className="flex items-center gap-1 cursor-pointer hover:bg-slate-200 px-1 py-0.5 rounded"
+                                onClick={(e) => { e.stopPropagation(); setActiveFilterDropdown(activeFilterDropdown === 'type' ? null : 'type'); }}>
+                                <Filter className={`w-3 h-3 ${columnFilters['type']?.length > 0 ? 'text-blue-600' : 'text-slate-400'}`} />
+                                {columnFilters['type']?.length > 0 && (
+                                    <span className="text-xs bg-blue-600 text-white rounded-full w-4 h-4 flex items-center justify-center">
+                                        {columnFilters['type'].length}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="cursor-pointer hover:bg-slate-100 flex-1 flex items-center gap-1" onClick={() => handleSort('type')}>
+                                Type
+                                {sortConfig.key === 'type' && (
+                                    <span className="text-slate-400">
+                                        {sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                                    </span>
+                                )}
+                            </div>
+                            {activeFilterDropdown === 'type' && (
+                                <div className="absolute top-8 left-0 bg-white border shadow-lg rounded-md p-2 z-50 w-48 max-h-60 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                                    <div className="flex justify-between items-center mb-2 pb-2 border-b">
+                                        <span className="text-xs font-semibold text-slate-500">Filter Type</span>
+                                        <button onClick={() => clearColumnFilter('type')} className="text-xs text-blue-600 hover:underline">Clear</button>
+                                    </div>
+                                    <div className="space-y-1">
+                                        {getUniqueValuesForColumn('type').map((value: string) => (
+                                            <label key={value} className="flex items-center gap-2 p-1 hover:bg-slate-50 rounded cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={columnFilters['type']?.includes(value)}
+                                                    onChange={() => toggleFilter('type', value)}
+                                                    className="rounded border-slate-300"
+                                                />
+                                                <span className="text-sm">{value}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Description Column */}
+                        <div className="flex items-center gap-1 select-none relative">
+                            <div className="flex items-center gap-1 cursor-pointer hover:bg-slate-200 px-1 py-0.5 rounded"
+                                onClick={(e) => { e.stopPropagation(); setActiveFilterDropdown(activeFilterDropdown === 'description' ? null : 'description'); }}>
+                                <Filter className={`w-3 h-3 ${columnFilters['description']?.length > 0 ? 'text-blue-600' : 'text-slate-400'}`} />
+                                {columnFilters['description']?.length > 0 && (
+                                    <span className="text-xs bg-blue-600 text-white rounded-full w-4 h-4 flex items-center justify-center">
+                                        {columnFilters['description'].length}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="cursor-pointer hover:bg-slate-100 flex-1 flex items-center gap-1" onClick={() => handleSort('description')}>
+                                Description
+                                {sortConfig.key === 'description' && (
+                                    <span className="text-slate-400">
+                                        {sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                                    </span>
+                                )}
+                            </div>
+                            {activeFilterDropdown === 'description' && (
+                                <div className="absolute top-8 left-0 bg-white border shadow-lg rounded-md p-2 z-50 w-80 max-h-60 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                                    <div className="flex justify-between items-center mb-2 pb-2 border-b">
+                                        <span className="text-xs font-semibold text-slate-500">Filter Description</span>
+                                        <button onClick={() => clearColumnFilter('description')} className="text-xs text-blue-600 hover:underline">Clear</button>
+                                    </div>
+                                    <div className="space-y-1">
+                                        {getUniqueValuesForColumn('description').map((value: string) => (
+                                            <label key={value} className="flex items-center gap-2 p-1 hover:bg-slate-50 rounded cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={columnFilters['description']?.includes(value)}
+                                                    onChange={() => toggleFilter('description', value)}
+                                                    className="rounded border-slate-300"
+                                                />
+                                                <span className="text-sm truncate" title={value}>{value}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Details Column (Sorting/Filtering omitted for simplicity as it's computed/polymorphic) */}
+                        <div className="flex items-center gap-1 p-1 px-2">
+                            Details
+                        </div>
+
+                        {/* Actions */}
+                        <div className="text-right p-1 px-2">Actions</div>
+                    </div>
+
+                    <ul className="divide-y divide-slate-100">
+                        {filteredDiagrams.map((diagram: any) => (
+                            <li key={diagram.id} className={`hover:bg-slate-50 transition-colors ${selectedItems.includes(diagram.id) ? 'bg-blue-50' : ''}`}>
+                                <div className="grid gap-2 p-3 items-center"
+                                    style={{ gridTemplateColumns: '30px 250px 150px 1fr 200px 100px' }}>
+
+                                    {/* Checkbox */}
+                                    <div className="flex items-center justify-center">
+                                        <input
+                                            type="checkbox"
+                                            className="rounded border-slate-300"
+                                            checked={selectedItems.includes(diagram.id)}
+                                            onChange={() => {
+                                                if (selectedItems.includes(diagram.id)) {
+                                                    setSelectedItems(selectedItems.filter(id => id !== diagram.id));
+                                                } else {
+                                                    setSelectedItems([...selectedItems, diagram.id]);
+                                                }
+                                            }}
+                                        />
+                                    </div>
+
+                                    {/* Name */}
+                                    <Link to={`${diagram.id}`} className="font-medium text-slate-900 hover:text-blue-600 truncate" title={diagram.name}>
                                         {diagram.name}
                                     </Link>
-                                </td>
-                                <td className="px-6 py-4">
+
+                                    {/* Type */}
                                     <div className="flex items-center gap-2">
                                         {diagram.type === 'artifact_graph' ? (
                                             <>
@@ -337,26 +591,28 @@ export default function DiagramList() {
                                             </>
                                         )}
                                     </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="text-sm text-slate-500 truncate max-w-xs" title={diagram.description}>
+
+                                    {/* Description */}
+                                    <div className="text-sm text-slate-500 truncate" title={diagram.description}>
                                         {diagram.description || '-'}
                                     </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    {diagram.type === 'artifact_graph' && diagram.filter_data?.area ? (
-                                        <span className="px-2 py-1 text-xs font-medium bg-slate-100 text-slate-600 rounded-full">
-                                            Area: {diagram.filter_data.area}
-                                        </span>
-                                    ) : diagram.type === 'component' ? (
-                                        <span className="text-sm text-slate-500">
-                                            {diagram.components?.length || 0} components
-                                        </span>
-                                    ) : (
-                                        <span className="text-sm text-slate-400">-</span>
-                                    )}
-                                </td>
-                                <td className="px-6 py-4 text-right">
+
+                                    {/* Details */}
+                                    <div>
+                                        {diagram.type === 'artifact_graph' && diagram.filter_data?.area ? (
+                                            <span className="px-2 py-1 text-xs font-medium bg-slate-100 text-slate-600 rounded-full">
+                                                Area: {diagram.filter_data.area}
+                                            </span>
+                                        ) : diagram.type === 'component' ? (
+                                            <span className="text-sm text-slate-500">
+                                                {diagram.components?.length || 0} components
+                                            </span>
+                                        ) : (
+                                            <span className="text-sm text-slate-400">-</span>
+                                        )}
+                                    </div>
+
+                                    {/* Actions */}
                                     <div className="flex justify-end gap-2">
                                         <button
                                             onClick={() => setEditingDiagram(diagram)}
@@ -373,19 +629,17 @@ export default function DiagramList() {
                                             <Trash2 className="w-4 h-4" />
                                         </button>
                                     </div>
-                                </td>
-                            </tr>
+                                </div>
+                            </li>
                         ))}
-                        {(!diagrams || diagrams.length === 0) && (
-                            <tr>
-                                <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
-                                    <Network className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                                    <p>No diagrams yet. Create one to get started.</p>
-                                </td>
-                            </tr>
+                        {filteredDiagrams.length === 0 && (
+                            <li className="p-12 text-center text-slate-500">
+                                <Network className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                                <p>No diagrams found matching your filters.</p>
+                            </li>
                         )}
-                    </tbody>
-                </table>
+                    </ul>
+                </div>
             </div>
         </div>
     );
