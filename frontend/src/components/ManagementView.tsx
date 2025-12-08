@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { MetadataService, ProjectsService } from '../client';
@@ -32,6 +32,20 @@ export default function ManagementView({ type }: ManagementViewProps) {
         onConfirm: () => { },
         isDestructive: false
     });
+
+    // Close filter dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = () => {
+            if (activeFilterDropdown) {
+                setActiveFilterDropdown(null);
+            }
+        };
+
+        if (activeFilterDropdown) {
+            document.addEventListener('click', handleClickOutside);
+            return () => document.removeEventListener('click', handleClickOutside);
+        }
+    }, [activeFilterDropdown]);
 
     // Fetch Project to get real ID
     const { data: project } = useQuery({
@@ -199,7 +213,7 @@ export default function ManagementView({ type }: ManagementViewProps) {
     };
 
     const renderForm = () => (
-        <div className="bg-slate-50 p-4 rounded border mb-4">
+        <div>
             <div className="grid grid-cols-2 gap-4">
                 {type === 'area' && (
                     <>
@@ -278,7 +292,7 @@ export default function ManagementView({ type }: ManagementViewProps) {
                     </>
                 )}
             </div>
-            <div className="mt-4 flex justify-end gap-2">
+            <div className="mt-6 flex justify-end gap-2 border-t pt-4">
                 <button
                     onClick={() => { setIsCreating(false); setIsEditing(null); setFormData({}); }}
                     className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded"
@@ -343,7 +357,21 @@ export default function ManagementView({ type }: ManagementViewProps) {
                 </div>
             </div>
 
-            {(isCreating || isEditing) && renderForm()}
+            {/* Edit/Create Modal */}
+            {(isCreating || isEditing) && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => { setIsCreating(false); setIsEditing(null); setFormData({}); }}>
+                    <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                        <div className="sticky top-0 bg-white border-b px-6 py-4">
+                            <h3 className="text-lg font-semibold">
+                                {isCreating ? `Add ${type}` : `Edit ${type}`}
+                            </h3>
+                        </div>
+                        <div className="p-6">
+                            {renderForm()}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {type === 'people' ? (
                 <div className="bg-white border rounded-md shadow-sm">
@@ -363,14 +391,66 @@ export default function ManagementView({ type }: ManagementViewProps) {
                                 className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                             />
                         </div>
-                        <div className="cursor-pointer hover:bg-slate-100 flex items-center gap-1" onClick={() => handleSort('name')}>
-                            Name
-                            {sortConfig.key === 'name' && (
-                                <span className="text-slate-400">
-                                    {sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
-                                </span>
+
+                        {/* Name Column with Filter */}
+                        <div className="flex items-center gap-1 select-none relative">
+                            <div
+                                className="flex items-center gap-1 cursor-pointer hover:bg-slate-200 px-1 py-0.5 rounded"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveFilterDropdown(activeFilterDropdown === 'name' ? null : 'name');
+                                }}
+                            >
+                                <Filter className={`w-3 h-3 ${columnFilters['name']?.length > 0 ? 'text-blue-600' : 'text-slate-400'}`} />
+                                {columnFilters['name']?.length > 0 && (
+                                    <span className="text-xs bg-blue-600 text-white rounded-full w-4 h-4 flex items-center justify-center">
+                                        {columnFilters['name'].length}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="cursor-pointer hover:bg-slate-100 flex-1 flex items-center gap-1" onClick={() => handleSort('name')}>
+                                Name
+                                {sortConfig.key === 'name' && (
+                                    <span className="text-slate-400">
+                                        {sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Filter Dropdown */}
+                            {activeFilterDropdown === 'name' && (
+                                <div className="absolute top-full left-0 mt-1 bg-white border rounded-md shadow-lg z-50 min-w-[200px] max-h-[300px] overflow-y-auto">
+                                    <div className="sticky top-0 bg-slate-50 p-2 border-b flex justify-between items-center">
+                                        <span className="text-xs font-medium text-slate-600">Filter by Name</span>
+                                        {columnFilters['name']?.length > 0 && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    clearColumnFilter('name');
+                                                }}
+                                                className="text-xs text-blue-600 hover:text-blue-800"
+                                            >
+                                                Clear
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="p-1">
+                                        {getUniqueValuesForColumn('name').map((value: string) => (
+                                            <label key={value} className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer rounded">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={columnFilters['name']?.includes(value) || false}
+                                                    onChange={() => toggleFilter('name', value)}
+                                                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                                />
+                                                <span className="text-sm truncate">{value}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
                             )}
                         </div>
+
                         <div>Roles</div>
                         <div>Description</div>
                         <div className="text-right">Actions</div>
