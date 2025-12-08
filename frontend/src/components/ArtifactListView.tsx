@@ -80,8 +80,34 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
         return () => clearTimeout(timer);
     }, [search]);
 
+    // Load filters from sessionStorage when projectId or artifactType changes
+    useEffect(() => {
+        if (!projectId || !artifactType) return;
+
+        try {
+            const stored = sessionStorage.getItem(getStorageKey());
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                setSearch(parsed.search || '');
+                setDebouncedSearch(parsed.search || '');
+                setSortConfig(parsed.sortConfig || { key: null, direction: null });
+                setColumnFilters(parsed.columnFilters || {});
+            } else {
+                // Reset to defaults if no stored filters for this artifact type
+                setSearch('');
+                setDebouncedSearch('');
+                setSortConfig({ key: null, direction: null });
+                setColumnFilters({});
+            }
+        } catch (e) {
+            console.error('Failed to load filters:', e);
+        }
+    }, [projectId, artifactType]);
+
     // Save filters to sessionStorage whenever they change
     useEffect(() => {
+        if (!projectId || !artifactType) return;
+
         try {
             sessionStorage.setItem(getStorageKey(), JSON.stringify({
                 search,
