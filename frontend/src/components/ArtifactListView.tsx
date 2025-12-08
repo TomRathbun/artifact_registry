@@ -5,7 +5,7 @@ import { VisionService, NeedsService, UseCaseService, RequirementService, Metada
 import VisionHeader from './VisionHeader';
 import ImportConflictModal from './ImportConflictModal';
 import axios from 'axios';
-import { Download, Upload, Trash2, Edit, FileDown, Copy, Clipboard, Files, ArrowUp, ArrowDown, Filter } from 'lucide-react';
+import { Download, Upload, Trash2, Edit, FileDown, Copy, Clipboard, Files, ArrowUp, ArrowDown, Filter, RotateCcw } from 'lucide-react';
 import { ConfirmationModal } from './ConfirmationModal';
 
 interface ArtifactListViewProps {
@@ -1895,10 +1895,10 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                     {/* Reset Columns Button */}
                     <button
                         onClick={resetColumnWidths}
-                        className="px-3 py-2 bg-slate-100 text-slate-700 border border-slate-300 rounded hover:bg-slate-200 transition-colors flex items-center gap-2"
+                        className="px-3 py-2 bg-slate-100 text-slate-700 border border-slate-300 rounded hover:bg-slate-200 transition-colors flex items-center justify-center"
                         title="Reset column widths to defaults"
                     >
-                        Reset Columns
+                        <RotateCcw className="w-4 h-4" />
                     </button>
 
                     {/* Create New Button */}
