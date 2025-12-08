@@ -231,6 +231,7 @@ export default function ComponentManager() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['components'] });
             setEditingId(null);
+            setIsCreating(false);
             setFormData({
                 name: '',
                 type: 'Software',
