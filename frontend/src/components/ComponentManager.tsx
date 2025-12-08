@@ -105,6 +105,106 @@ export default function ComponentManager() {
         });
     }, [components, filterName, filterType, filterLifecycle, filterTag]);
 
+    // Click-outside handler for filter dropdowns
+    useEffect(() => {
+        const handleClickOutside = () => {
+            if (activeFilterDropdown) {
+                setActiveFilterDropdown(null);
+            }
+        };
+        if (activeFilterDropdown) {
+            document.addEventListener('click', handleClickOutside);
+            return () => document.removeEventListener('click', handleClickOutside);
+        }
+    }, [activeFilterDropdown]);
+
+    // Helper functions for new filter/sort system
+    const getFilteredAndSortedItems = () => {
+        if (!components) return [];
+
+        // Apply column filters
+        let filtered = components.filter((item: any) => {
+            return Object.entries(columnFilters).every(([key, values]) => {
+                if (!values || values.length === 0) return true;
+
+                // Special handling for tags (array field)
+                if (key === 'tags') {
+                    const itemTags = item.tags || [];
+                    return values.some(v => itemTags.includes(v));
+                }
+
+                const itemValue = item[key] || '';
+                return values.includes(itemValue);
+            });
+        });
+
+        // Apply sorting
+        if (!sortConfig.key || !sortConfig.direction) return filtered;
+
+        return [...filtered].sort((a: any, b: any) => {
+            const aValue = a[sortConfig.key!] || '';
+            const bValue = b[sortConfig.key!] || '';
+
+            if (aValue < bValue) {
+                return sortConfig.direction === 'asc' ? -1 : 1;
+            }
+            if (aValue > bValue) {
+                return sortConfig.direction === 'asc' ? 1 : -1;
+            }
+            return 0;
+        });
+    };
+
+    const getUniqueValuesForColumn = (key: string): string[] => {
+        if (!components) return [];
+
+        // Special handling for tags (array field)
+        if (key === 'tags') {
+            const allTags = components.flatMap((item: any) => item.tags || []);
+            return [...new Set(allTags)].sort() as string[];
+        }
+
+        const values = components.map((item: any) => item[key] || '');
+        return [...new Set(values)].filter(v => v).sort() as string[];
+    };
+
+    const toggleFilter = (key: string, value: string) => {
+        setColumnFilters(prev => {
+            const current = prev[key] || [];
+            const updated = current.includes(value)
+                ? current.filter(v => v !== value)
+                : [...current, value];
+            return { ...prev, [key]: updated };
+        });
+    };
+
+    const clearColumnFilter = (key: string) => {
+        setColumnFilters(prev => {
+            const updated = { ...prev };
+            delete updated[key];
+            return updated;
+        });
+    };
+
+    const clearAllFilters = () => {
+        setColumnFilters({});
+        setSortConfig({ key: null, direction: null });
+    };
+
+    const handleSort = (key: string) => {
+        setSortConfig(prev => ({
+            key,
+            direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+        }));
+    };
+
+    const handleBulkDelete = () => {
+        for (const id of selectedItems) {
+            deleteMutation.mutate(id);
+        }
+        setSelectedItems([]);
+    };
+
     const createMutation = useMutation({
         mutationFn: ComponentService.createComponentApiV1ComponentsPost,
         onSuccess: () => {
