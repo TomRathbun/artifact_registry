@@ -20,6 +20,141 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
     const queryClient = useQueryClient();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // --- Resizable Columns State & Logic ---
+    const getDefaultColumnWidths = (type: string): Record<string, number> => {
+        const base = {
+            checkbox: 40,
+            aid: 180,
+            title: 200,
+            status: 100,
+            actions: 100
+        };
+
+        if (type === 'vision' || type === 'document') {
+            return { ...base, description: 400 };
+        }
+        return { ...base, area: 80, description: 300 };
+    };
+
+    const getStorageKeyForWidths = () => `column-widths-${projectId}-${artifactType}`;
+
+    // Initialize state with defaults or stored values
+    const [columnWidths, setColumnWidths] = useState<Record<string, number>>(() => {
+        try {
+            if (projectId && artifactType) {
+                const stored = sessionStorage.getItem(`column-widths-${projectId}-${artifactType}`);
+                if (stored) return JSON.parse(stored);
+            }
+        } catch (e) {
+            console.error('Failed to load column widths:', e);
+        }
+        return getDefaultColumnWidths(artifactType);
+    });
+
+    const [resizingColumn, setResizingColumn] = useState<string | null>(null);
+    const [resizeStartX, setResizeStartX] = useState(0);
+    const [resizeStartWidth, setResizeStartWidth] = useState(0);
+
+    // Update widths when artifact type changes, if not found in storage
+    useEffect(() => {
+        try {
+            const key = getStorageKeyForWidths();
+            const stored = sessionStorage.getItem(key);
+            if (stored) {
+                setColumnWidths(JSON.parse(stored));
+            } else {
+                setColumnWidths(getDefaultColumnWidths(artifactType));
+            }
+        } catch (e) {
+            console.error('Failed to load column widths:', e);
+        }
+    }, [projectId, artifactType]);
+
+    // Save widths to storage
+    useEffect(() => {
+        if (!projectId || !artifactType) return;
+        try {
+            sessionStorage.setItem(getStorageKeyForWidths(), JSON.stringify(columnWidths));
+        } catch (e) {
+            console.error('Failed to save column widths:', e);
+        }
+    }, [columnWidths, projectId, artifactType]);
+
+    // Resize Handlers
+    const handleResizeStart = (columnKey: string, e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setResizingColumn(columnKey);
+        setResizeStartX(e.clientX);
+        setResizeStartWidth(columnWidths[columnKey] || 100);
+    };
+
+    const handleResizeMove = (e: MouseEvent) => {
+        if (!resizingColumn) return;
+
+        const delta = e.clientX - resizeStartX;
+        const newWidth = Math.max(50, resizeStartWidth + delta); // Min 50px
+
+        setColumnWidths(prev => ({
+            ...prev,
+            [resizingColumn]: newWidth
+        }));
+    };
+
+    const handleResizeEnd = () => {
+        setResizingColumn(null);
+        document.body.style.cursor = 'default';
+    };
+
+    // Global listeners for resize
+    useEffect(() => {
+        if (resizingColumn) {
+            document.addEventListener('mousemove', handleResizeMove);
+            document.addEventListener('mouseup', handleResizeEnd);
+            document.body.style.cursor = 'col-resize';
+            return () => {
+                document.removeEventListener('mousemove', handleResizeMove);
+                document.removeEventListener('mouseup', handleResizeEnd);
+                document.body.style.cursor = 'default';
+            };
+        }
+    }, [resizingColumn]); // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    const resetColumnWidths = () => {
+        setColumnWidths(getDefaultColumnWidths(artifactType));
+    };
+
+    const getGridTemplate = () => {
+        const cols = [];
+        // Checkbox
+        cols.push(`${columnWidths.checkbox || 40}px`);
+
+        // Area (if applicable)
+        if (artifactType !== 'vision' && artifactType !== 'document') {
+            cols.push(`${columnWidths.area || 80}px`);
+        }
+
+        cols.push(`${columnWidths.aid || 180}px`);
+        cols.push(`${columnWidths.title || 200}px`);
+        cols.push(`minmax(${columnWidths.description || 300}px, 1fr)`); // Make description take remaining space but respect user width as min
+        cols.push(`${columnWidths.status || 100}px`);
+        cols.push(`${columnWidths.actions || 100}px`);
+
+        return cols.join(' ');
+    };
+
+    // Helper component for resize handle
+    const ResizeHandle = ({ columnKey }: { columnKey: string }) => (
+        <div
+            className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-blue-400 opacity-0 hover:opacity-100 transition-opacity z-10 flex flex-col justify-center items-center group"
+            onMouseDown={(e) => handleResizeStart(columnKey, e)}
+            onClick={(e) => e.stopPropagation()}
+        >
+            <div className="w-0.5 h-full bg-blue-300 group-hover:bg-blue-500" />
+        </div>
+    );
+
+
     // Load filters from sessionStorage on mount
     const getStorageKey = () => `artifact-filters-${projectId}-${artifactType}`;
 
@@ -623,13 +758,18 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
             const importedOriginalAids = new Set(importedArtifacts.map((a: any) => a._originalAid).filter(Boolean));
             let allSites: any[] = [];
             let allComponents: any[] = [];
-            if (artifactType === 'need') {
-                try {
+            let allPeople: any[] = [];
+
+            try {
+                // Fetch people once to prevent duplicates
+                allPeople = await MetadataService.listPeopleApiV1MetadataMetadataPeopleGet(targetProjectId);
+
+                if (artifactType === 'need') {
                     allSites = await SiteService.listSitesApiV1SitesGet();
                     allComponents = await ComponentService.listComponentsApiV1ComponentsGet();
-                } catch (e) {
-                    console.error("Failed to fetch sites/components", e);
                 }
+            } catch (e) {
+                console.error("Failed to fetch metadata", e);
             }
 
             // First, create all artifacts
@@ -674,20 +814,22 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
 
                     // Handle People (Owner/Stakeholder) lookup/creation
                     if (artifact.owner) {
-                        const people = await MetadataService.listPeopleApiV1MetadataMetadataPeopleGet('owner');
-                        const existing = people.find((p: any) => p.name === artifact.owner);
+                        const cleanName = String(artifact.owner).trim();
+                        // Case-insensitive check
+                        const existing = allPeople.find((p: any) => p.name.toLowerCase() === cleanName.toLowerCase());
                         let ownerId = '';
 
                         if (existing) {
                             ownerId = existing.id;
                         } else {
                             const newPerson = await MetadataService.createPersonApiV1MetadataMetadataPeoplePost({
-                                name: artifact.owner,
+                                name: cleanName,
                                 roles: ['owner'],
                                 project_id: targetProjectId,
                                 person_type: 'both'
                             });
                             ownerId = newPerson.id;
+                            allPeople.push(newPerson); // Update local cache
                         }
 
                         // For requirements, the field is 'owner' (string ID)
@@ -701,26 +843,28 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                     }
 
                     if (artifact.stakeholder) {
-                        const people = await MetadataService.listPeopleApiV1MetadataMetadataPeopleGet('stakeholder');
-                        const existing = people.find((p: any) => p.name === artifact.stakeholder);
+                        const cleanName = String(artifact.stakeholder).trim();
+                        const existing = allPeople.find((p: any) => p.name.toLowerCase() === cleanName.toLowerCase());
+
                         if (existing) {
                             artifact.stakeholder_id = existing.id;
                         } else {
                             const newPerson = await MetadataService.createPersonApiV1MetadataMetadataPeoplePost({
-                                name: artifact.stakeholder,
+                                name: cleanName,
                                 roles: ['stakeholder'],
                                 project_id: targetProjectId,
                                 person_type: 'both'
                             });
                             artifact.stakeholder_id = newPerson.id;
+                            allPeople.push(newPerson); // Update local cache
                         }
                         delete artifact.stakeholder;
                     }
 
                     // Handle Use Case specific imports
                     if (artifactType === 'use_case') {
-                        // Fetch all people once for efficiency
-                        const allPeople = await MetadataService.listPeopleApiV1MetadataMetadataPeopleGet(targetProjectId);
+                        // allPeople is already fetched and cached above
+
 
                         // Convert stakeholders array of names to array of IDs
                         if (artifact.stakeholders && Array.isArray(artifact.stakeholders)) {
@@ -1748,6 +1892,15 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                         </button>
                     )}
 
+                    {/* Reset Columns Button */}
+                    <button
+                        onClick={resetColumnWidths}
+                        className="px-3 py-2 bg-slate-100 text-slate-700 border border-slate-300 rounded hover:bg-slate-200 transition-colors flex items-center gap-2"
+                        title="Reset column widths to defaults"
+                    >
+                        Reset Columns
+                    </button>
+
                     {/* Create New Button */}
                     <Link
                         to={`/project/${projectId}/${artifactType}/create`}
@@ -1763,319 +1916,325 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
             </div>
 
             {/* List */}
-            <div className="bg-white border rounded-md shadow-sm">
-                {/* Header Row */}
-                <div className="grid gap-2 p-3 border-b bg-slate-50 font-medium text-slate-700" style={{ gridTemplateColumns: 'auto 80px 180px 200px 1fr 100px 100px' }}>
-                    <div className="flex items-center">
-                        <input
-                            type="checkbox"
-                            checked={selectedItems.length === artifacts?.length && artifacts?.length > 0}
-                            onChange={(e) => {
-                                if (e.target.checked) {
-                                    setSelectedItems(artifacts?.map((a: any) => a.aid) || []);
-                                } else {
-                                    setSelectedItems([]);
-                                }
-                            }}
-                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                        />
-                    </div>
-                    {[
-                        ...(artifactType !== 'vision' && artifactType !== 'document' ? [{ key: 'area', label: 'Area', span: 1 }] : []),
-                        { key: 'aid', label: 'Artifact ID', span: 2 },
-                        { key: 'title', label: 'Title / Name', span: 2 },
-                        { key: 'description', label: 'Description', span: artifactType !== 'vision' && artifactType !== 'document' ? 3 : 4 },
-                        { key: 'status', label: 'Status', span: 1 },
-                    ].map((col) => (
-                        <div
-                            key={col.key}
-                            className="flex items-center gap-1 select-none relative"
-                        >
-                            <div
-                                className="flex items-center gap-1 cursor-pointer hover:bg-slate-200 px-1 py-0.5 rounded"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setActiveFilterDropdown(activeFilterDropdown === col.key ? null : col.key);
+            <div className="bg-white border rounded-md shadow-sm overflow-x-auto">
+                <div style={{ minWidth: '100%' }}>
+                    {/* Header Row */}
+                    <div className="grid gap-2 p-3 border-b bg-slate-50 font-medium text-slate-700 sticky top-0 z-10" style={{ gridTemplateColumns: getGridTemplate() }}>
+                        <div className="flex items-center">
+                            <input
+                                type="checkbox"
+                                checked={selectedItems.length === artifacts?.length && artifacts?.length > 0}
+                                onChange={(e) => {
+                                    if (e.target.checked) {
+                                        setSelectedItems(artifacts?.map((a: any) => a.aid) || []);
+                                    } else {
+                                        setSelectedItems([]);
+                                    }
                                 }}
-                            >
-                                <Filter className={`w-3 h-3 ${columnFilters[col.key]?.length > 0 ? 'text-blue-600' : 'text-slate-400'}`} />
-                                {columnFilters[col.key]?.length > 0 && (
-                                    <span className="text-xs bg-blue-600 text-white rounded-full w-4 h-4 flex items-center justify-center">
-                                        {columnFilters[col.key].length}
-                                    </span>
-                                )}
-                            </div>
+                                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                            />
+                        </div>
+                        {[
+                            ...(artifactType !== 'vision' && artifactType !== 'document' ? [{ key: 'area', label: 'Area', span: 1 }] : []),
+                            { key: 'aid', label: 'Artifact ID', span: 2 },
+                            { key: 'title', label: 'Title / Name', span: 2 },
+                            { key: 'description', label: 'Description', span: artifactType !== 'vision' && artifactType !== 'document' ? 3 : 4 },
+                            { key: 'status', label: 'Status', span: 1 },
+                        ].map((col) => (
                             <div
-                                className="cursor-pointer hover:bg-slate-100 flex-1 flex items-center gap-1"
-                                onClick={() => handleSort(col.key)}
+                                key={col.key}
+                                className="flex items-center gap-1 select-none relative group h-full"
                             >
-                                {col.label}
-                                {sortConfig.key === col.key && (
-                                    <span className="text-slate-400">
-                                        {sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
-                                    </span>
+                                <ResizeHandle columnKey={col.key} />
+                                <div
+                                    className="flex items-center gap-1 cursor-pointer hover:bg-slate-200 px-1 py-0.5 rounded"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveFilterDropdown(activeFilterDropdown === col.key ? null : col.key);
+                                    }}
+                                >
+                                    <Filter className={`w-3 h-3 ${columnFilters[col.key]?.length > 0 ? 'text-blue-600' : 'text-slate-400'}`} />
+                                    {columnFilters[col.key]?.length > 0 && (
+                                        <span className="text-xs bg-blue-600 text-white rounded-full w-4 h-4 flex items-center justify-center">
+                                            {columnFilters[col.key].length}
+                                        </span>
+                                    )}
+                                </div>
+                                <div
+                                    className="cursor-pointer hover:bg-slate-100 flex-1 flex items-center gap-1 truncate"
+                                    onClick={() => handleSort(col.key)}
+                                >
+                                    {col.label}
+                                    {sortConfig.key === col.key && (
+                                        <span className="text-slate-400">
+                                            {sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* Filter Dropdown */}
+                                {activeFilterDropdown === col.key && (
+                                    <div className="absolute top-full left-0 mt-1 bg-white border rounded-md shadow-lg z-50 min-w-[200px] max-h-[300px] overflow-y-auto">
+                                        <div className="sticky top-0 bg-slate-50 p-2 border-b flex justify-between items-center">
+                                            <span className="text-xs font-medium text-slate-600">Filter by {col.label}</span>
+                                            {columnFilters[col.key]?.length > 0 && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        clearColumnFilter(col.key);
+                                                    }}
+                                                    className="text-xs text-blue-600 hover:text-blue-800"
+                                                >
+                                                    Clear
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="p-1">
+                                            {getUniqueValuesForColumn(col.key).map((value: string) => (
+                                                <label
+                                                    key={value}
+                                                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer rounded"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={columnFilters[col.key]?.includes(value) || false}
+                                                        onChange={() => toggleFilter(col.key, value)}
+                                                        className="w-3 h-3 text-blue-600 rounded"
+                                                    />
+                                                    <span className="text-sm truncate">{value}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
                                 )}
                             </div>
+                        ))}
+                        <div className="text-right flex items-center justify-end relative">
+                            Actions
+                            <ResizeHandle columnKey="actions" />
+                        </div>
+                    </div>
 
-                            {/* Filter Dropdown */}
-                            {activeFilterDropdown === col.key && (
-                                <div className="absolute top-full left-0 mt-1 bg-white border rounded-md shadow-lg z-50 min-w-[200px] max-h-[300px] overflow-y-auto">
-                                    <div className="sticky top-0 bg-slate-50 p-2 border-b flex justify-between items-center">
-                                        <span className="text-xs font-medium text-slate-600">Filter by {col.label}</span>
-                                        {columnFilters[col.key]?.length > 0 && (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    clearColumnFilter(col.key);
-                                                }}
-                                                className="text-xs text-blue-600 hover:text-blue-800"
-                                            >
-                                                Clear
-                                            </button>
+                    <ul className="divide-y divide-slate-100">
+                        {getFilteredAndSortedArtifacts()?.map((a: any) => (
+                            <li key={a.aid} className="hover:bg-slate-50 transition-colors">
+                                <div className="grid gap-2 p-3 items-center" style={{ gridTemplateColumns: getGridTemplate() }}>
+                                    {/* Checkbox */}
+                                    <div className="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedItems.includes(a.aid)}
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    setSelectedItems([...selectedItems, a.aid]);
+                                                } else {
+                                                    setSelectedItems(selectedItems.filter(id => id !== a.aid));
+                                                }
+                                            }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                        />
+                                    </div>
+
+                                    {/* Area (only for need, use_case, requirement) */}
+                                    {(artifactType === 'need' || artifactType === 'use_case' || artifactType === 'requirement') && (
+                                        <div className="text-sm text-slate-600">
+                                            {a.area || '-'}
+                                        </div>
+                                    )}
+
+                                    {/* Artifact ID */}
+                                    <Link
+                                        to={`/project/${projectId}/${artifactType}/${a.aid}`}
+                                        state={{ filteredAIDs: getFilteredAIDs() }}
+                                        className="font-mono text-sm text-slate-600 truncate hover:text-blue-600"
+                                        title={a.aid}
+                                    >
+                                        {a.aid}
+                                    </Link>
+
+                                    {/* Title / Short Name */}
+                                    <Link
+                                        to={`/project/${projectId}/${artifactType}/${a.aid}`}
+                                        state={{ filteredAIDs: getFilteredAIDs() }}
+                                        className="font-medium text-blue-600 hover:underline flex items-center gap-2 min-w-0"
+                                        title={a.title || a.short_name}
+                                    >
+                                        <span className="truncate">{a.title || a.short_name || '-'}</span>
+                                        {artifactType === 'requirement' && a.ears_type && (
+                                            <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${a.ears_type === 'ubiquitous' ? 'bg-gray-100 text-gray-800' :
+                                                a.ears_type === 'event-driven' ? 'bg-blue-100 text-blue-800' :
+                                                    a.ears_type === 'state-driven' ? 'bg-purple-100 text-purple-800' :
+                                                        a.ears_type === 'unwanted' ? 'bg-red-100 text-red-800' :
+                                                            'bg-green-100 text-green-800'
+                                                }`}>
+                                                {a.ears_type}
+                                            </span>
+                                        )}
+                                        {artifactType === 'document' && (
+                                            <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0 bg-blue-100 text-blue-800">
+                                                {a.document_type === 'url' ? 'URL' : 'FILE'}
+                                            </span>
+                                        )}
+                                    </Link>
+
+                                    {/* Description / Text */}
+                                    <Link
+                                        to={`/project/${projectId}/${artifactType}/${a.aid}`}
+                                        className="text-sm text-slate-600 truncate"
+                                        title={a.description || a.text}
+                                    >
+                                        {a.description || a.text || '-'}
+                                    </Link>
+
+                                    {/* Status */}
+                                    <div>
+                                        {a.status ? (
+                                            <span className={`text-xs px-2 py-1 rounded-full inline-block whitespace-nowrap ${a.status === 'base_lined' ? 'bg-green-100 text-green-800' :
+                                                a.status === 'verified' ? 'bg-blue-100 text-blue-800' :
+                                                    a.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                                        'bg-gray-100 text-gray-800'
+                                                }`}>
+                                                {a.status}
+                                            </span>
+                                        ) : (
+                                            <span className="text-xs text-slate-400">-</span>
                                         )}
                                     </div>
-                                    <div className="p-1">
-                                        {getUniqueValuesForColumn(col.key).map((value: string) => (
-                                            <label
-                                                key={value}
-                                                className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 cursor-pointer rounded"
-                                                onClick={(e) => e.stopPropagation()}
-                                            >
-                                                <input
-                                                    type="checkbox"
-                                                    checked={columnFilters[col.key]?.includes(value) || false}
-                                                    onChange={() => toggleFilter(col.key, value)}
-                                                    className="w-3 h-3 text-blue-600 rounded"
-                                                />
-                                                <span className="text-sm truncate">{value}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                    <div className="text-right">Actions</div>
-                </div>
 
-                <ul className="divide-y divide-slate-100">
-                    {getFilteredAndSortedArtifacts()?.map((a: any) => (
-                        <li key={a.aid} className="hover:bg-slate-50 transition-colors">
-                            <div className="grid gap-2 p-3 items-center" style={{ gridTemplateColumns: 'auto 80px 180px 200px 1fr 100px 100px' }}>
-                                {/* Checkbox */}
-                                <div className="flex items-center">
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedItems.includes(a.aid)}
-                                        onChange={(e) => {
-                                            if (e.target.checked) {
-                                                setSelectedItems([...selectedItems, a.aid]);
-                                            } else {
-                                                setSelectedItems(selectedItems.filter(id => id !== a.aid));
-                                            }
-                                        }}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                                    />
-                                </div>
+                                    {/* Actions */}
+                                    <div className="flex justify-end gap-1">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                e.preventDefault();
+                                                // Export single item
+                                                const exportArtifact = prepareArtifactForExport(a);
+                                                // Collect relevant linkages
+                                                const relevantLinkages: string[][] = [];
+                                                const uniqueLinkages = new Set<string>();
 
-                                {/* Area (only for need, use_case, requirement) */}
-                                {(artifactType === 'need' || artifactType === 'use_case' || artifactType === 'requirement') && (
-                                    <div className="text-sm text-slate-600">
-                                        {a.area || '-'}
-                                    </div>
-                                )}
+                                                // Create lookup for Diagrams (UUID -> Name)
+                                                const diagramMap = new Map<string, string>();
+                                                if (diagrams) {
+                                                    diagrams.forEach((d: any) => {
+                                                        diagramMap.set(d.id, d.name);
+                                                    });
+                                                }
 
-                                {/* Artifact ID */}
-                                <Link
-                                    to={`/project/${projectId}/${artifactType}/${a.aid}`}
-                                    state={{ filteredAIDs: getFilteredAIDs() }}
-                                    className="font-mono text-sm text-slate-600 truncate hover:text-blue-600"
-                                    title={a.aid}
-                                >
-                                    {a.aid}
-                                </Link>
+                                                if (linkages) {
+                                                    const aid = a.aid;
+                                                    linkages.forEach((l: any) => {
+                                                        // Check if this linkage involves the exported artifact
+                                                        if (l.source_id === aid || l.target_id === aid) {
+                                                            let s = l.source_id.trim();
+                                                            let t = l.target_id.trim();
 
-                                {/* Title / Short Name */}
-                                <Link
-                                    to={`/project/${projectId}/${artifactType}/${a.aid}`}
-                                    state={{ filteredAIDs: getFilteredAIDs() }}
-                                    className="font-medium text-blue-600 hover:underline flex items-center gap-2 min-w-0"
-                                    title={a.title || a.short_name}
-                                >
-                                    <span className="truncate">{a.title || a.short_name || '-'}</span>
-                                    {artifactType === 'requirement' && a.ears_type && (
-                                        <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${a.ears_type === 'ubiquitous' ? 'bg-gray-100 text-gray-800' :
-                                            a.ears_type === 'event-driven' ? 'bg-blue-100 text-blue-800' :
-                                                a.ears_type === 'state-driven' ? 'bg-purple-100 text-purple-800' :
-                                                    a.ears_type === 'unwanted' ? 'bg-red-100 text-red-800' :
-                                                        'bg-green-100 text-green-800'
-                                            }`}>
-                                            {a.ears_type}
-                                        </span>
-                                    )}
-                                    {artifactType === 'document' && (
-                                        <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0 bg-blue-100 text-blue-800">
-                                            {a.document_type === 'url' ? 'URL' : 'FILE'}
-                                        </span>
-                                    )}
-                                </Link>
+                                                            // Resolve Diagram UUIDs to Names
+                                                            if (diagramMap.has(s)) s = diagramMap.get(s)!;
+                                                            if (diagramMap.has(t)) t = diagramMap.get(t)!;
 
-                                {/* Description / Text */}
-                                <Link
-                                    to={`/project/${projectId}/${artifactType}/${a.aid}`}
-                                    className="text-sm text-slate-600 truncate"
-                                    title={a.description || a.text}
-                                >
-                                    {a.description || a.text || '-'}
-                                </Link>
-
-                                {/* Status */}
-                                <div>
-                                    {a.status ? (
-                                        <span className={`text-xs px-2 py-1 rounded-full inline-block whitespace-nowrap ${a.status === 'base_lined' ? 'bg-green-100 text-green-800' :
-                                            a.status === 'verified' ? 'bg-blue-100 text-blue-800' :
-                                                a.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                                    'bg-gray-100 text-gray-800'
-                                            }`}>
-                                            {a.status}
-                                        </span>
-                                    ) : (
-                                        <span className="text-xs text-slate-400">-</span>
-                                    )}
-                                </div>
-
-                                {/* Actions */}
-                                <div className="flex justify-end gap-1">
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            e.preventDefault();
-                                            // Export single item
-                                            const exportArtifact = prepareArtifactForExport(a);
-                                            // Collect relevant linkages
-                                            const relevantLinkages: string[][] = [];
-                                            const uniqueLinkages = new Set<string>();
-
-                                            // Create lookup for Diagrams (UUID -> Name)
-                                            const diagramMap = new Map<string, string>();
-                                            if (diagrams) {
-                                                diagrams.forEach((d: any) => {
-                                                    diagramMap.set(d.id, d.name);
-                                                });
-                                            }
-
-                                            if (linkages) {
-                                                const aid = a.aid;
-                                                linkages.forEach((l: any) => {
-                                                    // Check if this linkage involves the exported artifact
-                                                    if (l.source_id === aid || l.target_id === aid) {
-                                                        let s = l.source_id.trim();
-                                                        let t = l.target_id.trim();
-
-                                                        // Resolve Diagram UUIDs to Names
-                                                        if (diagramMap.has(s)) s = diagramMap.get(s)!;
-                                                        if (diagramMap.has(t)) t = diagramMap.get(t)!;
-
-                                                        const key = `${s}|${t}`;
-                                                        if (!uniqueLinkages.has(key)) {
-                                                            uniqueLinkages.add(key);
-                                                            relevantLinkages.push([s, t]);
+                                                            const key = `${s}|${t}`;
+                                                            if (!uniqueLinkages.has(key)) {
+                                                                uniqueLinkages.add(key);
+                                                                relevantLinkages.push([s, t]);
+                                                            }
                                                         }
-                                                    }
+                                                    });
+                                                }
+
+                                                const exportData = {
+                                                    artifactType,
+                                                    project: project?.name || 'Unknown',
+                                                    exportDate: new Date().toISOString(),
+                                                    count: 1,
+                                                    artifacts: [exportArtifact],
+                                                    linkages: relevantLinkages
+                                                };
+                                                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                                                const url = URL.createObjectURL(blob);
+                                                const link = document.createElement('a');
+                                                link.href = url;
+                                                link.download = `${artifactType}_${a.aid}_${new Date().toISOString().split('T')[0]}.json`;
+                                                link.click();
+                                                URL.revokeObjectURL(url);
+                                            }}
+                                            className="p-1 text-slate-400 hover:text-green-600 transition-colors rounded hover:bg-green-50"
+                                            title="Export this item"
+                                        >
+                                            <FileDown className="w-4 h-4" />
+                                        </button>
+                                        <Link
+                                            to={`/project/${projectId}/${artifactType}/${a.aid}/edit`}
+                                            className="p-1 text-slate-400 hover:text-blue-600 transition-colors rounded hover:bg-blue-50"
+                                            title="Edit"
+                                        >
+                                            <Edit className="w-4 h-4" />
+                                        </Link>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                e.preventDefault();
+                                                // Duplicate: Navigate to create page with data
+                                                const duplicateData = { ...a };
+                                                // Remove ID and system fields to ensure it's treated as new
+                                                delete duplicateData.id;
+                                                delete duplicateData.aid;
+                                                delete duplicateData.created_at;
+                                                delete duplicateData.updated_at;
+                                                delete duplicateData.created_by;
+                                                delete duplicateData.updated_by;
+
+                                                navigate(`/project/${projectId}/${artifactType}/create`, {
+                                                    state: { duplicateData }
                                                 });
-                                            }
-
-                                            const exportData = {
-                                                artifactType,
-                                                project: project?.name || 'Unknown',
-                                                exportDate: new Date().toISOString(),
-                                                count: 1,
-                                                artifacts: [exportArtifact],
-                                                linkages: relevantLinkages
-                                            };
-                                            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-                                            const url = URL.createObjectURL(blob);
-                                            const link = document.createElement('a');
-                                            link.href = url;
-                                            link.download = `${artifactType}_${a.aid}_${new Date().toISOString().split('T')[0]}.json`;
-                                            link.click();
-                                            URL.revokeObjectURL(url);
-                                        }}
-                                        className="p-1 text-slate-400 hover:text-green-600 transition-colors rounded hover:bg-green-50"
-                                        title="Export this item"
-                                    >
-                                        <FileDown className="w-4 h-4" />
-                                    </button>
-                                    <Link
-                                        to={`/project/${projectId}/${artifactType}/${a.aid}/edit`}
-                                        className="p-1 text-slate-400 hover:text-blue-600 transition-colors rounded hover:bg-blue-50"
-                                        title="Edit"
-                                    >
-                                        <Edit className="w-4 h-4" />
-                                    </Link>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            e.preventDefault();
-                                            // Duplicate: Navigate to create page with data
-                                            const duplicateData = { ...a };
-                                            // Remove ID and system fields to ensure it's treated as new
-                                            delete duplicateData.id;
-                                            delete duplicateData.aid;
-                                            delete duplicateData.created_at;
-                                            delete duplicateData.updated_at;
-                                            delete duplicateData.created_by;
-                                            delete duplicateData.updated_by;
-
-                                            navigate(`/project/${projectId}/${artifactType}/create`, {
-                                                state: { duplicateData }
-                                            });
-                                        }}
-                                        className="p-1 text-slate-400 hover:text-cyan-600 transition-colors rounded hover:bg-cyan-50"
-                                        title="Duplicate"
-                                    >
-                                        <Files className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            e.preventDefault();
-                                            handleCopy(a);
-                                        }}
-                                        className="p-1 text-slate-400 hover:text-indigo-600 transition-colors rounded hover:bg-indigo-50"
-                                        title="Copy to clipboard"
-                                    >
-                                        <Copy className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            e.preventDefault();
-                                            e.preventDefault();
-                                            setConfirmation({
-                                                isOpen: true,
-                                                title: 'Delete Artifact',
-                                                message: `Are you sure you want to delete ${a.aid}? This action cannot be undone.`,
-                                                isDestructive: true,
-                                                onConfirm: () => deleteMutation.mutate(a.aid)
-                                            });
-                                        }}
-                                        className="p-1 text-slate-400 hover:text-red-600 transition-colors rounded hover:bg-red-50"
-                                        title="Delete"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
+                                            }}
+                                            className="p-1 text-slate-400 hover:text-cyan-600 transition-colors rounded hover:bg-cyan-50"
+                                            title="Duplicate"
+                                        >
+                                            <Files className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                e.preventDefault();
+                                                handleCopy(a);
+                                            }}
+                                            className="p-1 text-slate-400 hover:text-indigo-600 transition-colors rounded hover:bg-indigo-50"
+                                            title="Copy to clipboard"
+                                        >
+                                            <Copy className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                e.preventDefault();
+                                                e.preventDefault();
+                                                setConfirmation({
+                                                    isOpen: true,
+                                                    title: 'Delete Artifact',
+                                                    message: `Are you sure you want to delete ${a.aid}? This action cannot be undone.`,
+                                                    isDestructive: true,
+                                                    onConfirm: () => deleteMutation.mutate(a.aid)
+                                                });
+                                            }}
+                                            className="p-1 text-slate-400 hover:text-red-600 transition-colors rounded hover:bg-red-50"
+                                            title="Delete"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        </li>
-                    ))}
-                </ul>
-                {artifacts?.length === 0 && (
-                    <div className="p-8 text-center text-slate-400 italic">
-                        No {artifactType.replace('_', ' ')}s found.
-                    </div>
-                )}
+                            </li>
+                        ))}
+                    </ul>
+                    {artifacts?.length === 0 && (
+                        <div className="p-8 text-center text-slate-400 italic">
+                            No {artifactType.replace('_', ' ')}s found.
+                        </div>
+                    )}
+                </div>
             </div>
             {/* Import Results Modal */}
             {showResultsModal && importResults && (
