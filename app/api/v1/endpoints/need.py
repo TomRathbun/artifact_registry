@@ -56,7 +56,7 @@ def list_needs(
             query = query.filter(
                 (Need.title.ilike(term)) | (Need.description.ilike(term))
             )
-    return query.all()
+    return query.order_by(Need.aid).all()
 
 # -------------------------------------------------
 # GET – by id

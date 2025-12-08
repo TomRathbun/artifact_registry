@@ -20,12 +20,33 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
     const queryClient = useQueryClient();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const [search, setSearch] = useState('');
-    const [debouncedSearch, setDebouncedSearch] = useState('');
+    // Load filters from sessionStorage on mount
+    const getStorageKey = () => `artifact-filters-${projectId}-${artifactType}`;
+
+    const loadFiltersFromStorage = () => {
+        try {
+            const stored = sessionStorage.getItem(getStorageKey());
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                return {
+                    search: parsed.search || '',
+                    sortConfig: parsed.sortConfig || { key: null, direction: null },
+                    columnFilters: parsed.columnFilters || {}
+                };
+            }
+        } catch (e) {
+            console.error('Failed to load filters:', e);
+        }
+        return { search: '', sortConfig: { key: null, direction: null }, columnFilters: {} };
+    };
+
+    const initialFilters = loadFiltersFromStorage();
+    const [search, setSearch] = useState(initialFilters.search);
+    const [debouncedSearch, setDebouncedSearch] = useState(initialFilters.search);
     const [selectedItems, setSelectedItems] = useState<string[]>([]);
-    const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' | null }>({ key: null, direction: null });
+    const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' | null }>(initialFilters.sortConfig);
     const [activeFilterDropdown, setActiveFilterDropdown] = useState<string | null>(null);
-    const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({});
+    const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>(initialFilters.columnFilters);
 
     // Import Conflict State
     const [showImportModal, setShowImportModal] = useState(false);
@@ -58,6 +79,19 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
         }, 500);
         return () => clearTimeout(timer);
     }, [search]);
+
+    // Save filters to sessionStorage whenever they change
+    useEffect(() => {
+        try {
+            sessionStorage.setItem(getStorageKey(), JSON.stringify({
+                search,
+                sortConfig,
+                columnFilters
+            }));
+        } catch (e) {
+            console.error('Failed to save filters:', e);
+        }
+    }, [search, sortConfig, columnFilters, projectId, artifactType]);
 
     // Fetch project details first to get the real UUID
     const { data: project } = useQuery({
@@ -220,6 +254,12 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
             delete updated[key];
             return updated;
         });
+    };
+
+    // Get filtered AIDs for presentation mode navigation
+    const getFilteredAIDs = () => {
+        const filtered = getFilteredAndSortedArtifacts();
+        return filtered?.map((a: any) => a.aid) || [];
     };
 
     // Fetch metadata for export mapping
@@ -1789,6 +1829,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                                 {/* Artifact ID */}
                                 <Link
                                     to={`/project/${projectId}/${artifactType}/${a.aid}`}
+                                    state={{ filteredAIDs: getFilteredAIDs() }}
                                     className="font-mono text-sm text-slate-600 truncate hover:text-blue-600"
                                     title={a.aid}
                                 >
@@ -1798,6 +1839,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                                 {/* Title / Short Name */}
                                 <Link
                                     to={`/project/${projectId}/${artifactType}/${a.aid}`}
+                                    state={{ filteredAIDs: getFilteredAIDs() }}
                                     className="font-medium text-blue-600 hover:underline flex items-center gap-2 min-w-0"
                                     title={a.title || a.short_name}
                                 >

@@ -133,7 +133,7 @@ def list_requirements(
                 (Requirement.short_name.ilike(term)) | (Requirement.text.ilike(term))
             )
     
-    return query.all()
+    return query.order_by(Requirement.aid).all()
 
 
 @router.get("/{aid}")

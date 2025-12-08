@@ -132,7 +132,7 @@ def list_use_cases(
             query = query.filter(UseCase.status.in_(status))
         if primary_actor:
             query = query.filter(UseCase.primary_actor_id == primary_actor)
-    return query.all()
+    return query.order_by(UseCase.aid).all()
 
 @router.get("/{aid}", response_model=UseCaseOut)
 def get_use_case(aid: str, db: Session = Depends(get_db)):

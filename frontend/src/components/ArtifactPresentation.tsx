@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -182,6 +182,7 @@ function SelectableField({
 export default function ArtifactPresentation() {
     const { projectId, artifactType, artifactId } = useParams<{ projectId: string; artifactType: string; artifactId: string }>();
     const navigate = useNavigate();
+    const location = useLocation();
     const queryClient = useQueryClient();
     const [selectedLink, setSelectedLink] = useState<any | null>(null);
     const [selectedField, setSelectedField] = useState<string | null>(null);
@@ -190,7 +191,37 @@ export default function ArtifactPresentation() {
     const [showStatusDialog, setShowStatusDialog] = useState(false);
     const [pendingStatus, setPendingStatus] = useState<string>('');
     const [statusRationale, setStatusRationale] = useState('');
-    const [statusFilter, setStatusFilter] = useState<string>('');
+
+    // Get filtered AIDs from sessionStorage (persisted from list view) or location state
+    const getFilteredAIDsKey = () => `filtered-aids-${projectId}-${artifactType}`;
+    const getFilteredAIDs = () => {
+        // First try location state (direct navigation from list)
+        const stateAIDs = (location.state as any)?.filteredAIDs;
+        if (stateAIDs) {
+            // Store in sessionStorage for persistence across back/forward navigation
+            try {
+                sessionStorage.setItem(getFilteredAIDsKey(), JSON.stringify(stateAIDs));
+            } catch (e) {
+                console.error('Failed to store filtered AIDs:', e);
+            }
+            return stateAIDs;
+        }
+
+        // Fall back to sessionStorage (browser back/forward navigation)
+        try {
+            const stored = sessionStorage.getItem(getFilteredAIDsKey());
+            if (stored) {
+                return JSON.parse(stored);
+            }
+        } catch (e) {
+            console.error('Failed to load filtered AIDs:', e);
+        }
+
+        return null;
+    };
+
+    // Get filtered AIDs from navigation state (if coming from list view with filters)
+    const filteredAIDs = getFilteredAIDs();
 
     const VALID_TRANSITIONS: Record<string, string[]> = {
         'Draft': ['Ready_for_Review'],
@@ -215,31 +246,50 @@ export default function ArtifactPresentation() {
         enabled: !!projectId
     });
 
-    // Fetch all artifacts of same type for navigation (with status filter)
+    // Fetch all artifacts of same type for navigation
+    // If filteredAIDs is provided, use that list; otherwise fetch all ordered by AID
     const { data: allArtifacts } = useQuery({
-        queryKey: ['artifacts', project?.id, artifactType, statusFilter],
+        queryKey: ['artifacts', project?.id, artifactType, filteredAIDs],
         queryFn: async () => {
             if (!project?.id) return [];
+
+            // If we have filtered AIDs from list view, fetch only those
+            if (filteredAIDs && filteredAIDs.length > 0) {
+                // Fetch artifacts in the order of filtered AIDs
+                const promises = filteredAIDs.map(async (aid: string) => {
+                    try {
+                        switch (artifactType) {
+                            case 'vision':
+                                return await VisionService.getVisionStatementApiV1VisionVisionStatementsAidGet(aid);
+                            case 'need':
+                                return await NeedsService.getNeedApiV1NeedNeedsAidGet(aid);
+                            case 'use_case':
+                                return await UseCasesService.getUseCaseApiV1UseCaseUseCasesAidGet(aid);
+                            case 'requirement':
+                                return await RequirementsService.getRequirementApiV1RequirementRequirementsAidGet(aid);
+                            default:
+                                return null;
+                        }
+                    } catch (e) {
+                        return null; // Skip artifacts that can't be fetched
+                    }
+                });
+                const results = await Promise.all(promises);
+                return results.filter(r => r !== null);
+            }
+
+            // Otherwise fetch all artifacts ordered by AID
             switch (artifactType) {
                 case 'vision':
-                    return await VisionService.listVisionStatementsApiV1VisionVisionStatementsGet(
-                        project.id,
-                        statusFilter || undefined
-                    );
+                    return await VisionService.listVisionStatementsApiV1VisionVisionStatementsGet(project.id);
                 case 'need':
-                    const params = new URLSearchParams({ project_id: project.id });
-                    if (statusFilter) params.append('status', statusFilter);
-                    const needResponse = await fetch(`/api/v1/need/needs/?${params.toString()}`);
+                    const needResponse = await fetch(`/api/v1/need/needs/?project_id=${project.id}`);
                     return needResponse.ok ? await needResponse.json() : [];
                 case 'use_case':
-                    const ucParams = new URLSearchParams({ project_id: project.id });
-                    if (statusFilter) ucParams.append('status', statusFilter);
-                    const ucResponse = await fetch(`/api/v1/use_case/use-cases/?${ucParams.toString()}`);
+                    const ucResponse = await fetch(`/api/v1/use_case/use-cases/?project_id=${project.id}`);
                     return ucResponse.ok ? await ucResponse.json() : [];
                 case 'requirement':
-                    const reqParams = new URLSearchParams({ project_id: project.id });
-                    if (statusFilter) reqParams.append('status', statusFilter);
-                    const reqResponse = await fetch(`/api/v1/requirement/requirements/?${reqParams.toString()}`);
+                    const reqResponse = await fetch(`/api/v1/requirement/requirements/?project_id=${project.id}`);
                     return reqResponse.ok ? await reqResponse.json() : [];
                 default:
                     return [];
@@ -258,14 +308,18 @@ export default function ArtifactPresentation() {
     const goToPrevious = () => {
         if (hasPrevious && allArtifacts) {
             const prevArtifact = allArtifacts[currentIndex - 1];
-            navigate(`/project/${projectId}/${artifactType}/${prevArtifact.aid}`);
+            navigate(`/project/${projectId}/${artifactType}/${prevArtifact.aid}`, {
+                state: { filteredAIDs }
+            });
         }
     };
 
     const goToNext = () => {
         if (hasNext && allArtifacts) {
             const nextArtifact = allArtifacts[currentIndex + 1];
-            navigate(`/project/${projectId}/${artifactType}/${nextArtifact.aid}`);
+            navigate(`/project/${projectId}/${artifactType}/${nextArtifact.aid}`, {
+                state: { filteredAIDs }
+            });
         }
     };
 
@@ -408,7 +462,7 @@ export default function ArtifactPresentation() {
                                         <ChevronLeft className="w-5 h-5" />
                                     </button>
                                     <span className="text-sm text-slate-600 min-w-[100px] text-center font-medium">
-                                        {currentIndex + 1}/{totalCount} {artifactType}s
+                                        {currentIndex + 1}/{totalCount} {artifactType}s{filteredAIDs ? ' (filtered)' : ''}
                                     </span>
                                     <button
                                         onClick={goToNext}
@@ -421,25 +475,6 @@ export default function ArtifactPresentation() {
                                 </div>
                             )}
 
-                            {/* Status Filter */}
-                            <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
-                                <label className="text-sm text-slate-600 font-medium">Status:</label>
-                                <select
-                                    value={statusFilter}
-                                    onChange={(e) => setStatusFilter(e.target.value)}
-                                    className="text-sm px-2 py-1 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="">All</option>
-                                    <option value="Draft">Draft</option>
-                                    <option value="Ready_for_Review">Ready for Review</option>
-                                    <option value="In_Review">In Review</option>
-                                    <option value="Approved">Approved</option>
-                                    <option value="Rejected">Rejected</option>
-                                    <option value="Deferred">Deferred</option>
-                                    <option value="Superseded">Superseded</option>
-                                    <option value="Retired">Retired</option>
-                                </select>
-                            </div>
 
                             <div>
                                 <h1 className="text-2xl font-bold text-slate-900">
