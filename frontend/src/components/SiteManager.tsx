@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { SiteService } from '../client';
-import { Plus, Trash2, Edit2, ArrowUp, ArrowDown, Filter } from 'lucide-react';
+import { Plus, Trash2, Edit, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 import { ConfirmationModal } from './ConfirmationModal';
 
 export default function SiteManager() {
@@ -448,7 +448,7 @@ export default function SiteManager() {
                                         className="text-slate-400 hover:text-blue-600 p-2 hover:bg-blue-50 rounded-full transition-colors"
                                         title="Edit"
                                     >
-                                        <Edit2 size={16} />
+                                        <Edit size={16} />
                                     </button>
                                     <button
                                         onClick={() => {
