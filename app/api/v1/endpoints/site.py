@@ -1,5 +1,6 @@
 from typing import List
 from uuid import uuid4
+import json
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -15,16 +16,23 @@ def create_site(site_in: SiteCreate, db: Session = Depends(get_db)):
     site = Site(
         id=str(uuid4()),
         name=site_in.name,
-        security_domain=site_in.security_domain
+        security_domain=site_in.security_domain,
+        tags=json.dumps(site_in.tags) if site_in.tags else "[]"
     )
     db.add(site)
     db.commit()
     db.refresh(site)
-    return site
+    # Deserialize tags for response
+    site_dict = site.__dict__
+    site_dict['tags'] = json.loads(site.tags) if site.tags else []
+    return site_dict
 
 @router.get("/", response_model=List[SiteOut])
 def read_sites(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     sites = db.query(Site).offset(skip).limit(limit).all()
+    # Deserialize tags for each site
+    for site in sites:
+        site.tags = json.loads(site.tags) if site.tags else []
     return sites
 
 @router.get("/{site_id}", response_model=SiteOut)
@@ -32,6 +40,7 @@ def read_site(site_id: str, db: Session = Depends(get_db)):
     site = db.query(Site).filter(Site.id == site_id).first()
     if not site:
         raise HTTPException(status_code=404, detail="Site not found")
+    site.tags = json.loads(site.tags) if site.tags else []
     return site
 
 @router.put("/{site_id}", response_model=SiteOut)
@@ -44,9 +53,12 @@ def update_site(site_id: str, site_in: SiteUpdate, db: Session = Depends(get_db)
         site.name = site_in.name
     if site_in.security_domain is not None:
         site.security_domain = site_in.security_domain
+    if site_in.tags is not None:
+        site.tags = json.dumps(site_in.tags)
         
     db.commit()
     db.refresh(site)
+    site.tags = json.loads(site.tags) if site.tags else []
     return site
 
 @router.delete("/{site_id}")

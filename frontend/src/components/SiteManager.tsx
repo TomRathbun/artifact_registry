@@ -8,7 +8,7 @@ export default function SiteManager() {
     const queryClient = useQueryClient();
     const [isCreating, setIsCreating] = useState(false);
     const [isEditing, setIsEditing] = useState<string | null>(null);
-    const [formData, setFormData] = useState({ name: '', security_domain: '' });
+    const [formData, setFormData] = useState({ name: '', security_domain: '', tags: '' });
     const [selectedItems, setSelectedItems] = useState<string[]>([]);
     const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' | null }>({ key: null, direction: null });
     const [activeFilterDropdown, setActiveFilterDropdown] = useState<string | null>(null);
@@ -51,7 +51,7 @@ export default function SiteManager() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['sites'] });
             setIsCreating(false);
-            setFormData({ name: '', security_domain: '' });
+            setFormData({ name: '', security_domain: '', tags: '' });
         },
     });
 
@@ -62,7 +62,7 @@ export default function SiteManager() {
             queryClient.invalidateQueries({ queryKey: ['sites'] });
             setIsEditing(null);
             setIsCreating(false);
-            setFormData({ name: '', security_domain: '' });
+            setFormData({ name: '', security_domain: '', tags: '' });
         },
     });
 
@@ -76,15 +76,27 @@ export default function SiteManager() {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (isEditing) {
-            updateMutation.mutate({ id: isEditing, data: formData });
+            const dataToSubmit = {
+                ...formData,
+                tags: formData.tags.split(',').map(t => t.trim()).filter(t => t)
+            };
+            updateMutation.mutate({ id: isEditing, data: dataToSubmit });
         } else {
-            createMutation.mutate(formData);
+            const dataToSubmit = {
+                ...formData,
+                tags: formData.tags.split(',').map(t => t.trim()).filter(t => t)
+            };
+            createMutation.mutate(dataToSubmit);
         }
     };
 
     const handleEdit = (site: any) => {
         setIsEditing(site.id);
-        setFormData({ name: site.name, security_domain: site.security_domain || '' });
+        setFormData({
+            name: site.name,
+            security_domain: site.security_domain || '',
+            tags: site.tags ? site.tags.join(', ') : ''
+        });
         setIsCreating(true);
     };
 
@@ -173,6 +185,7 @@ export default function SiteManager() {
                         required
                     />
                 </div>
+
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Security Domain</label>
                     <input
@@ -182,10 +195,20 @@ export default function SiteManager() {
                         className="w-full p-2 border rounded-md"
                     />
                 </div>
+                <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Tags (comma separated)</label>
+                    <input
+                        type="text"
+                        value={formData.tags}
+                        onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                        className="w-full p-2 border rounded-md"
+                        placeholder="e.g. production, remote, critical"
+                    />
+                </div>
                 <div className="flex gap-3 pt-4 border-t">
                     <button
                         type="button"
-                        onClick={() => { setIsCreating(false); setIsEditing(null); setFormData({ name: '', security_domain: '' }); }}
+                        onClick={() => { setIsCreating(false); setIsEditing(null); setFormData({ name: '', security_domain: '', tags: '' }); }}
                         className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded"
                     >
                         Cancel
@@ -197,8 +220,8 @@ export default function SiteManager() {
                         Save
                     </button>
                 </div>
-            </form>
-        </div>
+            </form >
+        </div >
     );
 
     if (isLoading) return <div className="p-4">Loading...</div>;
@@ -251,7 +274,7 @@ export default function SiteManager() {
                     )}
                     {!isCreating && !isEditing && (
                         <button
-                            onClick={() => { setIsCreating(true); setFormData({ name: '', security_domain: '' }); }}
+                            onClick={() => { setIsCreating(true); setFormData({ name: '', security_domain: '', tags: '' }); }}
                             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2"
                         >
                             <Plus size={16} /> Add Site
@@ -262,7 +285,7 @@ export default function SiteManager() {
 
             {/* Edit/Create Modal */}
             {(isCreating || isEditing) && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => { setIsCreating(false); setIsEditing(null); setFormData({ name: '', security_domain: '' }); }}>
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => { setIsCreating(false); setIsEditing(null); setFormData({ name: '', security_domain: '', tags: '' }); }}>
                     <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                         <div className="sticky top-0 bg-white border-b px-6 py-4">
                             <h3 className="text-lg font-semibold">
@@ -278,7 +301,7 @@ export default function SiteManager() {
 
             <div className="bg-white border rounded-md shadow-sm">
                 {/* Header Row */}
-                <div className="grid gap-2 p-3 border-b bg-slate-50 font-medium text-slate-700" style={{ gridTemplateColumns: 'auto 1fr 1fr 100px' }}>
+                <div className="grid gap-2 p-3 border-b bg-slate-50 font-medium text-slate-700" style={{ gridTemplateColumns: 'auto 1.5fr 1fr 1.5fr 100px' }}>
                     <div className="flex items-center">
                         <input
                             type="checkbox"
@@ -412,13 +435,18 @@ export default function SiteManager() {
                         )}
                     </div>
 
+                    {/* Tags Column Header */}
+                    <div className="flex items-center gap-1 select-none">
+                        <div className="flex-1 font-medium">Tags</div>
+                    </div>
+
                     <div className="text-right">Actions</div>
                 </div>
 
                 <ul className="divide-y divide-slate-100">
                     {getFilteredAndSortedItems()?.map((site: any) => (
                         <li key={site.id} className="hover:bg-slate-50 transition-colors">
-                            <div className="grid gap-2 p-3 items-center" style={{ gridTemplateColumns: 'auto 1fr 1fr 100px' }}>
+                            <div className="grid gap-2 p-3 items-center" style={{ gridTemplateColumns: 'auto 1.5fr 1fr 1.5fr 100px' }}>
                                 {/* Checkbox */}
                                 <div className="flex items-center">
                                     <input
@@ -440,7 +468,24 @@ export default function SiteManager() {
                                 <div className="font-medium">{site.name}</div>
 
                                 {/* Security Domain */}
-                                <div className="text-sm text-slate-600">{site.security_domain || '-'}</div>
+                                <div className="text-sm text-slate-600">
+                                    {site.security_domain || '-'}
+                                </div>
+
+                                {/* Tags */}
+                                <div>
+                                    {site.tags && site.tags.length > 0 ? (
+                                        <div className="flex gap-1 flex-wrap">
+                                            {site.tags.map((tag: string, i: number) => (
+                                                <span key={i} className="text-xs bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded">
+                                                    {tag}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <span className="text-sm text-slate-400">-</span>
+                                    )}
+                                </div>
 
                                 {/* Actions */}
                                 <div className="flex justify-end gap-1">

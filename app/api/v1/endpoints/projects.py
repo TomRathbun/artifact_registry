@@ -190,6 +190,7 @@ def export_project(project_id: str, db: Session = Depends(get_db)):
 
 @router.post("/{project_id}/import", status_code=status.HTTP_200_OK)
 def import_project(project_id: str, data: dict, db: Session = Depends(get_db)):
+    import json
     # Verify project exists (or we are creating it)
     # The user wants to OVERWRITE.
     # So we should delete the existing project content first.
@@ -323,9 +324,47 @@ def import_project(project_id: str, data: dict, db: Session = Depends(get_db)):
                 db.add(Component(**comp))
     
     if "sites" in data:
+        site_id_map = {} # Map old_id -> new_id/existing_id
         for site in data["sites"]:
-            if not db.query(Site).filter(Site.id == site["id"]).first():
+            # 1. Try to find by ID
+            existing_site = db.query(Site).filter(Site.id == site["id"]).first()
+            if existing_site:
+                # Same ID exists. We can optionally update tags/name here if we wanted to enforce sync.
+                # But typical logic is "it exists, so it's the same thing".
+                # However, if tags differ, maybe we should update? 
+                # For now, let's assume existence by ID is enough.
+                site_id_map[site["id"]] = site["id"]
+                continue
+
+            # 2. Try to find by Name AND Tags
+            # Tags are stored as JSON string. We need to match precise string or list logic.
+            # Best is to query by name, then check tags in code.
+            candidates = db.query(Site).filter(Site.name == site["name"]).all()
+            matched_site = None
+            
+            import_tags = site.get("tags") or []
+            # normalize import tags (e.g. sort them)
+            import_tags.sort()
+            
+            for cand in candidates:
+                cand_tags = json.loads(cand.tags) if cand.tags else []
+                cand_tags.sort()
+                
+                if cand_tags == import_tags:
+                    matched_site = cand
+                    break
+            
+            if matched_site:
+                # Found a match by Name + Tags! Reuse this site ID.
+                site_id_map[site["id"]] = matched_site.id
+            else:
+                # No match found. Create new site.
+                # Must fix tags for DB (list -> json string)
+                if "tags" in site and isinstance(site["tags"], list):
+                    site["tags"] = json.dumps(site["tags"])
+                
                 db.add(Site(**site))
+                site_id_map[site["id"]] = site["id"] # It will keep its ID
                 
     db.flush()
     
@@ -357,7 +396,14 @@ def import_project(project_id: str, data: dict, db: Session = Depends(get_db)):
     insert_association(use_case_exceptions, data.get("use_case_exceptions", []))
     insert_association(use_case_stakeholders, data.get("use_case_stakeholders", []))
     
-    insert_association(need_sites, data.get("need_sites", []))
+    # Remap need_sites using site_id_map
+    need_sites_rows = data.get("need_sites", [])
+    if "sites" in data and site_id_map:
+        for row in need_sites_rows:
+            if row["site_id"] in site_id_map:
+                row["site_id"] = site_id_map[row["site_id"]]
+
+    insert_association(need_sites, need_sites_rows)
     insert_association(need_components, data.get("need_components", []))
     
     # 4. Diagram Internals
