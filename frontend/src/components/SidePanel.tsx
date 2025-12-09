@@ -18,7 +18,7 @@ export default function SidePanel({ projectId }: SidePanelProps) {
     });
 
     return (
-        <nav className="w-64 bg-slate-800 text-slate-100 h-full flex flex-col p-4">
+        <nav className="w-64 bg-slate-800 text-slate-100 h-full flex flex-col p-4 overflow-y-auto">
             <div className="flex flex-col items-center mb-6">
                 <img src="/assets/logo.png" alt="Registry Logo" className="w-24 h-24 object-contain mb-2" />
                 {project && (
