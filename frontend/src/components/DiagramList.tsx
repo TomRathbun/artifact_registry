@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 
 import axios from 'axios';
-import { Plus, Network, Edit, Trash2, GitGraph, ArrowUp, ArrowDown, Filter } from 'lucide-react';
+import { Plus, Network, Edit, Trash2, GitGraph, ArrowUp, ArrowDown, Filter, Wand2 } from 'lucide-react';
 import { MetadataService } from '../client';
 
 export default function DiagramList() {
@@ -224,14 +224,14 @@ export default function DiagramList() {
                         <form onSubmit={handleCreate} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Type</label>
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="grid grid-cols-3 gap-2">
                                     <button
                                         type="button"
                                         onClick={() => setNewDiagramType('component')}
                                         className={`p-3 rounded-lg border text-sm font-medium flex flex-col items-center gap-2 ${newDiagramType === 'component' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:bg-slate-50 text-slate-600'}`}
                                     >
                                         <Network className="w-5 h-5" />
-                                        Component Diagram
+                                        Component
                                     </button>
                                     <button
                                         type="button"
@@ -240,6 +240,14 @@ export default function DiagramList() {
                                     >
                                         <GitGraph className="w-5 h-5" />
                                         Artifact Graph
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setNewDiagramType('sequence')}
+                                        className={`p-3 rounded-lg border text-sm font-medium flex flex-col items-center gap-2 ${newDiagramType === 'sequence' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:bg-slate-50 text-slate-600'}`}
+                                    >
+                                        <Wand2 className="w-5 h-5" />
+                                        Sequence
                                     </button>
                                 </div>
                             </div>
@@ -567,6 +575,11 @@ export default function DiagramList() {
                                             <>
                                                 <GitGraph className="w-4 h-4 text-purple-600" />
                                                 <span className="text-sm text-slate-600">Artifact Graph</span>
+                                            </>
+                                        ) : diagram.type === 'sequence' ? (
+                                            <>
+                                                <Wand2 className="w-4 h-4 text-emerald-600" />
+                                                <span className="text-sm text-slate-600">Sequence Diagram</span>
                                             </>
                                         ) : (
                                             <>
