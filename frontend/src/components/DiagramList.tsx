@@ -12,7 +12,7 @@ export default function DiagramList() {
     const [isCreating, setIsCreating] = useState(false);
     const [newDiagramName, setNewDiagramName] = useState('');
     const [newDiagramDesc, setNewDiagramDesc] = useState('');
-    const [newDiagramType, setNewDiagramType] = useState<'component' | 'artifact_graph'>('component');
+    const [newDiagramType, setNewDiagramType] = useState<'component' | 'artifact_graph' | 'sequence'>('component');
     const [newDiagramFilter, setNewDiagramFilter] = useState('All');
 
     // Edit/Delete state
@@ -255,22 +255,6 @@ export default function DiagramList() {
                                     autoFocus
                                 />
                             </div>
-
-                            {newDiagramType === 'artifact_graph' && (
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Filter by Area</label>
-                                    <select
-                                        value={newDiagramFilter}
-                                        onChange={(e) => setNewDiagramFilter(e.target.value)}
-                                        className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    >
-                                        <option value="All">All Areas</option>
-                                        {areas?.map((area: any) => (
-                                            <option key={area.code} value={area.code}>{area.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            )}
 
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>

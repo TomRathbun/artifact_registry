@@ -19,11 +19,13 @@ class DiagramCreate(BaseModel):
     name: str
     description: Optional[str] = None
     type: Optional[str] = 'component'
+    content: Optional[str] = None
     filter_data: Optional[dict] = None
 
 class DiagramUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
+    content: Optional[str] = None
     filter_data: Optional[dict] = None
 
 class DiagramEdgeUpdate(BaseModel):
@@ -46,6 +48,7 @@ class DiagramOut(BaseModel):
     name: str
     description: Optional[str] = None
     type: str
+    content: Optional[str] = None
     filter_data: Optional[dict] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None

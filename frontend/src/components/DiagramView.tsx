@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import ComponentDiagram from './ComponentDiagram';
 import ArtifactGraphView from './ArtifactGraphView';
+import SequenceDiagramEditor from './SequenceDiagramEditor';
 
 export default function DiagramView() {
     const { diagramId } = useParams<{ diagramId: string }>();
@@ -19,6 +20,10 @@ export default function DiagramView() {
 
     if (isLoading) return <div className="p-8 text-center text-slate-500">Loading diagram...</div>;
     if (!diagram) return <div className="p-8 text-center text-red-500">Diagram not found</div>;
+
+    if (diagram.type === 'sequence') {
+        return <SequenceDiagramEditor />;
+    }
 
     if (diagram.type === 'artifact_graph') {
         return (
