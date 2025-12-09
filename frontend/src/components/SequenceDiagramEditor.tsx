@@ -108,7 +108,7 @@ export default function SequenceDiagramEditor({ diagramId: propId, readOnly = fa
 
     return (
         <div className="flex flex-col h-full space-y-4">
-            {diagram && (
+            {diagram && !readOnly && (
                 <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex justify-between items-center">
                     <div>
                         <h2 className="text-xl font-semibold text-slate-800">{diagram.name}</h2>

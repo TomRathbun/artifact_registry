@@ -621,7 +621,9 @@ export default function ArtifactPresentation() {
                                     <h4 className="font-semibold text-slate-900 mb-2">
                                         {'title' in linkedArtifact ? linkedArtifact.title : 'name' in linkedArtifact ? linkedArtifact.name : 'text' in linkedArtifact ? linkedArtifact.text?.substring(0, 100) : ''}
                                     </h4>
-                                    <p className="text-sm text-slate-600 mb-3">{linkedArtifact.aid || selectedLink.target_id}</p>
+                                    {selectedLink.target_artifact_type !== 'diagram' && (
+                                        <p className="text-sm text-slate-600 mb-3">{linkedArtifact.aid || selectedLink.target_id}</p>
+                                    )}
 
                                     <div className="prose prose-sm max-w-none text-slate-600">
                                         {/* Dynamic Content Rendering based on available fields */}
