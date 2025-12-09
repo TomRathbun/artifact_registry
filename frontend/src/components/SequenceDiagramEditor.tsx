@@ -6,8 +6,14 @@ import axios from 'axios';
 import { useParams } from 'react-router-dom';
 import { toPng, toSvg } from 'html-to-image';
 
-export default function SequenceDiagramEditor() {
-    const { diagramId } = useParams<{ diagramId: string }>();
+interface SequenceDiagramEditorProps {
+    diagramId?: string;
+    readOnly?: boolean;
+}
+
+export default function SequenceDiagramEditor({ diagramId: propId, readOnly = false }: SequenceDiagramEditorProps = {}) {
+    const { diagramId: paramId } = useParams<{ diagramId: string }>();
+    const diagramId = propId || paramId;
     const queryClient = useQueryClient();
     const [content, setContent] = useState('sequenceDiagram\n    Alice->>John: Hello John, how are you?\n    John-->>Alice: Great!');
     const [svg, setSvg] = useState('');
@@ -115,33 +121,35 @@ export default function SequenceDiagramEditor() {
 
             <div className="flex-1 flex gap-4 min-h-0">
                 {/* Editor Pane */}
-                <div className="w-1/2 flex flex-col bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="p-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-                        <div className="flex items-center gap-2 text-slate-700 font-medium">
-                            <FileCode className="w-4 h-4" /> Source
+                {!readOnly && (
+                    <div className="w-1/2 flex flex-col bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                        <div className="p-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                            <div className="flex items-center gap-2 text-slate-700 font-medium">
+                                <FileCode className="w-4 h-4" /> Source
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={handleSave}
+                                    disabled={saveMutation.isPending}
+                                    className="flex items-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 text-sm disabled:opacity-50"
+                                >
+                                    <Save className="w-3 h-3" /> {saveMutation.isPending ? 'Saving...' : 'Save'}
+                                </button>
+                            </div>
                         </div>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={handleSave}
-                                disabled={saveMutation.isPending}
-                                className="flex items-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 text-sm disabled:opacity-50"
-                            >
-                                <Save className="w-3 h-3" /> {saveMutation.isPending ? 'Saving...' : 'Save'}
-                            </button>
+                        <div className="flex-1 relative">
+                            <textarea
+                                className="absolute inset-0 w-full h-full p-4 font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500/50"
+                                value={content}
+                                onChange={(e) => setContent(e.target.value)}
+                                spellCheck={false}
+                            />
                         </div>
                     </div>
-                    <div className="flex-1 relative">
-                        <textarea
-                            className="absolute inset-0 w-full h-full p-4 font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500/50"
-                            value={content}
-                            onChange={(e) => setContent(e.target.value)}
-                            spellCheck={false}
-                        />
-                    </div>
-                </div>
+                )}
 
                 {/* Preview Pane */}
-                <div className="w-1/2 flex flex-col bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                <div className={`${readOnly ? 'w-full' : 'w-1/2'} flex flex-col bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden`}>
                     <div className="p-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
                         <div className="flex items-center gap-2 text-slate-700 font-medium">
                             <Wand2 className="w-4 h-4" /> Preview

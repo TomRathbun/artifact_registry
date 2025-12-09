@@ -7,6 +7,7 @@ import { NeedsService, UseCasesService, RequirementsService, VisionService, Link
 import { ArrowLeft, Edit, ExternalLink, X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, MessageSquarePlus, MessageSquare, Tag } from 'lucide-react';
 import ComponentDiagram from './ComponentDiagram';
 import ArtifactGraphView from './ArtifactGraphView';
+import SequenceDiagramEditor from './SequenceDiagramEditor';
 import CommentPanel from './CommentPanel';
 
 // Component to fetch and display person name by ID
@@ -651,6 +652,8 @@ export default function ArtifactPresentation() {
                                                     initialArea={linkedArtifact.filter_data?.area}
                                                     diagramId={selectedLink.target_id}
                                                 />
+                                            ) : linkedArtifact.type === 'sequence' ? (
+                                                <SequenceDiagramEditor diagramId={selectedLink.target_id} readOnly={true} />
                                             ) : (
                                                 <ComponentDiagram />
                                             )}
