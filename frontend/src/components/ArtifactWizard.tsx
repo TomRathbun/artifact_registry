@@ -13,7 +13,7 @@ import {
     ProjectsService,
     ArtifactEventsService,
 } from '../client';
-import { X, Plus, Trash2, History, ArrowLeft } from 'lucide-react';
+import { X, Plus, Trash2, History, ArrowLeft, MessageSquare } from 'lucide-react';
 import DualListBox from './DualListBox';
 import MDEditor from '@uiw/react-md-editor';
 import { LinkageManager } from './LinkageManager';
@@ -121,6 +121,27 @@ export default function ArtifactWizard() {
         },
         enabled: artifactType === 'requirement'
     });
+
+    // Comment Panel State
+    const [showCommentPanel, setShowCommentPanel] = useState(false);
+    const { data: comments } = useQuery({
+        queryKey: ['comments', artifactId],
+        queryFn: async () => {
+            if (!artifactId) return [];
+            const response = await fetch(`/api/v1/comments/?artifact_aid=${artifactId}`);
+            return response.json();
+        },
+        enabled: !!artifactId
+    });
+
+    // Auto-open comment panel if there are comments (only once)
+    const [hasInitializedComments, setHasInitializedComments] = useState(false);
+    useEffect(() => {
+        if (comments && comments.length > 0 && !hasInitializedComments) {
+            setShowCommentPanel(true);
+            setHasInitializedComments(true);
+        }
+    }, [comments, hasInitializedComments]);
 
     useEffect(() => {
         if (earsTemplatesData) {
@@ -617,6 +638,34 @@ export default function ArtifactWizard() {
 
         navigate(`/project/${projectId}/${listPath}`);
     };
+
+    const onSubmitAndReturn = async (data: FormData) => {
+        if (isEditMode || savedAid) {
+            await updateMutation.mutateAsync(data);
+        } else {
+            await createMutation.mutateAsync(data);
+        }
+        navigate(`/project/${projectId}/${routeType}/${artifactId || savedAid}`);
+    };
+
+    // Keyboard Shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Ctrl+S / Cmd+S: Save and Stay
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                handleSubmit(onSubmit, onError)();
+            }
+            // Ctrl+Enter / Cmd+Enter: Save and Return
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                handleSubmit(onSubmitAndReturn, onError)();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [handleSubmit, onSubmit, onSubmitAndReturn]);
 
     const handleCancel = () => {
         // Determine the correct list path based on artifact type
@@ -1279,7 +1328,7 @@ export default function ArtifactWizard() {
 
     return (
         <div className="min-h-screen bg-slate-50 pb-12">
-            <div className={`max-w-${isEditMode ? '7xl' : '4xl'} mx-auto px-4 sm:px-6 lg:px-8 py-8 ${isEditMode ? 'grid grid-cols-[1fr_400px] gap-6' : ''}`}>
+            <div className={`max-w-${isEditMode && showCommentPanel ? '7xl' : '4xl'} mx-auto px-4 sm:px-6 lg:px-8 py-8 ${isEditMode && showCommentPanel ? 'grid grid-cols-[1fr_400px] gap-6' : ''}`}>
                 <div>
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-4">
@@ -1296,12 +1345,26 @@ export default function ArtifactWizard() {
                                 {isEditMode ? `Edit ${artifactType === 'use_case' ? 'Use Case' : artifactType.charAt(0).toUpperCase() + artifactType.slice(1)}` : `New ${artifactType === 'use_case' ? 'Use Case' : artifactType.charAt(0).toUpperCase() + artifactType.slice(1)}`}
                             </h1>
                         </div>
-                        <button
-                            onClick={handleCancel}
-                            className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100"
-                        >
-                            <X className="w-6 h-6" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                            {isEditMode && (
+                                <button
+                                    onClick={() => setShowCommentPanel(!showCommentPanel)}
+                                    className={`p-2 rounded-full transition-colors ${showCommentPanel ? 'bg-blue-100 text-blue-600' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+                                    title={showCommentPanel ? "Hide Comments" : "Show Comments"}
+                                >
+                                    <MessageSquare className="w-5 h-5" />
+                                    {comments && comments.length > 0 && !showCommentPanel && (
+                                        <span className="absolute top-0 right-0 block h-2 w-2 rounded-full ring-2 ring-white bg-red-500 transform translate-x-1/2 -translate-y-1/2" />
+                                    )}
+                                </button>
+                            )}
+                            <button
+                                onClick={handleCancel}
+                                className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100"
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
                     </div>
 
                     {/* Status Action Bar - Only in Edit Mode */}
@@ -1361,6 +1424,15 @@ export default function ArtifactWizard() {
                             >
                                 Save & Close
                             </button>
+                            <button
+                                type="button"
+                                onClick={handleSubmit(onSubmitAndReturn, onError)}
+                                className="flex-1 bg-teal-600 text-white py-3 rounded-md hover:bg-teal-700 transition-colors font-medium"
+                                disabled={isEditMode ? updateMutation.isPending : createMutation.isPending}
+                                title="Ctrl+Enter"
+                            >
+                                Save & View
+                            </button>
                         </div>
                     </form>
 
@@ -1380,7 +1452,7 @@ export default function ArtifactWizard() {
                 </div>
 
                 {/* Comment Panel Sidebar - Only in Edit Mode */}
-                {isEditMode && (
+                {isEditMode && showCommentPanel && (
                     <div className="sticky top-8 h-[calc(100vh-4rem)]">
                         <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden h-full">
                             <CommentPanel

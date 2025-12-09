@@ -86,7 +86,7 @@ function LinkedArtifactName({ link, onClick }: { link: any; onClick: () => void 
     return (
         <button
             onClick={onClick}
-            className="text-blue-600 hover:underline text-left"
+            className="text-blue-600 hover:underline text-left whitespace-normal break-words h-auto"
         >
             {getDisplayName()}
         </button>
@@ -115,9 +115,11 @@ function CompactLinkages({
         <div className="bg-white rounded-lg border border-slate-200 shadow-sm px-6 py-3">
             <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
                 {linkages.map((link) => (
-                    <div key={link.aid} className="flex items-center gap-2">
-                        <span className="text-slate-500">{link.relationship_type}:</span>
-                        <LinkedArtifactName link={link} onClick={() => onLinkClick(link)} />
+                    <div key={link.aid} className="flex items-center gap-2 min-w-0 max-w-full">
+                        <span className="text-slate-500 whitespace-nowrap flex-shrink-0">{link.relationship_type}:</span>
+                        <div className="min-w-0 flex-1">
+                            <LinkedArtifactName link={link} onClick={() => onLinkClick(link)} />
+                        </div>
                     </div>
                 ))}
             </div>
@@ -562,20 +564,20 @@ export default function ArtifactPresentation() {
                     {selectedLink && (
                         <div className="bg-blue-50 rounded-lg border border-blue-200 p-4">
                             <div className="flex justify-between items-start mb-3">
-                                <div>
-                                    <h3 className="text-lg font-semibold text-blue-900">
+                                <div className="min-w-0 flex-1 mr-2">
+                                    <h3 className="text-lg font-semibold text-blue-900 break-words">
                                         {selectedLink.relationship_type} → {selectedLink.target_artifact_type}
                                     </h3>
                                 </div>
                                 <button
                                     onClick={() => setSelectedLink(null)}
-                                    className="text-blue-600 hover:text-blue-800"
+                                    className="text-blue-600 hover:text-blue-800 flex-shrink-0"
                                 >
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
                             {linkedArtifact && (
-                                <div className="bg-white rounded-md p-4 max-h-[600px] overflow-y-auto custom-scrollbar">
+                                <div className="bg-white rounded-md p-4 overflow-y-auto custom-scrollbar">
                                     {/* Document Specific Preview */}
                                     {selectedLink.target_artifact_type === 'document' && 'document_type' in linkedArtifact && (
                                         <div className="mb-4">
@@ -618,7 +620,7 @@ export default function ArtifactPresentation() {
                                     )}
 
                                     {/* Link Preview Content */}
-                                    <h4 className="font-semibold text-slate-900 mb-2">
+                                    <h4 className="font-semibold text-slate-900 mb-2 break-words">
                                         {'title' in linkedArtifact ? linkedArtifact.title : 'name' in linkedArtifact ? linkedArtifact.name : 'text' in linkedArtifact ? linkedArtifact.text : ''}
                                     </h4>
                                     {selectedLink.target_artifact_type !== 'diagram' && (
@@ -627,7 +629,70 @@ export default function ArtifactPresentation() {
 
                                     <div className="prose prose-sm max-w-none text-slate-600">
                                         {/* Dynamic Content Rendering based on available fields */}
+                                        {/* Dynamic Content Rendering based on artifact type */}
                                         {(() => {
+                                            // 1. Use Case Specific Rendering
+                                            if (selectedLink.target_artifact_type === 'use_case') {
+                                                return (
+                                                    <div className="space-y-4">
+                                                        {/* Description */}
+                                                        <div>
+                                                            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Description</div>
+                                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                                {linkedArtifact.description || '*No description.*'}
+                                                            </ReactMarkdown>
+                                                        </div>
+
+                                                        {/* Trigger */}
+                                                        {linkedArtifact.trigger && (
+                                                            <div>
+                                                                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Trigger</div>
+                                                                <p>{linkedArtifact.trigger}</p>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Preconditions */}
+                                                        {linkedArtifact.preconditions && linkedArtifact.preconditions.length > 0 && (
+                                                            <div>
+                                                                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Preconditions</div>
+                                                                <ol className="list-decimal list-inside pl-2">
+                                                                    {linkedArtifact.preconditions.map((p: any, i: number) => (
+                                                                        <li key={i}>{p.text}</li>
+                                                                    ))}
+                                                                </ol>
+                                                            </div>
+                                                        )}
+
+                                                        {/* MSS */}
+                                                        {linkedArtifact.mss && linkedArtifact.mss.length > 0 && (
+                                                            <div>
+                                                                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Main Success Scenario</div>
+                                                                <ol className="list-decimal list-inside pl-2">
+                                                                    {linkedArtifact.mss.map((step: any, i: number) => (
+                                                                        <li key={i}>
+                                                                            <strong className="text-slate-700">{step.actor}:</strong> {step.description}
+                                                                        </li>
+                                                                    ))}
+                                                                </ol>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Postconditions */}
+                                                        {linkedArtifact.postconditions && linkedArtifact.postconditions.length > 0 && (
+                                                            <div>
+                                                                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Postconditions</div>
+                                                                <ol className="list-decimal list-inside pl-2">
+                                                                    {linkedArtifact.postconditions.map((p: any, i: number) => (
+                                                                        <li key={i}>{p.text}</li>
+                                                                    ))}
+                                                                </ol>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            }
+
+                                            // 2. Generic Fallback
                                             const content =
                                                 ('statement' in linkedArtifact && linkedArtifact.statement) ||
                                                 ('content_text' in linkedArtifact && linkedArtifact.content_text) ||
