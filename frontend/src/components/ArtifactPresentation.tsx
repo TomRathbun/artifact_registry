@@ -654,7 +654,7 @@ export default function ArtifactPresentation() {
                                                     initialArea={linkedArtifact.filter_data?.area}
                                                     diagramId={selectedLink.target_id}
                                                 />
-                                            ) : linkedArtifact.type === 'sequence' ? (
+                                            ) : (linkedArtifact.type === 'sequence' || linkedArtifact.type === 'mermaid') ? (
                                                 <SequenceDiagramEditor diagramId={selectedLink.target_id} readOnly={true} />
                                             ) : (
                                                 <ComponentDiagram />

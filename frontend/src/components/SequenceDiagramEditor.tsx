@@ -11,11 +11,50 @@ interface SequenceDiagramEditorProps {
     readOnly?: boolean;
 }
 
+const TEMPLATES: Record<string, string> = {
+    'Sequence': `sequenceDiagram
+    Alice->>John: Hello John, how are you?
+    John-->>Alice: Great!`,
+    'Flowchart': `flowchart TD
+    A[Start] --> B{Is it working?}
+    B -- Yes --> C[Great!]
+    B -- No --> D[Debug]`,
+    'Class': `classDiagram
+    Animal <|-- Duck
+    Animal <|-- Fish
+    Animal : +int age
+    Animal : +String gender`,
+    'State': `stateDiagram-v2
+    [*] --> Still
+    Still --> Moving
+    Moving --> Still`,
+    'ER Diagram': `erDiagram
+    CUSTOMER ||--o{ ORDER : places
+    ORDER ||--|{ LINE-ITEM : contains`,
+    'Gantt': `gantt
+    title A Gantt Diagram
+    dateFormat  YYYY-MM-DD
+    section Section
+    A task           :a1, 2014-01-01, 30d
+    Another task     :after a1  , 20d`,
+    'Pie Chart': `pie title Pets adopted by volunteers
+    "Dogs" : 386
+    "Cats" : 85
+    "Rats" : 15`,
+    'Mindmap': `mindmap
+  root((mindmap))
+    Origins
+      Long history
+      ::icon(fa fa-book)
+      Popularisation
+        British popular psychology author Tony Buzan`
+};
+
 export default function SequenceDiagramEditor({ diagramId: propId, readOnly = false }: SequenceDiagramEditorProps = {}) {
     const { diagramId: paramId } = useParams<{ diagramId: string }>();
     const diagramId = propId || paramId;
     const queryClient = useQueryClient();
-    const [content, setContent] = useState('sequenceDiagram\n    Alice->>John: Hello John, how are you?\n    John-->>Alice: Great!');
+    const [content, setContent] = useState(TEMPLATES['Sequence']);
     const [svg, setSvg] = useState('');
     const [error, setError] = useState<string | null>(null);
     const renderRef = useRef<HTMLDivElement>(null);
@@ -63,9 +102,6 @@ export default function SequenceDiagramEditor({ diagramId: propId, readOnly = fa
             try {
                 // Clear error
                 setError(null);
-
-                // We render to a temporary element first or use render API
-                // mermaid.render returns { svg }
                 const id = `mermaid-${diagramId || 'preview'}-${Date.now()}`;
                 const { svg } = await mermaid.render(id, content);
                 setSvg(svg);
@@ -90,14 +126,14 @@ export default function SequenceDiagramEditor({ diagramId: propId, readOnly = fa
         if (format === 'png') {
             toPng(renderRef.current, { backgroundColor: '#ffffff' }).then(url => {
                 const a = document.createElement('a');
-                a.download = `sequence-diagram.png`;
+                a.download = `mermaid-diagram-${diagramId || 'export'}.png`;
                 a.href = url;
                 a.click();
             });
         } else {
             toSvg(renderRef.current, { backgroundColor: '#ffffff' }).then(url => {
                 const a = document.createElement('a');
-                a.download = `sequence-diagram.svg`;
+                a.download = `mermaid-diagram-${diagramId || 'export'}.svg`;
                 a.href = url;
                 a.click();
             });
@@ -124,8 +160,24 @@ export default function SequenceDiagramEditor({ diagramId: propId, readOnly = fa
                 {!readOnly && (
                     <div className="w-1/2 flex flex-col bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
                         <div className="p-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-                            <div className="flex items-center gap-2 text-slate-700 font-medium">
-                                <FileCode className="w-4 h-4" /> Source
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-2 text-slate-700 font-medium">
+                                    <FileCode className="w-4 h-4" /> Source
+                                </div>
+                                <select
+                                    onChange={(e) => {
+                                        if (window.confirm('This will replace current content. Continue?')) {
+                                            setContent(TEMPLATES[e.target.value]);
+                                        }
+                                    }}
+                                    className="text-xs border-none bg-slate-200 rounded px-2 py-1 text-slate-700 focus:ring-0 cursor-pointer hover:bg-slate-300"
+                                    defaultValue=""
+                                >
+                                    <option value="" disabled>Load Template...</option>
+                                    {Object.keys(TEMPLATES).map(t => (
+                                        <option key={t} value={t}>{t}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div className="flex gap-2">
                                 <button

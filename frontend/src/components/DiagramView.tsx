@@ -21,7 +21,7 @@ export default function DiagramView() {
     if (isLoading) return <div className="p-8 text-center text-slate-500">Loading diagram...</div>;
     if (!diagram) return <div className="p-8 text-center text-red-500">Diagram not found</div>;
 
-    if (diagram.type === 'sequence') {
+    if (diagram.type === 'sequence' || diagram.type === 'mermaid') {
         return <SequenceDiagramEditor />;
     }
 

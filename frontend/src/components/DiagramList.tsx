@@ -12,7 +12,7 @@ export default function DiagramList() {
     const [isCreating, setIsCreating] = useState(false);
     const [newDiagramName, setNewDiagramName] = useState('');
     const [newDiagramDesc, setNewDiagramDesc] = useState('');
-    const [newDiagramType, setNewDiagramType] = useState<'component' | 'artifact_graph' | 'sequence'>('component');
+    const [newDiagramType, setNewDiagramType] = useState<'component' | 'artifact_graph' | 'mermaid'>('component');
     const [newDiagramFilter, setNewDiagramFilter] = useState('All');
 
     // Edit/Delete state
@@ -243,11 +243,11 @@ export default function DiagramList() {
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => setNewDiagramType('sequence')}
-                                        className={`p-3 rounded-lg border text-sm font-medium flex flex-col items-center gap-2 ${newDiagramType === 'sequence' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:bg-slate-50 text-slate-600'}`}
+                                        onClick={() => setNewDiagramType('mermaid')}
+                                        className={`p-3 rounded-lg border text-sm font-medium flex flex-col items-center gap-2 ${newDiagramType === 'mermaid' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:bg-slate-50 text-slate-600'}`}
                                     >
                                         <Wand2 className="w-5 h-5" />
-                                        Sequence
+                                        Mermaid Diagram
                                     </button>
                                 </div>
                             </div>
@@ -576,10 +576,10 @@ export default function DiagramList() {
                                                 <GitGraph className="w-4 h-4 text-purple-600" />
                                                 <span className="text-sm text-slate-600">Artifact Graph</span>
                                             </>
-                                        ) : diagram.type === 'sequence' ? (
+                                        ) : (diagram.type === 'sequence' || diagram.type === 'mermaid') ? (
                                             <>
                                                 <Wand2 className="w-4 h-4 text-emerald-600" />
-                                                <span className="text-sm text-slate-600">Sequence Diagram</span>
+                                                <span className="text-sm text-slate-600">Mermaid Diagram</span>
                                             </>
                                         ) : (
                                             <>
