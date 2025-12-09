@@ -21,7 +21,8 @@ if (-not (Test-Path $InstallDir)) {
     
     # Cleanup Zip
     Remove-Item $ZipFile
-} else {
+}
+else {
     Write-Host "PostgreSQL binaries already present."
 }
 
@@ -30,17 +31,18 @@ $InitDb = "$InstallDir\pgsql\bin\initdb.exe"
 if (-not (Test-Path $DataDir)) {
     Write-Host "Initializing Database in $DataDir..."
     & $InitDb -D "$DataDir" -U admin -A trust -E UTF8 --no-locale
-} else {
+}
+else {
     Write-Host "Data directory already exists."
 }
 
 # 4. Create Start Script
+# 4. Create Start Script
 $StartScript = "$PSScriptRoot\..\start_db.ps1"
-$PgCtl = "$InstallDir\pgsql\bin\pg_ctl.exe"
 $StartContent = @"
-`$PgCtl = "$PgCtl"
-`$DataDir = "$DataDir"
-& `$PgCtl start -D "`$DataDir" -l "`$DataDir\logfile"
+`$PgCtl = "`$PSScriptRoot\.postgres_bin\pgsql\bin\pg_ctl.exe"
+`$DataDir = "`$PSScriptRoot\postgres_data"
+& `$PgCtl start -D "`$DataDir" -l "`$DataDir\logfile" -o "-p 5432"
 Write-Host "Database started on port 5432"
 "@
 Set-Content -Path $StartScript -Value $StartContent
@@ -48,8 +50,8 @@ Set-Content -Path $StartScript -Value $StartContent
 # 5. Create Stop Script
 $StopScript = "$PSScriptRoot\..\stop_db.ps1"
 $StopContent = @"
-`$PgCtl = "$PgCtl"
-`$DataDir = "$DataDir"
+`$PgCtl = "`$PSScriptRoot\.postgres_bin\pgsql\bin\pg_ctl.exe"
+`$DataDir = "`$PSScriptRoot\postgres_data"
 & `$PgCtl stop -D "`$DataDir" -m fast
 Write-Host "Database stopped"
 "@
