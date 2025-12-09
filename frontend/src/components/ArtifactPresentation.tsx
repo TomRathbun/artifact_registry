@@ -65,7 +65,7 @@ function LinkedArtifactName({ link, onClick }: { link: any; onClick: () => void 
         // Get title or name from artifact
         if ('title' in artifact && artifact.title) return artifact.title;
         if ('name' in artifact && artifact.name) return artifact.name;
-        if ('text' in artifact && artifact.text) return artifact.text.substring(0, 50);
+        if ('text' in artifact && artifact.text) return artifact.text;
         return link.target_id;
     };
 
@@ -479,7 +479,7 @@ export default function ArtifactPresentation() {
 
                             <div>
                                 <h1 className="text-2xl font-bold text-slate-900">
-                                    {'title' in artifact ? artifact.title : 'text' in artifact ? artifact.text?.substring(0, 50) : ''}
+                                    {'title' in artifact ? artifact.title : 'text' in artifact ? artifact.text : ''}
                                 </h1>
                                 <p className="text-sm text-slate-500">{artifact.aid}</p>
                             </div>
@@ -619,7 +619,7 @@ export default function ArtifactPresentation() {
 
                                     {/* Link Preview Content */}
                                     <h4 className="font-semibold text-slate-900 mb-2">
-                                        {'title' in linkedArtifact ? linkedArtifact.title : 'name' in linkedArtifact ? linkedArtifact.name : 'text' in linkedArtifact ? linkedArtifact.text?.substring(0, 100) : ''}
+                                        {'title' in linkedArtifact ? linkedArtifact.title : 'name' in linkedArtifact ? linkedArtifact.name : 'text' in linkedArtifact ? linkedArtifact.text : ''}
                                     </h4>
                                     {selectedLink.target_artifact_type !== 'diagram' && (
                                         <p className="text-sm text-slate-600 mb-3">{linkedArtifact.aid || selectedLink.target_id}</p>
