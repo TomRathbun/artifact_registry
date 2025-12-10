@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import MarkdownDisplay from './MarkdownDisplay';
 import { NeedsService, UseCasesService, RequirementsService, VisionService, LinkageService, ProjectsService } from '../client';
 import { ArrowLeft, Edit, ExternalLink, X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, MessageSquarePlus, MessageSquare, Tag } from 'lucide-react';
 import ComponentDiagram from './ComponentDiagram';
@@ -638,9 +637,7 @@ export default function ArtifactPresentation() {
                                                         {/* Description */}
                                                         <div>
                                                             <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Description</div>
-                                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                                                {linkedArtifact.description || '*No description.*'}
-                                                            </ReactMarkdown>
+                                                            <MarkdownDisplay content={linkedArtifact.description || '*No description.*'} />
                                                         </div>
 
                                                         {/* Trigger */}
@@ -701,9 +698,7 @@ export default function ArtifactPresentation() {
 
                                             if (content) {
                                                 return (
-                                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                                        {String(content)}
-                                                    </ReactMarkdown>
+                                                    <MarkdownDisplay content={String(content)} />
                                                 );
                                             }
 
@@ -891,9 +886,7 @@ function NeedPresentation({ artifact, selectedField, onFieldClick }: Presentatio
                 onClick={onFieldClick}
             >
                 <div className="mt-1">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {artifact.description || '*No description provided.*'}
-                    </ReactMarkdown>
+                    <MarkdownDisplay content={artifact.description || '*No description provided.*'} />
                 </div>
             </SelectableField>
 
@@ -906,9 +899,7 @@ function NeedPresentation({ artifact, selectedField, onFieldClick }: Presentatio
                 >
                     <div className="mt-1">
                         {artifact.rationale ? (
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                {artifact.rationale}
-                            </ReactMarkdown>
+                            <MarkdownDisplay content={artifact.rationale} />
                         ) : (
                             <p className="text-slate-400 italic">No rationale provided.</p>
                         )}
@@ -987,9 +978,7 @@ function UseCasePresentation({ artifact, selectedField, onFieldClick }: Presenta
 
             <SelectableField fieldId="description" label="Description" isActive={selectedField === 'description'} onClick={onFieldClick}>
                 <div className="mt-1">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {artifact.description || '*No description provided.*'}
-                    </ReactMarkdown>
+                    <MarkdownDisplay content={artifact.description || '*No description provided.*'} />
                 </div>
             </SelectableField>
 
@@ -1061,9 +1050,7 @@ function RequirementPresentation({ artifact, selectedField, onFieldClick }: Pres
 
             <SelectableField fieldId="text" label="Requirement Text" isActive={selectedField === 'text'} onClick={onFieldClick}>
                 <div className="bg-slate-50 p-4 rounded-md border border-slate-200 mt-1">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {artifact.text || ''}
-                    </ReactMarkdown>
+                    <MarkdownDisplay content={artifact.text || ''} />
                 </div>
             </SelectableField>
 
@@ -1071,9 +1058,7 @@ function RequirementPresentation({ artifact, selectedField, onFieldClick }: Pres
                 <SelectableField fieldId="rationale" label="Rationale" isActive={selectedField === 'rationale'} onClick={onFieldClick}>
                     <div className="mt-1">
                         {artifact.rationale ? (
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                {artifact.rationale}
-                            </ReactMarkdown>
+                            <MarkdownDisplay content={artifact.rationale} />
                         ) : (
                             <p className="text-slate-400 italic">No rationale provided.</p>
                         )}
@@ -1090,9 +1075,7 @@ function VisionPresentation({ artifact, selectedField, onFieldClick }: Presentat
             <SelectableField fieldId="statement" label="Vision Statement" isActive={selectedField === 'statement'} onClick={onFieldClick}>
                 <div className="mt-1">
                     {artifact.statement ? (
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {artifact.statement}
-                        </ReactMarkdown>
+                        <MarkdownDisplay content={artifact.statement} />
                     ) : <p className="text-slate-400 italic">No statement.</p>}
                 </div>
             </SelectableField>
@@ -1101,9 +1084,7 @@ function VisionPresentation({ artifact, selectedField, onFieldClick }: Presentat
                 <SelectableField fieldId="description" label="Description" isActive={selectedField === 'description'} onClick={onFieldClick}>
                     <div className="mt-1">
                         {artifact.description ? (
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                {artifact.description}
-                            </ReactMarkdown>
+                            <MarkdownDisplay content={artifact.description} />
                         ) : <p className="text-slate-400 italic">No description.</p>}
                     </div>
                 </SelectableField>
@@ -1129,9 +1110,7 @@ function DocumentPresentation({ artifact, selectedField, onFieldClick }: Present
             <SelectableField fieldId="description" label="Description" isActive={selectedField === 'description'} onClick={onFieldClick}>
                 <div className="mt-1">
                     {artifact.description ? (
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {artifact.description}
-                        </ReactMarkdown>
+                        <MarkdownDisplay content={artifact.description} />
                     ) : <p className="text-slate-400 italic">No description.</p>}
                 </div>
             </SelectableField>
@@ -1160,16 +1139,15 @@ function DocumentPresentation({ artifact, selectedField, onFieldClick }: Present
                         </div>
                     )}
 
-                {/* Markdown/Text Rendering */}
-                {/* Check for 'text' type (set by Wizard) or legacy 'markdown' */}
-                {(artifact.document_type === 'text' || artifact.document_type === 'markdown') && (
-                    <div className="mt-4 p-6 bg-white border border-slate-200 rounded-lg shadow-sm">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {artifact.content_text || artifact.text || '*No content.*'}
-                        </ReactMarkdown>
-                    </div>
-                )}
             </div>
+
+            {/* Markdown/Text Rendering */}
+            {/* Check for 'text' type (set by Wizard) or legacy 'markdown' */}
+            {(artifact.document_type === 'text' || artifact.document_type === 'markdown') && (
+                <div className="mt-4 p-6 bg-white border border-slate-200 rounded-lg shadow-sm">
+                    <MarkdownDisplay content={artifact.content_text || artifact.text || '*No content.*'} />
+                </div>
+            )}
         </>
     );
 }

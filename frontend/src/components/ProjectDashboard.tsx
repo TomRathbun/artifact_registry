@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ProjectsService, type ProjectCreate } from '../client'
 import { useForm } from 'react-hook-form'
-import { Plus, FolderOpen, Trash2, Download, Upload } from 'lucide-react'
+import { Plus, FolderOpen, Trash2, Download, Upload, Info, History, Image } from 'lucide-react'
 import clsx from 'clsx'
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
@@ -276,9 +276,22 @@ export default function ProjectDashboard() {
 
     return (
         <div className="max-w-4xl mx-auto p-8">
-            <div className="flex items-center gap-4 mb-8">
-                <img src="/assets/logo.png" alt="Registry Logo" className="w-16 h-16 object-contain" />
-                <h1 className="text-3xl font-bold text-slate-800">Artifact Registry</h1>
+            <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-4">
+                    <img src="/assets/logo.png" alt="Registry Logo" className="w-16 h-16 object-contain" />
+                    <h1 className="text-3xl font-bold text-slate-800">Artifact Registry</h1>
+                </div>
+                <div className="flex gap-2">
+                    <Link to="/images" className="px-3 py-2 bg-slate-100 text-slate-600 rounded-md hover:bg-slate-200 transition-colors flex items-center gap-2">
+                        <Image className="w-4 h-4" /> Images
+                    </Link>
+                    <Link to="/about" className="px-3 py-2 bg-slate-100 text-slate-600 rounded-md hover:bg-slate-200 transition-colors flex items-center gap-2">
+                        <Info className="w-4 h-4" /> About
+                    </Link>
+                    <Link to="/changelog" className="px-3 py-2 bg-slate-100 text-slate-600 rounded-md hover:bg-slate-200 transition-colors flex items-center gap-2">
+                        <History className="w-4 h-4" /> Changelog
+                    </Link>
+                </div>
             </div>
 
             {/* Database Backup Section */}

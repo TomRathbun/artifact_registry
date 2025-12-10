@@ -1,6 +1,6 @@
 
 
-import ReactMarkdown from 'react-markdown';
+import MarkdownDisplay from './MarkdownDisplay';
 import type { VisionOut } from '../client/models/VisionOut';
 
 interface VisionHeaderProps {
@@ -13,7 +13,7 @@ export default function VisionHeader({ vision }: VisionHeaderProps) {
         <div className="p-4 bg-white rounded shadow mb-4">
             <h2 className="text-xl font-semibold text-slate-800">Vision: {vision.title}</h2>
             <div className="text-slate-600 mt-2 prose prose-sm max-w-none">
-                <ReactMarkdown>{vision.description || ''}</ReactMarkdown>
+                <MarkdownDisplay content={vision.description || ''} />
             </div>
         </div>
     );

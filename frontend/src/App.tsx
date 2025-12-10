@@ -16,6 +16,9 @@ import DiagramList from './components/DiagramList';
 import DiagramView from './components/DiagramView';
 import LinkageListView from './components/LinkageListView';
 import AboutPage from './components/AboutPage';
+import ChangelogPage from './components/ChangelogPage';
+
+import ImageGallery from './components/ImageGallery';
 
 const queryClient = new QueryClient();
 
@@ -26,9 +29,12 @@ function App() {
         <div className="min-h-screen bg-transparent text-slate-900">
           <Routes>
             <Route path="/" element={<ProjectDashboard />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/changelog" element={<ChangelogPage />} />
+            <Route path="/images" element={<ImageGallery />} />
             {/* Project layout with side panel */}
             <Route path="/project/:projectId" element={<ProjectLayout />}>
-              <Route path="about" element={<AboutPage />} />
+              <Route path="images" element={<ImageGallery />} />
               {/* List views */}
               <Route index element={<ArtifactListView artifactType="need" />} />
               <Route path="visions" element={<ArtifactListView artifactType="vision" />} />

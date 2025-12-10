@@ -25,6 +25,18 @@ SECL_PASS_HASH = "$argon2id$v=19$m=65536,t=3,p=4$..."
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
+from fastapi.staticfiles import StaticFiles
+import os
+
+# Get absolute path relative to this file (artifact_registry.py is in root)
+current_dir = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_DIR = os.path.join(current_dir, "uploads")
+if not os.path.exists(UPLOAD_DIR):
+    os.makedirs(UPLOAD_DIR)
+
+print(f"Mounting /uploads to: {UPLOAD_DIR}")
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

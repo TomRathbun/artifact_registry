@@ -1,4 +1,6 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import ReactFlow, { Background, Controls } from 'reactflow';
@@ -79,6 +81,7 @@ const edges: Edge[] = [
 ];
 
 const AboutPage: React.FC = () => {
+    const navigate = useNavigate();
     const { data: systemInfo, isLoading } = useQuery({
         queryKey: ['systemInfo'],
         queryFn: async () => {
@@ -89,6 +92,12 @@ const AboutPage: React.FC = () => {
 
     return (
         <div className="p-8 max-w-5xl mx-auto">
+            <button
+                onClick={() => navigate(-1)}
+                className="flex items-center gap-2 text-slate-500 hover:text-slate-700 mb-6 transition-colors"
+            >
+                <ArrowLeft className="w-4 h-4" /> Back
+            </button>
             <h1 className="text-3xl font-bold mb-6 text-slate-800">About Artifact Registry</h1>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">

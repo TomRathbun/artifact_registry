@@ -1603,7 +1603,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                 case 'requirement':
                     return RequirementService.deleteRequirementApiV1RequirementRequirementsAidDelete(aid);
                 case 'document':
-                    const res = await fetch(`/ api / v1 / documents / ${aid} `, { method: 'DELETE' });
+                    const res = await fetch(`/api/v1/documents/${aid}`, { method: 'DELETE' });
                     if (!res.ok) throw new Error('Failed to delete document');
                     return res.json();
                 default:
