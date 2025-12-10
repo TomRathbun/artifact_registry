@@ -516,11 +516,19 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
         // Handle Need specific exports
         if (artifactType === 'need') {
             if (exportItem.sites && Array.isArray(exportItem.sites)) {
-                exportItem.sites = exportItem.sites.map((s: any) => s.name);
+                exportItem.sites = exportItem.sites.map((s: any) => ({
+                    name: s.name,
+                    security_domain: s.security_domain,
+                    tags: s.tags || []
+                }));
             } else if (exportItem.site_ids && allSites) {
                 exportItem.sites = exportItem.site_ids.map((id: string) => {
-                    const site = allSites.find((s: any) => s.id === id);
-                    return site ? site.name : id;
+                    const site = allSites.find((s: any) => s.id === id) as any;
+                    return site ? {
+                        name: site.name,
+                        security_domain: site.security_domain,
+                        tags: site.tags || []
+                    } : { name: id };
                 });
                 delete exportItem.site_ids;
             }
@@ -1028,13 +1036,27 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                             const siteIds = [];
                             // allSites is already fetched
 
-                            for (const siteName of artifact.sites) {
-                                if (typeof siteName === 'string') {
+                            for (const siteItem of artifact.sites) {
+                                let siteName = '';
+                                let siteData: any = {};
+
+                                if (typeof siteItem === 'string') {
+                                    siteName = siteItem;
+                                    siteData = { name: siteName };
+                                } else if (typeof siteItem === 'object' && siteItem.name) {
+                                    siteName = siteItem.name;
+                                    siteData = siteItem;
+                                }
+
+                                if (siteName) {
                                     let existing = allSites.find((s: any) => s.name === siteName);
                                     if (!existing) {
                                         existing = await SiteService.createSiteApiV1SitesPost({
-                                            name: siteName
-                                        });
+                                            name: siteName,
+                                            security_domain: siteData.security_domain,
+                                            tags: siteData.tags || []
+                                        } as any);
+                                        // Update local cache
                                         allSites.push(existing);
                                     }
                                     siteIds.push(existing.id);
@@ -1049,8 +1071,19 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                             const componentIds = [];
                             // allComponents is already fetched
 
-                            for (const compName of artifact.components) {
-                                if (typeof compName === 'string') {
+                            for (const compItem of artifact.components) {
+                                let compName = '';
+                                let compData: any = {};
+
+                                if (typeof compItem === 'string') {
+                                    compName = compItem;
+                                    compData = { name: compName, type: 'Software' };
+                                } else if (typeof compItem === 'object' && compItem.name) {
+                                    compName = compItem.name;
+                                    compData = compItem;
+                                }
+
+                                if (compName) {
                                     // First try exact name match
                                     let existing = allComponents.find((c: any) => c.name === compName);
 
@@ -1058,8 +1091,10 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                                     if (!existing) {
                                         existing = await ComponentService.createComponentApiV1ComponentsPost({
                                             name: compName,
-                                            type: 'Software' // Default type
-                                        });
+                                            type: compData.type || 'Software',
+                                            lifecycle: compData.lifecycle || 'Active',
+                                            tags: compData.tags || []
+                                        } as any);
                                         allComponents.push(existing);
                                     }
                                     componentIds.push(existing.id);

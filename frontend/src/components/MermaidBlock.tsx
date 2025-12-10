@@ -34,7 +34,7 @@ const MermaidBlock: React.FC<MermaidBlockProps> = ({ chart }) => {
         return <div className="text-red-500 font-mono text-sm p-2 border border-red-200 bg-red-50 rounded">{error}</div>;
     }
 
-    return <div dangerouslySetInnerHTML={{ __html: svg }} className="my-4 overflow-x-auto" />;
+    return <div dangerouslySetInnerHTML={{ __html: svg }} className="my-4 overflow-x-auto bg-white p-4 rounded-md shadow-sm text-slate-900" />;
 };
 
 export default MermaidBlock;

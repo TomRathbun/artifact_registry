@@ -11,6 +11,17 @@ interface ChangeLogEntry {
 
 const changelogData: ChangeLogEntry[] = [
     {
+        version: '0.1.1',
+        date: '2025-12-10',
+        type: 'minor',
+        changes: [
+            'Added `MarkdownDisplay` component for unified Markdown and Mermaid diagram rendering',
+            'Added Image Gallery and Upload functionality',
+            'Fixed Document artifact deletion in List View',
+            'Enhanced `ArtifactPresentation` to support Mermaid diagrams in all description fields'
+        ]
+    },
+    {
         version: '0.1.0',
         date: '2025-12-10',
         type: 'minor',
@@ -60,8 +71,8 @@ const ChangelogPage: React.FC = () => {
                             <div className="flex items-center gap-3">
                                 <span className="text-lg font-bold text-slate-800">v{entry.version}</span>
                                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium uppercase ${entry.type === 'major' ? 'bg-red-100 text-red-700' :
-                                        entry.type === 'minor' ? 'bg-blue-100 text-blue-700' :
-                                            'bg-slate-200 text-slate-700'
+                                    entry.type === 'minor' ? 'bg-blue-100 text-blue-700' :
+                                        'bg-slate-200 text-slate-700'
                                     }`}>
                                     {entry.type}
                                 </span>
