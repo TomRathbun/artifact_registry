@@ -4,7 +4,7 @@
 Write-Host "Dropping and recreating registry database..." -ForegroundColor Cyan
 
 # Terminate all connections
-& ".\.postgres_bin\pgsql\bin\psql.exe" `
+& "$PSScriptRoot\..\.postgres_bin\pgsql\bin\psql.exe" `
     -h localhost `
     -p 5432 `
     -U admin `
@@ -12,7 +12,7 @@ Write-Host "Dropping and recreating registry database..." -ForegroundColor Cyan
     -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'registry' AND pid <> pg_backend_pid();"
 
 # Drop database
-& ".\.postgres_bin\pgsql\bin\psql.exe" `
+& "$PSScriptRoot\..\.postgres_bin\pgsql\bin\psql.exe" `
     -h localhost `
     -p 5432 `
     -U admin `
@@ -20,7 +20,7 @@ Write-Host "Dropping and recreating registry database..." -ForegroundColor Cyan
     -c "DROP DATABASE IF EXISTS registry;"
 
 # Create database
-& ".\.postgres_bin\pgsql\bin\psql.exe" `
+& "$PSScriptRoot\..\.postgres_bin\pgsql\bin\psql.exe" `
     -h localhost `
     -p 5432 `
     -U admin `

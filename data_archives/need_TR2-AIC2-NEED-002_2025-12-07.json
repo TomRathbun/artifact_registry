@@ -1,0 +1,89 @@
+{
+  "artifactType": "need",
+  "project": "TR2",
+  "exportDate": "2025-12-10T12:00:00.000Z",
+  "count": 3,
+  "artifacts": [
+    {
+      "title": "Decoupled Sensor-Shooter Integration for Flexible Engagements",
+      "description": "*As* **UAE AFAD Mission Operators**, \n\n- *We need* AI-augmented tools that decouple sensors from shooters, enabling 'any sensor, any shooter' flexibility through Combat Cloud principles \n- *So that* we can dynamically allocate resources across multi-domain operations and respond to threats with optimal force-level TEWA.",
+      "area": "AIC2",
+      "status": "Draft",
+      "owner": "Air Force and Air Defence Commander",
+      "rationale": "Enhances AFAD's decision superiority by enabling rapid, flexible threat neutralization in contested environments, aligning with joint force integration goals.",
+      "stakeholder": "Mission Operator",
+      "level": "Mission",
+      "sites": [
+        "AOC - Pink",
+        "AAOC - Pink",
+        "Remote Radar Sites"
+      ],
+      "components": [
+        {
+          "name": "CommandIQ AI Module",
+          "tags": [
+            "TR2",
+            "AI/ML"
+          ],
+          "type": "Software",
+          "lifecycle": "Planned"
+        }
+      ],
+      "project": "TR2"
+    },
+    {
+      "title": "Real-Time Multi-Domain Data Sharing and Allocation",
+      "description": "*As* **UAE AFAD Enterprise Commanders**, \n\n- *We need* secure, resilient networks for real-time ISR data sharing across AFAD and coalition domains via Combat Cloud \n- *So that* we can achieve enterprise-wide resource allocation and maintain operational continuity during disruptions.",
+      "area": "AIC2",
+      "status": "Draft",
+      "owner": "Joint Operations Staff",
+      "rationale": "Supports AFAD's organizational efficiency by integrating air, land, and cyber domains, reducing silos and enabling coalition interoperability under Supreme Command directives.",
+      "stakeholder": "Enterprise Commander",
+      "level": "Enterprise",
+      "sites": [
+        "AOC - Red",
+        "SDC",
+        "Coalition Interfaces"
+      ],
+      "components": [
+        {
+          "name": "Combat Cloud Network Fabric",
+          "tags": [
+            "TR2",
+            "Network"
+          ],
+          "type": "Hardware/Software",
+          "lifecycle": "Planned"
+        }
+      ],
+      "project": "TR2"
+    },
+    {
+      "title": "AI/ML Integration for Predictive Threat Management",
+      "description": "*As* **UAE AFAD Technical Specialists**, \n\n- *We need* modular AI/ML capabilities within Combat Cloud for predictive analytics, automated TEWA, and algorithm back-testing \n- *So that* we can proactively address emerging threats while ensuring technical compliance and modularity for future upgrades.",
+      "area": "AIC2",
+      "status": "Draft",
+      "owner": "Air Defence Technical Directorate",
+      "rationale": "Provides AFAD with technical tools for AI-driven enhancements, building on TRP1's DevOps platform to streamline deployment and maintain cybersecurity.",
+      "stakeholder": "Technical Specialist",
+      "level": "Technical",
+      "sites": [
+        "SDC - DevOps",
+        "AOC - Compute"
+      ],
+      "components": [
+        {
+          "name": "MLOps Pipeline",
+          "tags": [
+            "TR2",
+            "DevSecOps"
+          ],
+          "type": "Software",
+          "lifecycle": "Planned"
+        }
+      ],
+      "project": "TR2"
+    }
+  ],
+  "linkages": []
+}

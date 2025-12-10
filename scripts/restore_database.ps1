@@ -8,7 +8,7 @@ param(
 
 # If no file specified, use the most recent backup
 if (-not $BackupFile) {
-    $latestBackup = Get-ChildItem "db_backups\*.sql" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    $latestBackup = Get-ChildItem "$PSScriptRoot\..\db_backups\*.sql" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
     if ($latestBackup) {
         $BackupFile = $latestBackup.FullName
         Write-Host "Using latest backup: $($latestBackup.Name)" -ForegroundColor Cyan
@@ -38,7 +38,7 @@ Write-Host ""
 Write-Host "Restoring database..." -ForegroundColor Cyan
 
 # Run psql to restore the dump
-& ".\.postgres_bin\pgsql\bin\psql.exe" `
+& "$PSScriptRoot\..\.postgres_bin\pgsql\bin\psql.exe" `
     -h localhost `
     -p 5432 `
     -U admin `

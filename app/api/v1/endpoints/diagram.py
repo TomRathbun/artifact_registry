@@ -45,6 +45,7 @@ def create_diagram(project_id: str, diagram_in: DiagramCreate, db: Session = Dep
         name=diagram_in.name,
         description=diagram_in.description,
         type=diagram_in.type,
+        content=diagram_in.content,
         filter_data=diagram_in.filter_data
     )
     db.add(diagram)
@@ -69,6 +70,8 @@ def update_diagram(diagram_id: str, diagram_in: DiagramUpdate, db: Session = Dep
         diagram.name = diagram_in.name
     if diagram_in.description is not None:
         diagram.description = diagram_in.description
+    if diagram_in.content is not None:
+        diagram.content = diagram_in.content
     if diagram_in.filter_data is not None:
         diagram.filter_data = diagram_in.filter_data
         

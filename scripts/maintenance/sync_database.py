@@ -12,7 +12,7 @@ import argparse
 DB_HOST = "localhost"
 DB_USER = "postgres"
 DB_NAME = "artifact_registry"
-BACKUP_DIR = Path("db_backups")
+BACKUP_DIR = Path(__file__).resolve().parents[2] / "db_backups"
 
 def export_database(output_file: str = None):
     """Export database to a dump file."""

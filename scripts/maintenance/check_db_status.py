@@ -2,7 +2,8 @@ import sqlite3
 import os
 
 def check_db():
-    db_path = os.path.join(os.getcwd(), 'tr2_registry.db')
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    db_path = os.path.join(base_dir, 'data_archives', 'tr2_registry.db')
     print(f"Connecting to database at {db_path}")
     try:
         conn = sqlite3.connect(db_path, timeout=5)

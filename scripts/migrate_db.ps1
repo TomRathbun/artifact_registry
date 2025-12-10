@@ -3,11 +3,11 @@ $ErrorActionPreference = "Stop"
 Write-Host "Running Database Migrations..."
 
 # Check if .venv exists
-if (Test-Path ".\.venv\Scripts\alembic.exe") {
-    $Alembic = ".\.venv\Scripts\alembic.exe"
+if (Test-Path "$PSScriptRoot\..\.venv\Scripts\alembic.exe") {
+    $Alembic = "$PSScriptRoot\..\.venv\Scripts\alembic.exe"
 }
-elseif (Test-Path ".\venv\Scripts\alembic.exe") {
-    $Alembic = ".\venv\Scripts\alembic.exe"
+elseif (Test-Path "$PSScriptRoot\..\venv\Scripts\alembic.exe") {
+    $Alembic = "$PSScriptRoot\..\venv\Scripts\alembic.exe"
 }
 else {
     Write-Warning "Could not find alembic in .venv or venv. Trying global PATH..."

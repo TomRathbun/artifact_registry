@@ -2,17 +2,17 @@
 # This creates a dump that can be committed to git and restored on another machine
 
 $timestamp = Get-Date -Format "yyyy-MM-dd_HHmmss"
-$backupFile = "db_backups\registry_backup_$timestamp.sql"
+$backupFile = "$PSScriptRoot\..\db_backups\registry_backup_$timestamp.sql"
 
 Write-Host "Creating database backup..." -ForegroundColor Cyan
 
 # Create backup directory if it doesn't exist
-if (-not (Test-Path "db_backups")) {
-    New-Item -ItemType Directory -Path "db_backups" | Out-Null
+if (-not (Test-Path "$PSScriptRoot\..\db_backups")) {
+    New-Item -ItemType Directory -Path "$PSScriptRoot\..\db_backups" | Out-Null
 }
 
 # Run pg_dump using the portable PostgreSQL
-& ".\.postgres_bin\pgsql\bin\pg_dump.exe" `
+& "$PSScriptRoot\..\.postgres_bin\pgsql\bin\pg_dump.exe" `
     -h localhost `
     -p 5432 `
     -U admin `
