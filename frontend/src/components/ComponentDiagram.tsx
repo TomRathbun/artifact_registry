@@ -63,8 +63,8 @@ const CustomNode = ({ data, style }: any) => {
                 <div className="flex flex-wrap justify-center gap-1 mt-1">
                     {data.lifecycle && (
                         <span className={`text-[10px] px-1 py-0.5 rounded border inline-flex items-center gap-0.5 ${data.lifecycle === 'Active' ? 'bg-green-50 text-green-700 border-green-200' :
-                                data.lifecycle === 'Deprecated' ? 'bg-red-50 text-red-700 border-red-200' :
-                                    'bg-slate-50 text-slate-600 border-slate-200'
+                            data.lifecycle === 'Deprecated' ? 'bg-red-50 text-red-700 border-red-200' :
+                                'bg-slate-50 text-slate-600 border-slate-200'
                             }`}>
                             <Activity className="w-2 h-2" />
                             {data.lifecycle}
@@ -126,8 +126,14 @@ const getLayoutedElements = (nodes: any[], edges: any[], direction = 'TB') => {
     return { nodes, edges };
 };
 
-export default function ComponentDiagram() {
-    const { diagramId } = useParams<{ diagramId: string }>();
+interface ComponentDiagramProps {
+    diagramId?: string;
+    readOnly?: boolean;
+}
+
+export default function ComponentDiagram({ diagramId: propDiagramId, readOnly = false }: ComponentDiagramProps = {}) {
+    const params = useParams<{ diagramId: string }>();
+    const diagramId = propDiagramId || params.diagramId;
     const queryClient = useQueryClient();
     const [showFilter, setShowFilter] = useState(false);
     const [selectedComponentIds, setSelectedComponentIds] = useState<string[]>([]);
@@ -571,15 +577,6 @@ export default function ComponentDiagram() {
                     </select>
                 </div>
                 <div className="absolute top-4 right-4 z-10 flex gap-2">
-                    <div className="flex bg-white rounded shadow border border-slate-200 mr-2">
-                        <button onClick={() => alignNodes('left')} className="p-2 hover:bg-slate-50 text-slate-600" title="Align Left"><AlignHorizontalJustifyStart className="w-4 h-4" /></button>
-                        <button onClick={() => alignNodes('center')} className="p-2 hover:bg-slate-50 text-slate-600" title="Align Center"><AlignHorizontalJustifyCenter className="w-4 h-4" /></button>
-                        <button onClick={() => alignNodes('right')} className="p-2 hover:bg-slate-50 text-slate-600" title="Align Right"><AlignHorizontalJustifyEnd className="w-4 h-4" /></button>
-                        <div className="w-px bg-slate-200 mx-1"></div>
-                        <button onClick={() => alignNodes('top')} className="p-2 hover:bg-slate-50 text-slate-600" title="Align Top"><AlignVerticalJustifyStart className="w-4 h-4" /></button>
-                        <button onClick={() => alignNodes('middle')} className="p-2 hover:bg-slate-50 text-slate-600" title="Align Middle"><AlignVerticalJustifyCenter className="w-4 h-4" /></button>
-                        <button onClick={() => alignNodes('bottom')} className="p-2 hover:bg-slate-50 text-slate-600" title="Align Bottom"><AlignVerticalJustifyEnd className="w-4 h-4" /></button>
-                    </div>
                     <button
                         onClick={() => downloadImage('png')}
                         className="bg-white p-2 rounded shadow border border-slate-200 hover:bg-slate-50 text-slate-600 flex items-center gap-1 text-sm font-medium"
@@ -594,13 +591,26 @@ export default function ComponentDiagram() {
                     >
                         <Download className="w-4 h-4" /> SVG
                     </button>
-                    <button
-                        onClick={() => setShowFilter(!showFilter)}
-                        className={`p-2 rounded-md shadow-sm border ${showFilter ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-600'} hover:bg-slate-50`}
-                        title="Filter Components"
-                    >
-                        <Filter className="w-5 h-5" />
-                    </button>
+                    {!readOnly && (
+                        <>
+                            <div className="flex bg-white rounded shadow border border-slate-200 mr-2">
+                                <button onClick={() => alignNodes('left')} className="p-2 hover:bg-slate-50 text-slate-600" title="Align Left"><AlignHorizontalJustifyStart className="w-4 h-4" /></button>
+                                <button onClick={() => alignNodes('center')} className="p-2 hover:bg-slate-50 text-slate-600" title="Align Center"><AlignHorizontalJustifyCenter className="w-4 h-4" /></button>
+                                <button onClick={() => alignNodes('right')} className="p-2 hover:bg-slate-50 text-slate-600" title="Align Right"><AlignHorizontalJustifyEnd className="w-4 h-4" /></button>
+                                <div className="w-px bg-slate-200 mx-1"></div>
+                                <button onClick={() => alignNodes('top')} className="p-2 hover:bg-slate-50 text-slate-600" title="Align Top"><AlignVerticalJustifyStart className="w-4 h-4" /></button>
+                                <button onClick={() => alignNodes('middle')} className="p-2 hover:bg-slate-50 text-slate-600" title="Align Middle"><AlignVerticalJustifyCenter className="w-4 h-4" /></button>
+                                <button onClick={() => alignNodes('bottom')} className="p-2 hover:bg-slate-50 text-slate-600" title="Align Bottom"><AlignVerticalJustifyEnd className="w-4 h-4" /></button>
+                            </div>
+                            <button
+                                onClick={() => setShowFilter(!showFilter)}
+                                className={`p-2 rounded-md shadow-sm border ${showFilter ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-600'} hover:bg-slate-50`}
+                                title="Filter Components"
+                            >
+                                <Filter className="w-5 h-5" />
+                            </button>
+                        </>
+                    )}
                 </div>
 
                 {showFilter && (

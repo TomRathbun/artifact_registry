@@ -717,7 +717,7 @@ export default function ArtifactPresentation() {
                                             ) : (linkedArtifact.type === 'sequence' || linkedArtifact.type === 'mermaid') ? (
                                                 <SequenceDiagramEditor diagramId={selectedLink.target_id} readOnly={true} />
                                             ) : (
-                                                <ComponentDiagram />
+                                                <ComponentDiagram diagramId={selectedLink.target_id} readOnly={true} />
                                             )}
                                         </div>
                                     )}
@@ -1072,13 +1072,7 @@ function RequirementPresentation({ artifact, selectedField, onFieldClick }: Pres
 function VisionPresentation({ artifact, selectedField, onFieldClick }: PresentationProps) {
     return (
         <>
-            <SelectableField fieldId="statement" label="Vision Statement" isActive={selectedField === 'statement'} onClick={onFieldClick}>
-                <div className="mt-1">
-                    {artifact.statement ? (
-                        <MarkdownDisplay content={artifact.statement} />
-                    ) : <p className="text-slate-400 italic">No statement.</p>}
-                </div>
-            </SelectableField>
+
 
             <div className="mt-4">
                 <SelectableField fieldId="description" label="Description" isActive={selectedField === 'description'} onClick={onFieldClick}>

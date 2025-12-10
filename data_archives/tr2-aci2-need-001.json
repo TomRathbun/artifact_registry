@@ -1,0 +1,68 @@
+{
+  "artifactType": "need",
+  "project": "TR2",
+  "exportDate": "2025-12-10T11:30:33.600Z",
+  "count": 1,
+  "artifacts": [
+    {
+      "aid": "TR2-AIC2-NEED-001",
+      "title": "AI-Driven Threat Anticipation",
+      "description": "*As* **Mission Operators**, \n\n- *We need* AI-driven tools that anticipate emerging threats by continuously analyzing all-source data in real-time \n- *So that* we can act before *adversaries* complete their decision cycle.",
+      "area": "AIC2",
+      "status": "Draft",
+      "owner": "Air Power Commander",
+      "rationale": "AI Augmented Threat Detection is a force Multiplier",
+      "stakeholder": "Mission Operator",
+      "level": "Mission",
+      "sites": [
+        {
+          "name": "AOC - Pink",
+          "security_domain": "SECL",
+          "tags": []
+        },
+        {
+          "name": "AAOC - Pink",
+          "security_domain": "SECL",
+          "tags": []
+        }
+      ],
+      "components": [
+        {
+          "name": "CRC",
+          "tags": [
+            "TR2"
+          ],
+          "type": "Software",
+          "lifecycle": "Planned"
+        }
+      ],
+      "project": "TR2"
+    }
+  ],
+  "linkages": [
+    [
+      "TR2-AIC2-NEED-001",
+      "CRC Transition"
+    ],
+    [
+      "TR2-AIC2-NEED-001",
+      "TR2-GLOBAL-VISION-001"
+    ],
+    [
+      "TR2-AIC2-NEED-001",
+      "TR2-AIC2-UC-001"
+    ],
+    [
+      "TR2-AIC2-NEED-001",
+      "TR2-GLOBAL-UC-001"
+    ],
+    [
+      "TR2-AIC2-NEED-001",
+      "Test"
+    ],
+    [
+      "TR2-AIC2-NEED-001",
+      "TR2-GLOBAL-DOC-001"
+    ]
+  ]
+}

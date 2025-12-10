@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { VisionService, NeedsService, UseCaseService, RequirementService } from '../client';
+import MarkdownDisplay from './MarkdownDisplay';
 
 export default function ArtifactEditor() {
     const { projectId, artifactType, artifactId } = useParams<{
@@ -15,6 +16,7 @@ export default function ArtifactEditor() {
     const [artifact, setArtifact] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [viewMode, setViewMode] = useState<'write' | 'preview'>('write');
 
     // Load artifact based on type and id
     useEffect(() => {
@@ -98,14 +100,38 @@ export default function ArtifactEditor() {
                     />
                 </div>
                 <div>
-                    <label className="block font-medium mb-1">Description / Text</label>
-                    <textarea
-                        name={artifact.text ? "text" : "description"}
-                        value={artifact.description || artifact.text || ''}
-                        onChange={handleChange}
-                        className="w-full border rounded px-3 py-2"
-                        rows={4}
-                    />
+                    <div className="flex justify-between items-center mb-1">
+                        <label className="block font-medium">Description / Text</label>
+                        <div className="flex gap-2 text-sm bg-gray-100 p-1 rounded">
+                            <button
+                                type="button"
+                                onClick={() => setViewMode('write')}
+                                className={`px-3 py-1 rounded ${viewMode === 'write' ? 'bg-white shadow text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
+                            >
+                                Write
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setViewMode('preview')}
+                                className={`px-3 py-1 rounded ${viewMode === 'preview' ? 'bg-white shadow text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}
+                            >
+                                Preview
+                            </button>
+                        </div>
+                    </div>
+                    {viewMode === 'write' ? (
+                        <textarea
+                            name={artifact.text ? "text" : "description"}
+                            value={artifact.description || artifact.text || ''}
+                            onChange={handleChange}
+                            className="w-full border rounded px-3 py-2 font-mono text-sm"
+                            rows={12}
+                        />
+                    ) : (
+                        <div className="w-full border rounded px-3 py-2 min-h-[300px] bg-gray-50 overflow-y-auto">
+                            <MarkdownDisplay content={artifact.description || artifact.text || ''} />
+                        </div>
+                    )}
                 </div>
                 {'status' in artifact && (
                     <div>

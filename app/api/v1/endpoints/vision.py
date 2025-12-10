@@ -33,8 +33,11 @@ def list_vision_statements(
 # -------------------------------------------------
 @router.post("/", response_model=VisionOut, status_code=status.HTTP_201_CREATED)
 def create_vision_statement(payload: VisionCreate, db: Session = Depends(get_db)):
+    # Use provided area or default to GLOBAL
+    area_code = payload.area if payload.area else "GLOBAL"
+    
     vision = Vision(
-        aid=generate_artifact_id(db, Vision, "GLOBAL", payload.project_id),
+        aid=generate_artifact_id(db, Vision, area_code, payload.project_id),
         **payload.model_dump()
     )
     db.add(vision)

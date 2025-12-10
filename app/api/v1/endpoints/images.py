@@ -3,6 +3,7 @@ import shutil
 import os
 from pathlib import Path
 from typing import List
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -54,3 +55,28 @@ def list_images():
                     "created": f.stat().st_ctime
                 })
     return images
+
+class RenameRequest(BaseModel):
+    new_filename: str
+
+@router.put("/{filename}/rename")
+def rename_image(filename: str, request: RenameRequest):
+    old_path = UPLOAD_DIR / filename
+    if not old_path.exists():
+        raise HTTPException(status_code=404, detail="Image not found")
+    
+    # Sanitize new filename lightly (prevent directory traversal)
+    new_filename = Path(request.new_filename).name
+    new_path = UPLOAD_DIR / new_filename
+    
+    if new_path.exists():
+        raise HTTPException(status_code=400, detail="A file with that name already exists")
+    
+    try:
+        old_path.rename(new_path)
+        return {
+            "filename": new_filename,
+            "url": f"/uploads/{new_filename}"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to rename image: {str(e)}")

@@ -1,6 +1,8 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import MermaidBlock from './MermaidBlock';
 
 interface MarkdownDisplayProps {
@@ -15,9 +17,26 @@ const MarkdownDisplay: React.FC<MarkdownDisplayProps> = ({ content }) => {
                 components={{
                     code: ({ node, inline, className, children, ...props }: any) => {
                         const match = /language-(\w+)/.exec(className || '');
-                        if (!inline && match && match[1] === 'mermaid') {
+                        const language = match ? match[1] : '';
+
+                        if (!inline && language === 'mermaid') {
                             return <MermaidBlock chart={String(children).replace(/\n$/, '')} />;
                         }
+
+                        if (!inline && match) {
+                            return (
+                                <SyntaxHighlighter
+                                    {...props}
+                                    style={oneLight}
+                                    language={language}
+                                    PreTag="div"
+                                    customStyle={{ margin: 0, borderRadius: '0.375rem' }}
+                                >
+                                    {String(children).replace(/\n$/, '')}
+                                </SyntaxHighlighter>
+                            );
+                        }
+
                         return (
                             <code className={className} {...props}>
                                 {children}

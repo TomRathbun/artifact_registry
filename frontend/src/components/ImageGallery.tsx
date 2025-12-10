@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Upload, Copy, Image as ImageIcon, Check, Trash2 } from 'lucide-react';
+import { Upload, Copy, Image as ImageIcon, Check, Trash2, Edit2, X } from 'lucide-react';
 import axios from 'axios';
 
 interface ImageFile {
@@ -54,6 +54,37 @@ const ImageGallery: React.FC = () => {
             alert('Failed to delete image');
         }
     });
+
+    const [renamingImage, setRenamingImage] = useState<string | null>(null);
+    const [newFilename, setNewFilename] = useState('');
+
+    const renameMutation = useMutation({
+        mutationFn: async ({ oldName, newName }: { oldName: string; newName: string }) => {
+            await axios.put(`/api/v1/images/${oldName}/rename`, { new_filename: newName });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['images'] });
+            setRenamingImage(null);
+            setNewFilename('');
+        },
+        onError: (error: any) => {
+            console.error('Rename failed:', error);
+            alert(error.response?.data?.detail || 'Failed to rename image');
+        }
+    });
+
+    const startRenaming = (filename: string) => {
+        setRenamingImage(filename);
+        setNewFilename(filename);
+    };
+
+    const submitRename = () => {
+        if (renamingImage && newFilename && newFilename !== renamingImage) {
+            renameMutation.mutate({ oldName: renamingImage, newName: newFilename });
+        } else {
+            setRenamingImage(null);
+        }
+    };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -123,13 +154,45 @@ const ImageGallery: React.FC = () => {
                                     <button
                                         onClick={() => handleDelete(image.filename)}
                                         className="bg-white text-red-600 px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 hover:bg-red-50"
+                                        title="Delete"
                                     >
                                         <Trash2 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => startRenaming(image.filename)}
+                                        className="bg-white text-blue-600 px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 hover:bg-blue-50"
+                                        title="Rename"
+                                    >
+                                        <Edit2 className="w-4 h-4" />
                                     </button>
                                 </div>
                             </div>
                             <div className="p-3 bg-white border-t border-slate-100">
-                                <p className="text-sm font-medium text-slate-700 truncate" title={image.filename}>{image.filename}</p>
+                                {renamingImage === image.filename ? (
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="text"
+                                            value={newFilename}
+                                            onChange={(e) => setNewFilename(e.target.value)}
+                                            className="flex-1 text-sm border rounded px-2 py-1"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') submitRename();
+                                                if (e.key === 'Escape') setRenamingImage(null);
+                                            }}
+                                        />
+                                        <button onClick={submitRename} className="text-green-600 hover:text-green-700">
+                                            <Check className="w-4 h-4" />
+                                        </button>
+                                        <button onClick={() => setRenamingImage(null)} className="text-slate-400 hover:text-slate-600">
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm font-medium text-slate-700 truncate" title={image.filename}>
+                                        {image.filename}
+                                    </p>
+                                )}
                                 <p className="text-xs text-slate-400 mt-1">{(image.size / 1024).toFixed(1)} KB</p>
                             </div>
                         </div>
