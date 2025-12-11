@@ -576,7 +576,7 @@ export default function ArtifactPresentation() {
                                 </button>
                             </div>
                             {linkedArtifact && (
-                                <div className="bg-white rounded-md p-4 overflow-y-auto custom-scrollbar">
+                                <div className="bg-white rounded-md p-4 overflow-y-auto custom-scrollbar max-h-[600px]">
                                     {/* Document Specific Preview */}
                                     {selectedLink.target_artifact_type === 'document' && 'document_type' in linkedArtifact && (
                                         <div className="mb-4">
@@ -619,9 +619,55 @@ export default function ArtifactPresentation() {
                                     )}
 
                                     {/* Link Preview Content */}
-                                    <h4 className="font-semibold text-slate-900 mb-2 break-words">
-                                        {'title' in linkedArtifact ? linkedArtifact.title : 'name' in linkedArtifact ? linkedArtifact.name : 'text' in linkedArtifact ? linkedArtifact.text : ''}
-                                    </h4>
+                                    <div className="flex justify-between items-start gap-4 mb-2">
+                                        <h4 className="font-semibold text-slate-900 break-words flex-1">
+                                            {(() => {
+                                                const url = projectId ? (
+                                                    (selectedLink.target_artifact_type === 'vision' ||
+                                                        selectedLink.target_artifact_type === 'need' ||
+                                                        selectedLink.target_artifact_type === 'use_case' ||
+                                                        selectedLink.target_artifact_type === 'requirement' ||
+                                                        selectedLink.target_artifact_type === 'document')
+                                                        ? `/project/${projectId}/${selectedLink.target_artifact_type}/${selectedLink.target_id}`
+                                                        : selectedLink.target_artifact_type === 'diagram'
+                                                            ? `/project/${projectId}/diagrams/${selectedLink.target_id}`
+                                                            : null
+                                                ) : null;
+
+                                                const name = 'title' in linkedArtifact ? linkedArtifact.title : 'name' in linkedArtifact ? linkedArtifact.name : 'text' in linkedArtifact ? linkedArtifact.text : '';
+
+                                                return url ? (
+                                                    <Link to={url} className="hover:text-blue-600 hover:underline">
+                                                        {name}
+                                                    </Link>
+                                                ) : name;
+                                            })()}
+                                        </h4>
+
+                                        {(() => {
+                                            const url = projectId ? (
+                                                (selectedLink.target_artifact_type === 'vision' ||
+                                                    selectedLink.target_artifact_type === 'need' ||
+                                                    selectedLink.target_artifact_type === 'use_case' ||
+                                                    selectedLink.target_artifact_type === 'requirement' ||
+                                                    selectedLink.target_artifact_type === 'document')
+                                                    ? `/project/${projectId}/${selectedLink.target_artifact_type}/${selectedLink.target_id}`
+                                                    : selectedLink.target_artifact_type === 'diagram'
+                                                        ? `/project/${projectId}/diagrams/${selectedLink.target_id}`
+                                                        : null
+                                            ) : null;
+
+                                            return url && (
+                                                <Link
+                                                    to={url}
+                                                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white text-slate-600 border border-slate-200 rounded-md text-xs font-medium hover:bg-slate-50 hover:text-blue-600 hover:border-blue-200 transition-colors shadow-sm"
+                                                >
+                                                    <ExternalLink className="w-3 h-3" />
+                                                    Open
+                                                </Link>
+                                            );
+                                        })()}
+                                    </div>
                                     {selectedLink.target_artifact_type !== 'diagram' && (
                                         <p className="text-sm text-slate-600 mb-3">{linkedArtifact.aid || selectedLink.target_id}</p>
                                     )}
@@ -911,11 +957,26 @@ function NeedPresentation({ artifact, selectedField, onFieldClick }: Presentatio
             {artifact.sites && artifact.sites.length > 0 && (
                 <div className="mt-4">
                     <span className="text-sm font-medium text-slate-500 mb-2 block">Related Sites</span>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-col gap-2">
                         {artifact.sites.map((site: any) => (
-                            <span key={site.id} className="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium border border-indigo-100">
-                                {site.name}
-                            </span>
+                            <div key={site.id} className="flex flex-wrap items-center gap-2 text-sm bg-slate-50 p-2 rounded border border-slate-100">
+                                <span className="font-medium text-slate-900 mr-1">{site.name}</span>
+
+                                {/* Security Domain Badge */}
+                                {site.security_domain && (
+                                    <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium">
+                                        {site.security_domain}
+                                    </span>
+                                )}
+
+                                {/* Tags */}
+                                {Array.isArray(site.tags) && site.tags.map((tag: string) => (
+                                    <span key={tag} className="px-2 py-0.5 bg-white text-slate-600 text-xs rounded border border-slate-200 flex items-center gap-1">
+                                        <Tag className="w-3 h-3" />
+                                        {tag}
+                                    </span>
+                                ))}
+                            </div>
                         ))}
                     </div>
                 </div>

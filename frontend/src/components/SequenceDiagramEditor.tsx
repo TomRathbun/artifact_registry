@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import mermaid from 'mermaid';
-import { Save, Download, FileCode, Wand2 } from 'lucide-react';
+import { Save, Download, FileCode, Wand2, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
@@ -202,27 +203,58 @@ export default function SequenceDiagramEditor({ diagramId: propId, readOnly = fa
 
                 {/* Preview Pane */}
                 <div className={`${readOnly ? 'w-full' : 'w-1/2'} flex flex-col bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden`}>
-                    <div className="p-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-                        <div className="flex items-center gap-2 text-slate-700 font-medium">
-                            <Wand2 className="w-4 h-4" /> Preview
-                        </div>
-                        <div className="flex gap-2">
-                            <button onClick={() => handleDownload('png')} className="p-1.5 hover:bg-white rounded text-slate-600 border border-transparent hover:border-slate-200" title="Export PNG">
-                                <Download className="w-4 h-4" /> <span className="text-xs">PNG</span>
-                            </button>
-                            <button onClick={() => handleDownload('svg')} className="p-1.5 hover:bg-white rounded text-slate-600 border border-transparent hover:border-slate-200" title="Export SVG">
-                                <Download className="w-4 h-4" /> <span className="text-xs">SVG</span>
-                            </button>
-                        </div>
-                    </div>
-                    <div className="flex-1 p-4 bg-white overflow-auto flex items-start justify-center relative">
-                        {error && (
-                            <div className="absolute top-4 left-4 right-4 bg-red-50 text-red-700 p-3 rounded border border-red-200 text-sm font-mono whitespace-pre-wrap z-10">
-                                {error}
-                            </div>
+                    <TransformWrapper
+                        initialScale={1}
+                        minScale={0.1}
+                        maxScale={4}
+                        centerOnInit={true}
+                    >
+                        {({ zoomIn, zoomOut, resetTransform }) => (
+                            <>
+                                <div className="p-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center z-10 relative">
+                                    <div className="flex items-center gap-2 text-slate-700 font-medium">
+                                        <Wand2 className="w-4 h-4" /> Preview
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <div className="flex items-center gap-1 bg-white rounded border border-slate-200 mr-2">
+                                            <button onClick={() => zoomOut()} className="p-1.5 hover:bg-slate-50 text-slate-600 border-r border-slate-200" title="Zoom Out">
+                                                <ZoomOut className="w-4 h-4" />
+                                            </button>
+                                            <button onClick={() => resetTransform()} className="p-1.5 hover:bg-slate-50 text-slate-600 border-r border-slate-200" title="Reset Zoom">
+                                                <RotateCcw className="w-4 h-4" />
+                                            </button>
+                                            <button onClick={() => zoomIn()} className="p-1.5 hover:bg-slate-50 text-slate-600" title="Zoom In">
+                                                <ZoomIn className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                        <button onClick={() => handleDownload('png')} className="p-1.5 hover:bg-white rounded text-slate-600 border border-transparent hover:border-slate-200" title="Export PNG">
+                                            <Download className="w-4 h-4" /> <span className="text-xs">PNG</span>
+                                        </button>
+                                        <button onClick={() => handleDownload('svg')} className="p-1.5 hover:bg-white rounded text-slate-600 border border-transparent hover:border-slate-200" title="Export SVG">
+                                            <Download className="w-4 h-4" /> <span className="text-xs">SVG</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="flex-1 bg-white overflow-hidden relative" style={{ cursor: 'grab' }}>
+                                    {error && (
+                                        <div className="absolute top-4 left-4 right-4 bg-red-50 text-red-700 p-3 rounded border border-red-200 text-sm font-mono whitespace-pre-wrap z-10 pointer-events-none">
+                                            {error}
+                                        </div>
+                                    )}
+                                    <TransformComponent
+                                        wrapperStyle={{ width: "100%", height: "100%" }}
+                                        contentStyle={{ width: "100%", height: "100%" }}
+                                    >
+                                        <div
+                                            ref={renderRef}
+                                            dangerouslySetInnerHTML={{ __html: svg }}
+                                            className="w-full h-full flex items-center justify-center p-8"
+                                        />
+                                    </TransformComponent>
+                                </div>
+                            </>
                         )}
-                        <div ref={renderRef} dangerouslySetInnerHTML={{ __html: svg }} />
-                    </div>
+                    </TransformWrapper>
                 </div>
             </div>
         </div>
