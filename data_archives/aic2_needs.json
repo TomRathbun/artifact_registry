@@ -1,0 +1,197 @@
+{
+  "artifactType": "need",
+  "project": "TR2",
+  "exportDate": "2025-12-11T08:05:22.332Z",
+  "count": 8,
+  "artifacts": [
+    {
+      "title": "Smarter Threat Tracking and Prediction",
+      "description": "*As* **UAE AFAD Mission Operators**, \n\n- *We need* tools that combine smart learning (like AI) with proven rules to better track and predict threats \n- *So that* we can handle tough conditions like desert interference and quickly spot dangers.",
+      "area": "AIC2",
+      "status": "Draft",
+      "owner": "Air Force and Air Defence Commander",
+      "rationale": "Simplifies complex tracking for operators, extending TRP1's sensor integrations (Section 11.0).",
+      "stakeholder": "Mission Operator",
+      "level": "Mission",
+      "sites": [
+      ],
+      "components": [
+        {
+          "name": "Threat Tracking Tool",
+          "tags": [
+            "TR2"
+          ],
+          "type": "Software",
+          "lifecycle": "Planned"
+        }
+      ],
+      "project": "TR2"
+    },
+    {
+      "aid": "TR2-AIC2-NEED-009",
+      "title": "Flexible Control Over AI Actions",
+      "description": "*As* **UAE AFAD Enterprise Commanders**, \n\n- *We need* options to choose how much AI helps with planning, detecting, deciding, and acting \n- *So that* we keep safe control during operations and build trust in the system.",
+      "area": "AIC2",
+      "status": "Draft",
+      "owner": "Joint Operations Staff",
+      "rationale": "Allows gradual AI adoption, supporting TRP1's security controls (Section 3.0).",
+      "stakeholder": "Enterprise Commander",
+      "level": "Enterprise",
+      "sites": [
+      ],
+      "components": [
+        {
+          "name": "AI Control Settings",
+          "tags": [
+            "TR2"
+          ],
+          "type": "Software",
+          "lifecycle": "Planned"
+        }
+      ],
+      "project": "TR2"
+    },
+    {
+      "aid": "TR2-AIC2-NEED-010",
+      "title": "Easy Ways to Add and Update AI Tools",
+      "description": "*As* **UAE AFAD Technical Specialists**, \n\n- *We need* standard ways to bring in and update new AI features from different sources \n- *So that* we can keep the system modern without big disruptions.",
+      "area": "AIC2",
+      "status": "Draft",
+      "owner": "Air Defence Technical Directorate",
+      "rationale": "Promotes flexibility, aligning with TRP1's modular goals (Introduction, Page 6).",
+      "stakeholder": "Technical Specialist",
+      "level": "Technical",
+      "sites": [
+      ],
+      "components": [
+        {
+          "name": "AI Update System",
+          "tags": [
+            "TR2"
+          ],
+          "type": "Software",
+          "lifecycle": "Planned"
+        }
+      ],
+      "project": "TR2"
+    },
+    {
+      "aid": "TR2-AIC2-NEED-011",
+      "title": "Safe Process for Training and Rolling Out AI Changes",
+      "description": "*As* **UAE AFAD Technical Specialists**, \n\n- *We need* a step-by-step process to store data, train AI offline, test it safely, and roll it out gradually \n- *So that* we can improve the system without risking operations.",
+      "area": "AIC2",
+      "status": "Draft",
+      "owner": "Air Defence Technical Directorate",
+      "rationale": "Ensures reliable updates, building on TRP1's DevOps (Section 8.3).",
+      "stakeholder": "Technical Specialist",
+      "level": "Technical",
+      "sites": [
+      ],
+      "components": [
+        {
+          "name": "AI Training Process",
+          "tags": [
+            "TR2"
+          ],
+          "type": "Software",
+          "lifecycle": "Planned"
+        }
+      ],
+      "project": "TR2"
+    },
+    {
+      "title": "Hybrid AI Algorithm Integration for Enhanced C2 Functions",
+      "description": "*As* **UAE AFAD Mission Operators**, \n\n- *We need* hybrid algorithmic approaches blending neural networks and physics-based models for key functions like tracking, correlation, and engagement prediction \n- *So that* we can achieve reliable performance in challenging environments, such as desert radar clutter and multipath, while implementing AIC2 for decision superiority.",
+      "area": "AIC2",
+      "status": "Draft",
+      "owner": "Air Force and Air Defence Commander",
+      "rationale": "Enables AFAD to leverage adaptive AI for dynamic threats while ensuring deterministic accuracy, building on TRP1's AI/ML preparations (Introduction, Page 6).",
+      "stakeholder": "Mission Operator",
+      "level": "Mission",
+      "sites": [
+      ],
+      "components": [
+        {
+          "name": "CommandIQ Hybrid AI Module",
+          "tags": [
+            "TR2"
+          ],
+          "type": "Software",
+          "lifecycle": "Planned"
+        }
+      ],
+      "project": "TR2"
+    },
+    {
+      "title": "Graduated Autonomy for OODA Loop Execution",
+      "description": "*As* **UAE AFAD Enterprise Commanders**, \n\n- *We need* configurable levels of autonomy across planning, detection, COA development, and execution to balance human oversight with AI automation \n- *So that* we can safely implement AIC2, ensuring ethical and operational control in multi-domain scenarios.",
+      "area": "AIC2",
+      "status": "Draft",
+      "owner": "Joint Operations Staff",
+      "rationale": "Supports AFAD's enterprise-wide implementation by providing safeguards for high-stakes decisions, aligning with TRP1's cybersecurity frameworks (Section 3.0).",
+      "stakeholder": "Enterprise Commander",
+      "level": "Enterprise",
+      "sites": [
+      ],
+      "components": [
+        {
+          "name": "Autonomy Control Framework",
+          "tags": [
+            "TR2"
+          ],
+          "type": "Software",
+          "lifecycle": "Planned"
+        }
+      ],
+      "project": "TR2"
+    },
+    {
+      "title": "Open Standards-Based AI Model Integration",
+      "description": "*As* **UAE AFAD Technical Specialists**, \n\n- *We need* adoption of open standards (e.g., ONNX, MLflow) for training, integrating, and updating third-party AI models, LLMs, and agents \n- *So that* we can evolve AIC2 modularly without vendor lock-in, facilitating continuous improvements.",
+      "area": "AIC2",
+      "status": "Draft",
+      "owner": "Air Defence Technical Directorate",
+      "rationale": "Enables technical implementation of MOSA-compliant AI, extending TRP1's modular architecture (Introduction, Page 6) for future-proofing.",
+      "stakeholder": "Technical Specialist",
+      "level": "Technical",
+      "sites": [
+      ],
+      "components": [
+        {
+          "name": "AI Integration Platform",
+          "tags": [
+            "TR2"
+          ],
+          "type": "Software",
+          "lifecycle": "Planned"
+        }
+      ],
+      "project": "TR2"
+    },
+    {
+      "title": "MLOps Pipelines for Secure Model Lifecycle",
+      "description": "*As* **UAE AFAD Technical Specialists**, \n\n- *We need* robust MLOps pipelines for data storage, offline training, back-testing, approval, and graduated deployment (shadow, A/B, live) \n- *So that* we can implement ethical AI updates in AIC2 while maintaining operational integrity and compliance.",
+      "area": "AIC2",
+      "status": "Draft",
+      "owner": "Air Defence Technical Directorate",
+      "rationale": "Provides secure, controlled processes for AI evolution, building on TRP1's DevOps platform (Section 8.3) and aligning with Responsible AI principles.",
+      "stakeholder": "Technical Specialist",
+      "level": "Technical",
+      "sites": [
+      ],
+      "components": [
+        {
+          "name": "MLOps Pipeline System",
+          "tags": [
+            "TR2"
+          ],
+          "type": "Software",
+          "lifecycle": "Planned"
+        }
+      ],
+      "project": "TR2"
+    }
+  ],
+  "linkages": [
+  ]
+}
