@@ -20,3 +20,5 @@ class Comment(Base):
     resolved = Column(Boolean, default=False, nullable=False)
     resolved_at = Column(DateTime(timezone=True), nullable=True)
     resolved_by = Column(String, nullable=True)
+    selected_text = Column(String, nullable=True)
+    resolution_action = Column(String, nullable=True)

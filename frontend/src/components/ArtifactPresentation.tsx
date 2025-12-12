@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import MarkdownDisplay from './MarkdownDisplay';
@@ -145,6 +145,7 @@ function SelectableField({
 }) {
     return (
         <div
+            data-field-name={fieldId}
             onClick={(e) => {
                 e.stopPropagation();
                 onClick(fieldId);
@@ -193,6 +194,71 @@ export default function ArtifactPresentation() {
     const [showStatusDialog, setShowStatusDialog] = useState(false);
     const [pendingStatus, setPendingStatus] = useState<string>('');
     const [statusRationale, setStatusRationale] = useState('');
+    const [selectedText, setSelectedText] = useState<string | null>(null);
+    const [highlightedField, setHighlightedField] = useState<string | null>(null);
+
+    // Effect to handle highlighting fields when comments are focused
+    useEffect(() => {
+        // Clear previous highlights
+        document.querySelectorAll('[data-highlighted="true"]').forEach(el => {
+            el.removeAttribute('data-highlighted');
+            el.classList.remove('ring-4', 'ring-yellow-200', 'bg-yellow-50');
+        });
+
+        if (highlightedField) {
+            const field = document.querySelector(`[data-field-name="${highlightedField}"]`);
+            if (field) {
+                field.setAttribute('data-highlighted', 'true');
+                field.classList.add('ring-4', 'ring-yellow-200', 'bg-yellow-50');
+                field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    }, [highlightedField]);
+
+    const handleTextSelection = (e: React.MouseEvent) => {
+        const selection = window.getSelection();
+        if (selection && selection.toString().trim()) {
+            // Find closest selectable field
+            let node = selection.anchorNode;
+            // Traverse up to find data-field-name
+            while (node && node !== document.body) {
+                if (node && node.nodeType === 1 && (node as Element).hasAttribute('data-field-name')) {
+                    const fieldName = (node as Element).getAttribute('data-field-name');
+                    if (fieldName) {
+                        setSelectedField(fieldName);
+                        setSelectedText(selection.toString().trim());
+                        return;
+                    }
+                }
+                // Handle text nodes parent
+                if (node && node.nodeType === 3 && node.parentNode) {
+                    node = node.parentNode;
+                    continue;
+                }
+                node = node ? node.parentNode : null;
+            }
+        } else {
+            // If we clicked inside a field (but no selection)
+            let node = e.target as Element;
+            while (node && node !== document.body) {
+                if (node.getAttribute && node.hasAttribute('data-field-name')) {
+                    const clickedField = node.getAttribute('data-field-name');
+                    // Only clear selected text if we clicked a DIFFERENT field.
+                    // This allows clicking the same field (e.g. to focus) without losing the captured text selection.
+                    if (clickedField !== selectedField) {
+                        setSelectedText(null);
+                    }
+                    return;
+                }
+                node = node.parentNode as Element;
+            }
+        }
+    };
+
+    // Clear selected link when navigating between artifacts
+    useEffect(() => {
+        setSelectedLink(null);
+    }, [artifactId]);
 
     // Get filtered AIDs from sessionStorage (persisted from list view) or location state
     const getFilteredAIDsKey = () => `filtered-aids-${projectId}-${artifactType}`;
@@ -237,8 +303,15 @@ export default function ArtifactPresentation() {
     };
 
     // Clear selection when clicking outside
-    const handleBackgroundClick = () => {
+    const handleBackgroundClick = (e: React.MouseEvent) => {
+        // Don't clear if clicking inside specific UI elements
+        if ((e.target as Element).closest('.prevent-deselect')) return;
+
+        // If selecting text, don't clear
+        if (window.getSelection()?.toString()) return;
+
         setSelectedField(null);
+        setSelectedText(null);
     };
 
     // Fetch project details
@@ -442,15 +515,19 @@ export default function ArtifactPresentation() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50" onClick={handleBackgroundClick}>
+        <div className="min-h-screen bg-slate-50" onClick={handleBackgroundClick} onMouseUp={handleTextSelection}>
             {/* Header */}
             <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
                 <div className="max-w-7xl mx-auto px-6 py-3">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <Link to={`/project/${projectId}`} className="text-slate-600 hover:text-slate-900">
+                            <button
+                                onClick={() => navigate(-1)}
+                                className="text-slate-600 hover:text-slate-900 transition-colors"
+                                title="Go Back"
+                            >
                                 <ArrowLeft className="w-5 h-5" />
-                            </Link>
+                            </button>
 
                             {/* Navigation Controls */}
                             {totalCount > 0 && (
@@ -827,15 +904,19 @@ export default function ArtifactPresentation() {
                 {/* Comment Panel Column */}
                 {showComments && (
                     <div
-                        className="sticky top-20 h-[calc(100vh-6rem)] bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden"
+                        className="sticky top-20 h-[calc(100vh-6rem)] bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden prevent-deselect"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <CommentPanel
                             artifactAid={artifactId!}
+                            artifactType={artifactType!}
                             selectedField={selectedField}
                             fieldLabel={selectedField ? selectedField.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : ''}
-                        />
-                    </div>
+                            selectedText={selectedText}
+                            onCommentFocus={(fieldId, text) => {
+                                setHighlightedField(fieldId);
+                            }}
+                        /></div>
                 )}
             </div>
 
@@ -906,23 +987,18 @@ function NeedPresentation({ artifact, selectedField, onFieldClick }: Presentatio
     return (
         <>
             <div className="grid grid-cols-2 gap-4 mb-3 not-prose">
-                {/* Meta fields remain read-only/non-commentable for now unless requested */}
-                <div>
-                    <span className="text-sm font-medium text-slate-500">Area</span>
+                <SelectableField fieldId="area" label="Area" isActive={selectedField === 'area'} onClick={onFieldClick}>
                     <p className="text-slate-900">{artifact.area || 'N/A'}</p>
-                </div>
-                <div>
-                    <span className="text-sm font-medium text-slate-500">Level</span>
+                </SelectableField>
+                <SelectableField fieldId="level" label="Level" isActive={selectedField === 'level'} onClick={onFieldClick}>
                     <p className="text-slate-900">{artifact.level || 'N/A'}</p>
-                </div>
-                <div>
-                    <span className="text-sm font-medium text-slate-500">Owner</span>
+                </SelectableField>
+                <SelectableField fieldId="owner" label="Owner" isActive={selectedField === 'owner'} onClick={onFieldClick}>
                     <p className="text-slate-900">{artifact.owner_id ? <PersonName personId={artifact.owner_id} /> : 'N/A'}</p>
-                </div>
-                <div>
-                    <span className="text-sm font-medium text-slate-500">Stakeholder</span>
+                </SelectableField>
+                <SelectableField fieldId="stakeholder" label="Stakeholder" isActive={selectedField === 'stakeholder'} onClick={onFieldClick}>
                     <p className="text-slate-900">{artifact.stakeholder_id ? <PersonName personId={artifact.stakeholder_id} /> : 'N/A'}</p>
-                </div>
+                </SelectableField>
             </div>
 
             <SelectableField
@@ -956,67 +1032,69 @@ function NeedPresentation({ artifact, selectedField, onFieldClick }: Presentatio
             {/* Sites Display */}
             {artifact.sites && artifact.sites.length > 0 && (
                 <div className="mt-4">
-                    <span className="text-sm font-medium text-slate-500 mb-2 block">Related Sites</span>
-                    <div className="flex flex-col gap-2">
-                        {artifact.sites.map((site: any) => (
-                            <div key={site.id} className="flex flex-wrap items-center gap-2 text-sm bg-slate-50 p-2 rounded border border-slate-100">
-                                <span className="font-medium text-slate-900 mr-1">{site.name}</span>
+                    <SelectableField fieldId="related_sites" label="Related Sites" isActive={selectedField === 'related_sites'} onClick={onFieldClick}>
+                        <div className="flex flex-col gap-2 mt-1">
+                            {artifact.sites.map((site: any) => (
+                                <div key={site.id} className="flex flex-wrap items-center gap-2 text-sm bg-slate-50 p-2 rounded border border-slate-100">
+                                    <span className="font-medium text-slate-900 mr-1">{site.name}</span>
 
-                                {/* Security Domain Badge */}
-                                {site.security_domain && (
-                                    <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium">
-                                        {site.security_domain}
-                                    </span>
-                                )}
+                                    {/* Security Domain Badge */}
+                                    {site.security_domain && (
+                                        <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium">
+                                            {site.security_domain}
+                                        </span>
+                                    )}
 
-                                {/* Tags */}
-                                {Array.isArray(site.tags) && site.tags.map((tag: string) => (
-                                    <span key={tag} className="px-2 py-0.5 bg-white text-slate-600 text-xs rounded border border-slate-200 flex items-center gap-1">
-                                        <Tag className="w-3 h-3" />
-                                        {tag}
-                                    </span>
-                                ))}
-                            </div>
-                        ))}
-                    </div>
+                                    {/* Tags */}
+                                    {Array.isArray(site.tags) && site.tags.map((tag: string) => (
+                                        <span key={tag} className="px-2 py-0.5 bg-white text-slate-600 text-xs rounded border border-slate-200 flex items-center gap-1">
+                                            <Tag className="w-3 h-3" />
+                                            {tag}
+                                        </span>
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+                    </SelectableField>
                 </div>
             )}
 
             {/* Components Display */}
             {artifact.components && artifact.components.length > 0 && (
                 <div className="mt-4">
-                    <span className="text-sm font-medium text-slate-500 mb-2 block">Related Components</span>
-                    <div className="flex flex-col gap-2">
-                        {artifact.components.map((comp: any) => (
-                            <div key={comp.id} className="flex flex-wrap items-center gap-2 text-sm bg-slate-50 p-2 rounded border border-slate-100">
-                                <span className="font-medium text-slate-900 mr-1">{comp.name}</span>
+                    <SelectableField fieldId="related_components" label="Related Components" isActive={selectedField === 'related_components'} onClick={onFieldClick}>
+                        <div className="flex flex-col gap-2 mt-1">
+                            {artifact.components.map((comp: any) => (
+                                <div key={comp.id} className="flex flex-wrap items-center gap-2 text-sm bg-slate-50 p-2 rounded border border-slate-100">
+                                    <span className="font-medium text-slate-900 mr-1">{comp.name}</span>
 
-                                {/* Type Badge */}
-                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${comp.type === 'Hardware' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
-                                    }`}>
-                                    {comp.type || 'Software'}
-                                </span>
-
-                                {/* Lifecycle Badge */}
-                                {comp.lifecycle && (
-                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${comp.lifecycle === 'Active' ? 'bg-green-100 text-green-700' :
-                                        comp.lifecycle === 'Legacy' ? 'bg-amber-100 text-amber-700' :
-                                            'bg-slate-100 text-slate-700'
+                                    {/* Type Badge */}
+                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${comp.type === 'Hardware' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
                                         }`}>
-                                        {comp.lifecycle}
+                                        {comp.type || 'Software'}
                                     </span>
-                                )}
 
-                                {/* Tags */}
-                                {Array.isArray(comp.tags) && comp.tags.map((tag: string) => (
-                                    <span key={tag} className="px-2 py-0.5 bg-white text-slate-600 text-xs rounded border border-slate-200 flex items-center gap-1">
-                                        <Tag className="w-3 h-3" />
-                                        {tag}
-                                    </span>
-                                ))}
-                            </div>
-                        ))}
-                    </div>
+                                    {/* Lifecycle Badge */}
+                                    {comp.lifecycle && (
+                                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${comp.lifecycle === 'Active' ? 'bg-green-100 text-green-700' :
+                                            comp.lifecycle === 'Legacy' ? 'bg-amber-100 text-amber-700' :
+                                                'bg-slate-100 text-slate-700'
+                                            }`}>
+                                            {comp.lifecycle}
+                                        </span>
+                                    )}
+
+                                    {/* Tags */}
+                                    {Array.isArray(comp.tags) && comp.tags.map((tag: string) => (
+                                        <span key={tag} className="px-2 py-0.5 bg-white text-slate-600 text-xs rounded border border-slate-200 flex items-center gap-1">
+                                            <Tag className="w-3 h-3" />
+                                            {tag}
+                                        </span>
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+                    </SelectableField>
                 </div>
             )}
         </>
@@ -1027,14 +1105,12 @@ function UseCasePresentation({ artifact, selectedField, onFieldClick }: Presenta
     return (
         <>
             <div className="grid grid-cols-2 gap-4 mb-3 not-prose">
-                <div>
-                    <span className="text-sm font-medium text-slate-500">Area</span>
+                <SelectableField fieldId="area" label="Area" isActive={selectedField === 'area'} onClick={onFieldClick}>
                     <p className="text-slate-900">{artifact.area || 'N/A'}</p>
-                </div>
-                <div>
-                    <span className="text-sm font-medium text-slate-500">Primary Actor</span>
+                </SelectableField>
+                <SelectableField fieldId="primary_actor" label="Primary Actor" isActive={selectedField === 'primary_actor'} onClick={onFieldClick}>
                     <p className="text-slate-900">{artifact.primary_actor?.name || 'N/A'}</p>
-                </div>
+                </SelectableField>
             </div>
 
             <SelectableField fieldId="description" label="Description" isActive={selectedField === 'description'} onClick={onFieldClick}>
@@ -1095,18 +1171,15 @@ function RequirementPresentation({ artifact, selectedField, onFieldClick }: Pres
         <>
             <div className="grid grid-cols-3 gap-4 mb-3 not-prose">
                 {/* Metadata fields */}
-                <div>
-                    <span className="text-sm font-medium text-slate-500">Short Name</span>
+                <SelectableField fieldId="short_name" label="Short Name" isActive={selectedField === 'short_name'} onClick={onFieldClick}>
                     <p className="text-slate-900 font-mono">{artifact.short_name}</p>
-                </div>
-                <div>
-                    <span className="text-sm font-medium text-slate-500">Area</span>
+                </SelectableField>
+                <SelectableField fieldId="area" label="Area" isActive={selectedField === 'area'} onClick={onFieldClick}>
                     <p className="text-slate-900">{artifact.area || 'N/A'}</p>
-                </div>
-                <div>
-                    <span className="text-sm font-medium text-slate-500">Level</span>
+                </SelectableField>
+                <SelectableField fieldId="level" label="Level" isActive={selectedField === 'level'} onClick={onFieldClick}>
                     <p className="text-slate-900">{artifact.level?.toUpperCase() || 'N/A'}</p>
-                </div>
+                </SelectableField>
             </div>
 
             <SelectableField fieldId="text" label="Requirement Text" isActive={selectedField === 'text'} onClick={onFieldClick}>
@@ -1152,14 +1225,12 @@ function DocumentPresentation({ artifact, selectedField, onFieldClick }: Present
     return (
         <>
             <div className="grid grid-cols-2 gap-4 mb-4 not-prose">
-                <div>
-                    <span className="text-sm font-medium text-slate-500">Type</span>
+                <SelectableField fieldId="type" label="Type" isActive={selectedField === 'type'} onClick={onFieldClick}>
                     <p className="text-slate-900 capitalize">{artifact.document_type || 'Unknown'}</p>
-                </div>
-                <div>
-                    <span className="text-sm font-medium text-slate-500">MIME Type</span>
+                </SelectableField>
+                <SelectableField fieldId="mime_type" label="MIME Type" isActive={selectedField === 'mime_type'} onClick={onFieldClick}>
                     <p className="text-slate-900">{artifact.mime_type || 'N/A'}</p>
-                </div>
+                </SelectableField>
             </div>
 
             <SelectableField fieldId="description" label="Description" isActive={selectedField === 'description'} onClick={onFieldClick}>
@@ -1173,25 +1244,29 @@ function DocumentPresentation({ artifact, selectedField, onFieldClick }: Present
             {/* Content Display (non-interactive for now) */}
             <div className="mt-4 not-prose opacity-90 hover:opacity-100 transition-opacity">
                 {artifact.document_type === 'url' && artifact.content_url && (
-                    <div className="p-4 bg-slate-50 rounded border border-slate-200">
-                        <a href={artifact.content_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-600 hover:underline">
-                            <ExternalLink className="w-4 h-4" />
-                            {artifact.content_url}
-                        </a>
-                    </div>
+                    <SelectableField fieldId="content_url" label="Content URL" isActive={selectedField === 'content_url'} onClick={onFieldClick}>
+                        <div className="p-4 bg-slate-50 rounded border border-slate-200">
+                            <a href={artifact.content_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-600 hover:underline">
+                                <ExternalLink className="w-4 h-4" />
+                                {artifact.content_url}
+                            </a>
+                        </div>
+                    </SelectableField>
                 )}
 
                 {/* PDF Rendering */}
                 {((artifact.document_type === 'pdf') ||
                     (artifact.document_type === 'file' && artifact.mime_type?.includes('pdf'))) &&
                     artifact.content_url && (
-                        <div className="mt-4 h-[600px] border border-slate-200 rounded-lg overflow-hidden bg-slate-100">
-                            <iframe
-                                src={artifact.content_url}
-                                className="w-full h-full"
-                                title="PDF Document"
-                            />
-                        </div>
+                        <SelectableField fieldId="pdf_content" label="PDF Viewer" isActive={selectedField === 'pdf_content'} onClick={onFieldClick}>
+                            <div className="mt-4 h-[600px] border border-slate-200 rounded-lg overflow-hidden bg-slate-100">
+                                <iframe
+                                    src={artifact.content_url}
+                                    className="w-full h-full"
+                                    title="PDF Document"
+                                />
+                            </div>
+                        </SelectableField>
                     )}
 
             </div>
@@ -1199,8 +1274,12 @@ function DocumentPresentation({ artifact, selectedField, onFieldClick }: Present
             {/* Markdown/Text Rendering */}
             {/* Check for 'text' type (set by Wizard) or legacy 'markdown' */}
             {(artifact.document_type === 'text' || artifact.document_type === 'markdown') && (
-                <div className="mt-4 p-6 bg-white border border-slate-200 rounded-lg shadow-sm">
-                    <MarkdownDisplay content={artifact.content_text || artifact.text || '*No content.*'} />
+                <div className="mt-4">
+                    <SelectableField fieldId="content_text" label="Document Content" isActive={selectedField === 'content_text'} onClick={onFieldClick}>
+                        <div className="p-6 bg-white border border-slate-200 rounded-lg shadow-sm">
+                            <MarkdownDisplay content={artifact.content_text || artifact.text || '*No content.*'} />
+                        </div>
+                    </SelectableField>
                 </div>
             )}
         </>

@@ -44,7 +44,8 @@ def create_comment(
         artifact_aid=comment_in.artifact_aid,
         field_name=comment_in.field_name,
         comment_text=comment_in.comment_text,
-        author=comment_in.author
+        author=comment_in.author,
+        selected_text=comment_in.selected_text
     )
     db.add(comment)
     db.commit()
@@ -68,6 +69,7 @@ def resolve_comment(
     comment.resolved = True
     comment.resolved_at = datetime.utcnow()
     comment.resolved_by = resolve_data.resolved_by
+    comment.resolution_action = resolve_data.resolution_action
     
     db.commit()
     db.refresh(comment)

@@ -11,6 +11,17 @@ interface ChangeLogEntry {
 
 const changelogData: ChangeLogEntry[] = [
     {
+        version: '0.1.2',
+        date: '2025-12-12',
+        type: 'patch',
+        changes: [
+            'Enhanced Comment Panel: Comments are now grouped by field and sorted to match the presentation order',
+            'Added Persistent Comment Highlighting: Clicking a field in the artifact editor highlights relevant comments',
+            'Improved Selection Handling: Text selection is preserved when clicking back into the same field',
+            'Added Comment Support for All Fields: Metadata, sites, components, and document content are now eligible for comments'
+        ]
+    },
+    {
         version: '0.1.1',
         date: '2025-12-10',
         type: 'minor',

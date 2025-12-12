@@ -8,3 +8,8 @@ body {
     background-attachment: fixed;
     background-position: center;
 }
+
+/* Prevent clicking inside this element from deselecting text */
+.prevent-deselect {
+    /* No styles needed, class name is used for logic in ArtifactPresentation.tsx */
+}

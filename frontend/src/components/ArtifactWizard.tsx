@@ -87,6 +87,7 @@ export default function ArtifactWizard() {
     const [showActorModal, setShowActorModal] = useState(false);
     const [personModalType, setPersonModalType] = useState<'owner' | 'stakeholder'>('owner');
     const [savedAid, setSavedAid] = useState<string | null>(null);
+    const [focusedField, setFocusedField] = useState<string | null>(null);
 
     // Status Transition State
     const [showTransitionModal, setShowTransitionModal] = useState(false);
@@ -690,6 +691,7 @@ export default function ArtifactWizard() {
                             {...register('short_name', { required: true })}
                             className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder="e.g. SYS-001"
+                            onFocus={() => setFocusedField('short_name')}
                         />
                     </div>
                 ) : (
@@ -701,6 +703,7 @@ export default function ArtifactWizard() {
                             {...register('title', { required: true })}
                             className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder="Artifact Title"
+                            onFocus={() => setFocusedField('title')}
                         />
                     </div>
                 )}
@@ -715,6 +718,7 @@ export default function ArtifactWizard() {
                             className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             rows={4}
                             placeholder="The system shall..."
+                            onFocus={() => setFocusedField('text')}
                         />
                     </div>
                 ) : (
@@ -733,6 +737,7 @@ export default function ArtifactWizard() {
                                         preview="edit"
                                         height={300}
                                         className="border border-slate-300 rounded-md overflow-hidden"
+                                        onFocus={() => setFocusedField('description')}
                                     />
                                 </div>
                             )}
@@ -748,7 +753,7 @@ export default function ArtifactWizard() {
                             <Plus className="w-3 h-3 mr-1" /> Add Area
                         </button>
                     </div>
-                    <select {...register('area')} className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select {...register('area')} className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" onFocus={() => setFocusedField('area')}>
                         <option value="">Select Area...</option>
                         {areas?.map((area: any) => (
                             <option key={area.code} value={area.code}>{area.code} - {area.name}</option>
@@ -772,7 +777,7 @@ export default function ArtifactWizard() {
                     <>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Rationale</label>
-                            <textarea {...register('rationale')} className="w-full px-3 py-2 border border-slate-300 rounded-md" rows={2} />
+                            <textarea {...register('rationale')} className="w-full px-3 py-2 border border-slate-300 rounded-md" rows={2} onFocus={() => setFocusedField('rationale')} />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
@@ -782,7 +787,7 @@ export default function ArtifactWizard() {
                                         <Plus className="w-3 h-3 mr-1" /> Add Owner
                                     </button>
                                 </div>
-                                <select {...register('owner_id')} className="w-full px-3 py-2 border border-slate-300 rounded-md">
+                                <select {...register('owner_id')} className="w-full px-3 py-2 border border-slate-300 rounded-md" onFocus={() => setFocusedField('owner')}>
                                     <option value="">Select Owner...</option>
                                     {owners?.sort((a: any, b: any) => a.name.localeCompare(b.name)).map((p: any) => (
                                         <option key={p.id} value={p.id}>{p.name}</option>
@@ -796,7 +801,7 @@ export default function ArtifactWizard() {
                                         <Plus className="w-3 h-3 mr-1" /> Add Stakeholder
                                     </button>
                                 </div>
-                                <select {...register('stakeholder_id')} className="w-full px-3 py-2 border border-slate-300 rounded-md">
+                                <select {...register('stakeholder_id')} className="w-full px-3 py-2 border border-slate-300 rounded-md" onFocus={() => setFocusedField('stakeholder')}>
                                     <option value="">Select Stakeholder...</option>
                                     {stakeholders?.sort((a: any, b: any) => a.name.localeCompare(b.name)).map((p: any) => (
                                         <option key={p.id} value={p.id}>{p.name}</option>
@@ -806,7 +811,7 @@ export default function ArtifactWizard() {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Level</label>
-                            <select {...register('level')} className="w-full px-3 py-2 border border-slate-300 rounded-md">
+                            <select {...register('level')} className="w-full px-3 py-2 border border-slate-300 rounded-md" onFocus={() => setFocusedField('level')}>
                                 <option value="">Select Level...</option>
                                 <option value="Mission">Mission</option>
                                 <option value="Enterprise">Enterprise</option>
@@ -1457,8 +1462,9 @@ export default function ArtifactWizard() {
                         <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden h-full">
                             <CommentPanel
                                 artifactAid={artifactId!}
-                                selectedField={null}
-                                fieldLabel=""
+                                artifactType={artifactType}
+                                selectedField={focusedField}
+                                fieldLabel={focusedField ? focusedField.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : ''}
                             />
                         </div>
                     </div>

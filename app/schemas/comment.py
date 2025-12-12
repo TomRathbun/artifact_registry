@@ -14,11 +14,12 @@ class CommentBase(BaseModel):
 
 
 class CommentCreate(CommentBase):
-    pass
+    selected_text: Optional[str] = None
 
 
 class CommentResolve(BaseModel):
     resolved_by: str
+    resolution_action: Optional[str] = None
 
 
 class Comment(CommentBase):
@@ -27,6 +28,8 @@ class Comment(CommentBase):
     resolved: bool
     resolved_at: Optional[datetime] = None
     resolved_by: Optional[str] = None
+    selected_text: Optional[str] = None
+    resolution_action: Optional[str] = None
 
     class Config:
         from_attributes = True
