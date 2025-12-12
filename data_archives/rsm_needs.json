@@ -1,0 +1,79 @@
+{
+"artifactType": "need",
+"project": "TR2",
+"exportDate": "2025-12-11T00:00:00.000Z",
+"count": 3,
+"artifacts": [
+{
+"title": "Resilient Distributed Operations Across Remote Sites",
+"description": "As UAE AFAD Mission Operators, \n\n- We need enhanced network connectivity and power/transport resilience at remote sites to enable seamless site-to-site coordination and failover during threats \n- So that we can maintain mission continuity and rapid response in multi-domain environments, such as drone swarm detections.",
+"area": "RSM",
+"status": "Draft",
+"owner": "Air Force and Air Defence Commander",
+"rationale": "Supports AFAD's mission objectives by ensuring distributed assets (e.g., radars, SHORADS) operate reliably, building on TRP1's core modernization to extend capabilities to 280 sites.",
+"stakeholder": "Mission Operator",
+"level": "Mission",
+"sites": [
+],
+"components": [
+{
+"name": "Core Network",
+"tags": [
+"TR2"
+],
+"type": "Hardware/Software",
+"lifecycle": "Planned"
+}
+],
+"project": "TR2"
+},
+{
+"title": "Standardized Infrastructure Management for Enterprise Efficiency",
+"description": "As UAE AFAD Enterprise Commanders, \n\n- We need virtualized compute standardization and multi-security domain support across remote sites to consolidate configurations and enable centralized monitoring/patching \n- So that we can achieve enterprise-wide scalability, reduce maintenance silos, and support joint operations (e.g., with Navy C4I).",
+"area": "RSM",
+"status": "Draft",
+"owner": "Joint Operations Staff",
+"rationale": "Enhances AFAD's organizational efficiency by standardizing diverse site types, extending TRP1's SIEM/ELK integrations for remote oversight and compliance.",
+"stakeholder": "Enterprise Commander",
+"level": "Enterprise",
+"sites": [
+],
+"components": [
+{
+"name": "Virtualized Compute Stack",
+"tags": [
+"TR2"
+],
+"type": "Hardware/Software",
+"lifecycle": "Planned"
+}
+],
+"project": "TR2"
+},
+{
+"title": "Secure and Future-Proof Technical Upgrades",
+"description": "As UAE AFAD Technical Specialists, \n\n- We need secure wireless access, encryptor/firewall upgrades, and preplanned transport integrations (e.g., 5G/LEO) at remote sites \n- So that we can ensure technical compliance, modularity for emerging transports, and isolated domains without operational disruptions.",
+"area": "RSM",
+"status": "Draft",
+"owner": "Air Defence Technical Directorate",
+"rationale": "Provides AFAD with technical foundations for resilience, building on TRP1's cybersecurity and network tools to future-proof infrastructure against harsh environments and threats.",
+"stakeholder": "Technical Specialist",
+"level": "Technical",
+"sites": [
+],
+"components": [
+{
+"name": "Encrypted Wireless Module",
+"tags": [
+"TR2"
+],
+"type": "Hardware/Software",
+"lifecycle": "Planned"
+}
+],
+"project": "TR2"
+}
+],
+"linkages": [
+]
+}
