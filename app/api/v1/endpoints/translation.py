@@ -2,6 +2,21 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Union
 from deep_translator import GoogleTranslator
+import os
+import requests
+import urllib3
+
+# Handle SSL verification for corporate environments
+if os.getenv("TRANSLATION_VERIFY_SSL", "true").lower() == "false":
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    
+    # Monkey-patch Session.request to disable verification by default
+    _original_request = requests.Session.request
+    def _insecure_request(self, method, url, *args, **kwargs):
+        kwargs.setdefault('verify', False)
+        return _original_request(self, method, url, *args, **kwargs)
+    
+    requests.Session.request = _insecure_request
 
 router = APIRouter()
 
