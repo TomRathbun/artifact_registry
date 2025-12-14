@@ -1,5 +1,5 @@
 # app/schemas/use_case.py
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import List, Optional
 from datetime import datetime
 
@@ -66,12 +66,43 @@ class PostconditionOut(PostconditionBase):
     model_config = ConfigDict(from_attributes=True)
 
 # ============================================================================
+# Use Case Component Schemas
+# ============================================================================
+
+class MssStep(BaseModel):
+    """Main Success Scenario Step: Step Number, Actor, Action"""
+    step_num: int = Field(..., gt=0)
+    actor: str = Field(..., min_length=1)
+    description: str = Field(..., min_length=1)
+    # Sequence Diagram Fields
+    message: Optional[str] = None
+    target_actor: Optional[str] = None
+    response: Optional[str] = None
+
+class ExtensionStep(BaseModel):
+    """Extension: Step Number, Condition, Handling"""
+    step: str = Field(..., min_length=1)  # e.g., "3a", "4a"
+    condition: str = Field(..., min_length=1)
+    handling: str = Field(..., min_length=1)
+    # Sequence Diagram Fields
+    actor: Optional[str] = None  # Source actor for the extension flow
+    message: Optional[str] = None
+    target_actor: Optional[str] = None
+    response: Optional[str] = None
+
+# ============================================================================
 # Exception Schemas
 # ============================================================================
 
 class ExceptionBase(BaseModel):
     trigger: str = Field(..., min_length=1)
     handling: str = Field(..., min_length=1)
+    steps: Optional[List[MssStep]] = Field(default_factory=list)
+    
+    @field_validator('steps', mode='before')
+    @classmethod
+    def set_steps(cls, v):
+        return v or []
 
 class ExceptionCreate(ExceptionBase):
     project_id: str
@@ -81,22 +112,6 @@ class ExceptionOut(ExceptionBase):
     project_id: str
     
     model_config = ConfigDict(from_attributes=True)
-
-# ============================================================================
-# Use Case Component Schemas
-# ============================================================================
-
-class MssStep(BaseModel):
-    """Main Success Scenario Step: Step Number, Actor, Action"""
-    step_num: int = Field(..., gt=0)
-    actor: str = Field(..., min_length=1)
-    description: str = Field(..., min_length=1)
-
-class ExtensionStep(BaseModel):
-    """Extension: Step Number, Condition, Handling"""
-    step: str = Field(..., min_length=1)  # e.g., "3a", "4a"
-    condition: str = Field(..., min_length=1)
-    handling: str = Field(..., min_length=1)
 
 # ============================================================================
 # Use Case Schemas
@@ -119,7 +134,9 @@ class UseCaseCreate(BaseModel):
     # Reusable component IDs
     precondition_ids: List[str] = Field(default_factory=list)
     postcondition_ids: List[str] = Field(default_factory=list)  # NEW
-    exception_ids: List[str] = Field(default_factory=list)  # NEW
+    
+    # Exceptions (Inline list)
+    exceptions: List[ExceptionBase] = Field(default_factory=list)
     
     # Main Success Scenario
     mss: List[MssStep] = Field(default_factory=list)
@@ -153,11 +170,22 @@ class UseCaseOut(BaseModel):
     # Return full objects for reusable components
     preconditions: List[PreconditionOut] = Field(default_factory=list)
     postconditions: List[PostconditionOut] = Field(default_factory=list)
-    exceptions: List[ExceptionOut] = Field(default_factory=list)
+    # Exceptions are now inline JSON, so they follow the Base schema
+    exceptions: List[ExceptionBase] = Field(default_factory=list)
+
+    @field_validator('exceptions', mode='before')
+    @classmethod
+    def set_exceptions_default(cls, v):
+        return v or []
     
     # Scenarios
     mss: List[MssStep] = Field(default_factory=list)
     extensions: List[ExtensionStep] = Field(default_factory=list)
+
+    @field_validator('mss', 'extensions', mode='before')
+    @classmethod
+    def set_lists_default(cls, v):
+        return v or []
     
     # Traceability
     # req_references removed

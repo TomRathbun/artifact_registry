@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import MermaidBlock from './MermaidBlock';
+import PlantUMLBlock from './PlantUMLBlock';
 
 interface MarkdownDisplayProps {
     content: string;
@@ -21,6 +22,10 @@ const MarkdownDisplay: React.FC<MarkdownDisplayProps> = ({ content }) => {
 
                         if (!inline && language === 'mermaid') {
                             return <MermaidBlock chart={String(children).replace(/\n$/, '')} />;
+                        }
+
+                        if (!inline && language === 'plantuml') {
+                            return <PlantUMLBlock code={String(children).replace(/\n$/, '')} />;
                         }
 
                         if (!inline && match) {

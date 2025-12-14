@@ -16,8 +16,11 @@ import {
 import { X, Plus, Trash2, History, ArrowLeft, MessageSquare } from 'lucide-react';
 import DualListBox from './DualListBox';
 import MDEditor from '@uiw/react-md-editor';
+import remarkGfm from 'remark-gfm';
 import { LinkageManager } from './LinkageManager';
 import CommentPanel from './CommentPanel';
+import MermaidBlock from './MermaidBlock';
+import PlantUMLBlock from './PlantUMLBlock';
 
 
 type ArtifactType = 'vision' | 'need' | 'use_case' | 'requirement' | 'document';
@@ -45,12 +48,12 @@ type FormData = {
     rationale: string;
     short_name: string;
     text: string;
-    mss: { step_num: number; actor: string; description: string }[];
+    mss: { step_num: number; actor: string; description: string; message?: string; target_actor?: string; response?: string }[];
     stakeholder_ids: string[];
     precondition_ids: string[];
     postcondition_ids: string[];
-    exception_ids: string[];
-    extensions: { step: string; condition: string; handling: string }[];
+    exceptions: { trigger: string; handling: string; steps: any[] }[];
+    extensions: { step: string; condition: string; handling: string; actor?: string; message?: string; target_actor?: string; response?: string }[];
     site_ids: string[];
     component_ids: string[];
     // Document specific
@@ -58,6 +61,69 @@ type FormData = {
     content_url: string;
     content_text: string;
     mime_type: string;
+};
+
+
+// Nested component for Exception Steps
+const ExceptionStepsEditor = ({ nestIndex, control, register, actors }: { nestIndex: number, control: any, register: any, actors: any[] }) => {
+    const { fields, append, remove } = useFieldArray({
+        control,
+        name: `exceptions.${nestIndex}.steps`
+    });
+
+    return (
+        <div className="mt-3 bg-slate-50/50 p-2 rounded border border-slate-100">
+            <label className="block text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">Exception Flow Steps</label>
+            <div className="space-y-3">
+                {fields.map((item, k) => (
+                    <div key={item.id} className="p-3 bg-white rounded-md border border-slate-200 shadow-sm relative group">
+                        <button type="button" onClick={() => remove(k)} className="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Step {k + 1}</div>
+
+                        <div className="grid grid-cols-2 gap-2 mb-2">
+                            <div>
+                                <label className="block text-[10px] font-medium text-slate-500 mb-0.5">Actor</label>
+                                <select {...register(`exceptions.${nestIndex}.steps.${k}.actor`)} className="w-full px-2 py-1 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-blue-500 bg-slate-50">
+                                    <option value="">Select...</option>
+                                    {actors?.map((a: any) => <option key={a.id} value={a.name}>{a.name}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-medium text-slate-500 mb-0.5">Target (Optional)</label>
+                                <select {...register(`exceptions.${nestIndex}.steps.${k}.target_actor`)} className="w-full px-2 py-1 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-blue-500 bg-slate-50">
+                                    <option value="">Select...</option>
+                                    {actors?.map((a: any) => <option key={a.id} value={a.name}>{a.name}</option>)}
+                                </select>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 mb-2">
+                            <div>
+                                <label className="block text-[10px] font-medium text-slate-500 mb-0.5">Message (Method)</label>
+                                <input {...register(`exceptions.${nestIndex}.steps.${k}.message`)} className="w-full px-2 py-1 text-xs border border-slate-300 rounded" placeholder="doSomething()" />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-medium text-slate-500 mb-0.5">Response (Return)</label>
+                                <input {...register(`exceptions.${nestIndex}.steps.${k}.response`)} className="w-full px-2 py-1 text-xs border border-slate-300 rounded" placeholder="result" />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-medium text-slate-500 mb-0.5">Description (Action)</label>
+                            <textarea {...register(`exceptions.${nestIndex}.steps.${k}.description`)} rows={2} className="w-full px-2 py-1 text-xs border border-slate-300 rounded resize-none" placeholder="Description of action..." />
+                        </div>
+                    </div>
+                ))}
+            </div>
+            <button
+                type="button"
+                onClick={() => append({ step_num: fields.length + 1, actor: '', description: '', message: '', target_actor: '', response: '' })}
+                className="mt-3 text-xs text-blue-600 hover:text-blue-800 flex items-center font-medium px-2 py-1 hover:bg-blue-50 rounded"
+            >
+                <Plus className="w-3.5 h-3.5 mr-1" /> Add Step
+            </button>
+        </div>
+    );
 };
 
 export default function ArtifactWizard() {
@@ -83,7 +149,7 @@ export default function ArtifactWizard() {
     const [showPersonModal, setShowPersonModal] = useState(false);
     const [showPreconditionModal, setShowPreconditionModal] = useState(false);
     const [showPostconditionModal, setShowPostconditionModal] = useState(false);
-    const [showExceptionModal, setShowExceptionModal] = useState(false);
+
     const [showActorModal, setShowActorModal] = useState(false);
     const [personModalType, setPersonModalType] = useState<'owner' | 'stakeholder'>('owner');
     const [savedAid, setSavedAid] = useState<string | null>(null);
@@ -182,22 +248,16 @@ export default function ArtifactWizard() {
             stakeholder_ids: [],
             precondition_ids: [],
             postcondition_ids: [],
-            exception_ids: [],
+            exceptions: [], // Changed from exception_ids to exceptions
             source_use_case_id: '',
             site_ids: [],
             component_ids: [],
         }
     });
 
-    const { fields: mssFields, append: appendMss, remove: removeMss } = useFieldArray({
-        control,
-        name: "mss"
-    });
-
-    const { fields: extFields, append: appendExt, remove: removeExt } = useFieldArray({
-        control,
-        name: "extensions"
-    });
+    const { fields: mssFields, append: appendMss, remove: removeMss } = useFieldArray({ control, name: 'mss' });
+    const { fields: extFields, append: appendExt, remove: removeExt } = useFieldArray({ control, name: 'extensions' });
+    const { fields: exceptionFields, append: appendException, remove: removeException } = useFieldArray({ control, name: 'exceptions' });
 
     // Queries for auxiliary data
     const { data: owners } = useQuery({
@@ -219,8 +279,7 @@ export default function ArtifactWizard() {
         queryKey: ['actors', realProjectId],
         queryFn: async () => {
             const result = await MetadataService.listPeopleApiV1MetadataMetadataPeopleGet(realProjectId, 'actor');
-            console.log('Fetched actors:', result);
-            return result;
+            return (result || []).sort((a: any, b: any) => a.name.localeCompare(b.name));
         },
         enabled: !!realProjectId
     });
@@ -240,14 +299,7 @@ export default function ArtifactWizard() {
         },
         enabled: !!realProjectId
     });
-    const { data: exceptions } = useQuery({
-        queryKey: ['exceptions', realProjectId],
-        queryFn: () => {
-            if (!realProjectId) return [];
-            return UseCasesService.listExceptionsApiV1UseCaseUseCasesExceptionsGet(realProjectId);
-        },
-        enabled: !!realProjectId
-    });
+
 
     // const { data: visions } = useQuery({
     //     queryKey: ['visions', realProjectId],
@@ -315,7 +367,7 @@ export default function ArtifactWizard() {
                 }
                 // Map exceptions array to IDs
                 if (ucData.exceptions && Array.isArray(ucData.exceptions)) {
-                    setValue('exception_ids', ucData.exceptions.map((e: any) => e.id));
+                    setValue('exceptions', ucData.exceptions);
                 }
                 // Ensure arrays are initialized
                 if (!ucData.mss) setValue('mss', []);
@@ -412,7 +464,7 @@ export default function ArtifactWizard() {
             const validFields: Record<ArtifactType, string[]> = {
                 vision: ['title', 'description', 'area', 'status', 'project_id'],
                 need: ['title', 'description', 'area', 'status', 'rationale', 'source_vision_id', 'owner_id', 'stakeholder_id', 'level', 'site_ids', 'component_ids', 'project_id'],
-                use_case: ['title', 'description', 'source_need_id', 'status', 'trigger', 'primary_actor_id', 'stakeholder_ids', 'precondition_ids', 'postcondition_ids', 'exception_ids', 'mss', 'extensions', 'project_id'],
+                use_case: ['title', 'description', 'area', 'source_need_id', 'status', 'trigger', 'primary_actor_id', 'stakeholder_ids', 'precondition_ids', 'postcondition_ids', 'exceptions', 'mss', 'extensions', 'project_id'],
                 requirement: ['short_name', 'text', 'area', 'level', 'ears_type', 'ears_trigger', 'ears_state', 'ears_condition', 'ears_feature', 'status', 'rationale', 'owner', 'source_use_case_id', 'project_id'],
                 document: ['title', 'description', 'document_type', 'content_url', 'content_text', 'mime_type', 'area', 'project_id']
             };
@@ -546,16 +598,7 @@ export default function ArtifactWizard() {
             setShowPostconditionModal(false);
         }
     });
-    const createExceptionMutation = useMutation({
-        mutationFn: (payload: any) => {
-            if (!realProjectId) throw new Error("Project ID is required");
-            return UseCasesService.createExceptionApiV1UseCaseUseCasesExceptionsPost({ ...payload, project_id: realProjectId });
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['exceptions'] });
-            setShowExceptionModal(false);
-        }
-    });
+
     const createActorMutation = useMutation({
         mutationFn: (payload: any) => {
             if (!realProjectId) throw new Error("Project ID is required");
@@ -738,6 +781,29 @@ export default function ArtifactWizard() {
                                         height={300}
                                         className="border border-slate-300 rounded-md overflow-hidden"
                                         onFocus={() => setFocusedField('description')}
+                                        previewOptions={{
+                                            remarkPlugins: [remarkGfm],
+                                            components: {
+                                                code: ({ node, inline, className, children, ...props }: any) => {
+                                                    const match = /language-(\w+)/.exec(className || '');
+                                                    const language = match ? match[1] : '';
+
+                                                    if (!inline && language === 'mermaid') {
+                                                        return <MermaidBlock chart={String(children).replace(/\n$/, '')} />;
+                                                    }
+
+                                                    if (!inline && language === 'plantuml') {
+                                                        return <PlantUMLBlock code={String(children).replace(/\n$/, '')} />;
+                                                    }
+
+                                                    return (
+                                                        <code className={className} {...props}>
+                                                            {children}
+                                                        </code>
+                                                    );
+                                                }
+                                            }
+                                        }}
                                     />
                                 </div>
                             )}
@@ -956,30 +1022,7 @@ export default function ArtifactWizard() {
                                 )}
                             />
                         </div>
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center">
-                                <label className="block text-sm font-medium text-slate-700">Exceptions</label>
-                                <button type="button" onClick={() => setShowExceptionModal(true)} className="text-xs text-blue-600 hover:text-blue-800 flex items-center">
-                                    <Plus className="w-3 h-3 mr-1" /> Add Exception
-                                </button>
-                            </div>
-                            <Controller
-                                control={control}
-                                name="exception_ids"
-                                render={({ field }) => (
-                                    <DualListBox
-                                        available={exceptions || []}
-                                        selected={(exceptions || []).filter((e: any) => field.value?.includes(e.id))}
-                                        onChange={(selected) => field.onChange(selected.map((e: any) => e.id))}
-                                        getKey={(item: any) => item.id}
-                                        getLabel={(item: any) => `${item.trigger} -> ${item.handling}`}
-                                        availableLabel="Available Exceptions"
-                                        selectedLabel="Selected Exceptions"
-                                        height="h-48"
-                                    />
-                                )}
-                            />
-                        </div>
+
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Trigger</label>
                             <input {...register('trigger')} className="w-full px-3 py-2 border border-slate-300 rounded-md" />
@@ -987,35 +1030,53 @@ export default function ArtifactWizard() {
                         <div className="mt-6">
                             <div className="flex justify-between items-center mb-2">
                                 <h3 className="text-lg font-medium">Main Success Scenario</h3>
-                                <button type="button" onClick={() => appendMss({ step_num: mssFields.length + 1, actor: '', description: '' })} className="text-sm text-blue-600 hover:text-blue-800 flex items-center">
+                                <button type="button" onClick={() => appendMss({ step_num: mssFields.length + 1, actor: '', description: '', message: '', target_actor: '', response: '' })} className="text-sm text-blue-600 hover:text-blue-800 flex items-center">
                                     <Plus className="w-4 h-4 mr-1" /> Add Step
                                 </button>
                             </div>
-                            <div className="space-y-2">
+                            <div className="space-y-4">
                                 {mssFields.map((field, index) => (
-                                    <div key={field.id} className="flex gap-2 items-start">
-                                        <span className="pt-2 text-sm font-medium text-slate-500 w-8">{index + 1}.</span>
-                                        <div className="w-1/4">
-                                            <div className="flex justify-between items-center mb-1">
-                                                <span className="text-xs font-medium text-slate-500">Actor</span>
-                                                <button type="button" onClick={() => setShowActorModal(true)} className="text-xs text-blue-600 hover:text-blue-800 flex items-center">
-                                                    <Plus className="w-3 h-3 mr-1" /> New
-                                                </button>
+                                    <div key={field.id} className="p-3 bg-slate-50 rounded-md border border-slate-200">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <span className="text-sm font-medium text-slate-700">Step {index + 1}</span>
+                                            <button type="button" onClick={() => removeMss(index)} className="text-red-500 hover:text-red-700">
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3 mb-3">
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-500 mb-1">Actor</label>
+                                                <select {...register(`mss.${index}.actor`)} className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md">
+                                                    <option value="">Select Actor...</option>
+                                                    {actors?.map((a: any) => (
+                                                        <option key={a.id} value={a.name}>{a.name}</option>
+                                                    ))}
+                                                </select>
                                             </div>
-                                            <select {...register(`mss.${index}.actor`)} className="w-full px-3 py-2 border border-slate-300 rounded-md">
-                                                <option value="">Select Actor...</option>
-                                                {actors?.map((a: any) => (
-                                                    <option key={a.id} value={a.name}>{a.name}</option>
-                                                ))}
-                                            </select>
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-500 mb-1">Target Actor (Optional)</label>
+                                                <select {...register(`mss.${index}.target_actor`)} className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md bg-white">
+                                                    <option value="">Select Target...</option>
+                                                    {actors?.map((a: any) => (
+                                                        <option key={a.id} value={a.name}>{a.name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
                                         </div>
-                                        <div className="flex-1">
-                                            <div className="mb-1 text-xs font-medium text-slate-500">Action</div>
-                                            <input {...register(`mss.${index}.description`)} placeholder="Action description" className="w-full px-3 py-2 border border-slate-300 rounded-md" />
+                                        <div className="grid grid-cols-2 gap-3 mb-3">
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-500 mb-1">Message (Method)</label>
+                                                <input {...register(`mss.${index}.message`)} placeholder="e.g. IngestData()" className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-500 mb-1">Response (Return)</label>
+                                                <input {...register(`mss.${index}.response`)} placeholder="e.g. DataNormalized" className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md" />
+                                            </div>
                                         </div>
-                                        <button type="button" onClick={() => removeMss(index)} className="mt-6 p-2 text-red-500 hover:bg-red-50 rounded-md">
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
+                                        <div>
+                                            <label className="block text-xs font-medium text-slate-500 mb-1">Description (Action)</label>
+                                            <textarea {...register(`mss.${index}.description`)} rows={2} className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md" />
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -1023,19 +1084,100 @@ export default function ArtifactWizard() {
                         <div className="mt-6">
                             <div className="flex justify-between items-center mb-2">
                                 <h3 className="text-lg font-medium">Extensions</h3>
-                                <button type="button" onClick={() => appendExt({ step: '', condition: '', handling: '' })} className="text-sm text-blue-600 hover:text-blue-800 flex items-center">
+                                <button type="button" onClick={() => appendExt({ step: '', condition: '', handling: '', actor: '', message: '', target_actor: '', response: '' })} className="text-sm text-blue-600 hover:text-blue-800 flex items-center">
                                     <Plus className="w-4 h-4 mr-1" /> Add Extension
                                 </button>
                             </div>
                             <div className="space-y-2">
                                 {extFields.map((field, index) => (
-                                    <div key={field.id} className="flex gap-2 items-start">
-                                        <input {...register(`extensions.${index}.step`)} placeholder="Step Ref" className="w-20 px-3 py-2 border border-slate-300 rounded-md" />
-                                        <input {...register(`extensions.${index}.condition`)} placeholder="Condition" className="w-1/3 px-3 py-2 border border-slate-300 rounded-md" />
-                                        <input {...register(`extensions.${index}.handling`)} placeholder="Handling" className="flex-1 px-3 py-2 border border-slate-300 rounded-md" />
-                                        <button type="button" onClick={() => removeExt(index)} className="p-2 text-red-500 hover:bg-red-50 rounded-md">
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
+                                    <div key={field.id} className="p-3 bg-slate-50 rounded-md border border-slate-200">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-sm font-medium text-slate-700">Ref</label>
+                                                <input {...register(`extensions.${index}.step`)} placeholder="3a" className="w-16 px-2 py-1 text-sm border border-slate-300 rounded-md" />
+                                            </div>
+                                            <button type="button" onClick={() => removeExt(index)} className="text-red-500 hover:text-red-700">
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3 mb-3">
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-500 mb-1">Source Actor (Optional)</label>
+                                                <select {...register(`extensions.${index}.actor`)} className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md bg-white">
+                                                    <option value="">Select Actor...</option>
+                                                    {actors?.map((a: any) => (
+                                                        <option key={a.id} value={a.name}>{a.name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-500 mb-1">Target Actor (Optional)</label>
+                                                <select {...register(`extensions.${index}.target_actor`)} className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md bg-white">
+                                                    <option value="">Select Target...</option>
+                                                    {actors?.map((a: any) => (
+                                                        <option key={a.id} value={a.name}>{a.name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3 mb-3">
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-500 mb-1">Message (Optional)</label>
+                                                <input {...register(`extensions.${index}.message`)} placeholder="Triggering Message" className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-500 mb-1">Response (Optional)</label>
+                                                <input {...register(`extensions.${index}.response`)} placeholder="Result Message" className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md" />
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-500 mb-1">Condition</label>
+                                                <input {...register(`extensions.${index}.condition`)} placeholder="e.g. Network Fail" className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-500 mb-1">Handling</label>
+                                                <input {...register(`extensions.${index}.handling`)} placeholder="e.g. Retry 3x" className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="space-y-4 mt-4">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-lg font-medium">Exceptions</h3>
+                                <button type="button" onClick={() => appendException({ trigger: '', handling: '', steps: [] })} className="text-sm text-blue-600 hover:text-blue-800 flex items-center">
+                                    <Plus className="w-4 h-4 mr-1" /> Add Exception
+                                </button>
+                            </div>
+                            <div className="space-y-2">
+                                {exceptionFields.map((field, index) => (
+                                    <div key={field.id} className="p-3 bg-slate-50 rounded-md border border-slate-200">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div className="font-medium text-slate-700 text-sm">Exception {index + 1}</div>
+                                            <button type="button" onClick={() => removeException(index)} className="text-red-500 hover:text-red-700">
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                        <div className="grid grid-cols-1 gap-3 mb-3">
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-500 mb-1">Trigger</label>
+                                                <input {...register(`exceptions.${index}.trigger` as const)} placeholder="Trigger condition" className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-500 mb-1">Handling</label>
+                                                <textarea {...register(`exceptions.${index}.handling` as const)} rows={2} placeholder="Handling logic" className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md" />
+                                            </div>
+                                            <div>
+                                                <ExceptionStepsEditor
+                                                    nestIndex={index}
+                                                    control={control}
+                                                    register={register}
+                                                    actors={actors || []}
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -1313,6 +1455,29 @@ export default function ArtifactWizard() {
                                                 preview="edit"
                                                 height={400}
                                                 className="border border-slate-300 rounded-md overflow-hidden"
+                                                previewOptions={{
+                                                    remarkPlugins: [remarkGfm],
+                                                    components: {
+                                                        code: ({ node, inline, className, children, ...props }: any) => {
+                                                            const match = /language-(\w+)/.exec(className || '');
+                                                            const language = match ? match[1] : '';
+
+                                                            if (!inline && language === 'mermaid') {
+                                                                return <MermaidBlock chart={String(children).replace(/\n$/, '')} />;
+                                                            }
+
+                                                            if (!inline && language === 'plantuml') {
+                                                                return <PlantUMLBlock code={String(children).replace(/\n$/, '')} />;
+                                                            }
+
+                                                            return (
+                                                                <code className={className} {...props}>
+                                                                    {children}
+                                                                </code>
+                                                            );
+                                                        }
+                                                    }
+                                                }}
                                             />
                                         </div>
                                     )}
@@ -1690,62 +1855,7 @@ export default function ArtifactWizard() {
                 )
             }
 
-            {/* Exception Modal */}
-            {
-                showExceptionModal && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                        <div className="bg-white p-6 rounded-xl shadow-xl max-w-md w-full">
-                            <h3 className="text-lg font-semibold mb-4">Create New Exception</h3>
-                            <form
-                                onSubmit={(e) => {
-                                    e.preventDefault();
-                                    const formData = new FormData(e.currentTarget);
-                                    createExceptionMutation.mutate({
-                                        trigger: formData.get('trigger') as string,
-                                        handling: formData.get('handling') as string,
-                                    });
-                                }}
-                                className="space-y-4"
-                            >
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Trigger *</label>
-                                    <input
-                                        name="trigger"
-                                        required
-                                        placeholder="e.g., Sensor/data link failure"
-                                        className="w-full px-3 py-2 border rounded-md"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Handling *</label>
-                                    <textarea
-                                        name="handling"
-                                        required
-                                        placeholder="e.g., Fall back to last known good data; alert Operator"
-                                        className="w-full px-3 py-2 border rounded-md"
-                                        rows={3}
-                                    />
-                                </div>
-                                <div className="flex justify-end gap-2 mt-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowExceptionModal(false)}
-                                        className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-md"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                                    >
-                                        Create
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                )
-            }
+
 
             {/* Actor Modal */}
             {

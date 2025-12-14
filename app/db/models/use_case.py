@@ -72,6 +72,7 @@ class Exception(Base):
     id = Column(String, primary_key=True, index=True)
     trigger = Column(String, nullable=False)  # e.g., "Sensor/data link failure"
     handling = Column(Text, nullable=False)  # e.g., "Fall back to last known good data..."
+    steps = Column(JSON, default=list)  # Sequence of steps for handling this exception
     project_id = Column(String, ForeignKey("projects.id"), nullable=False, index=True)
 
 
@@ -118,7 +119,10 @@ class UseCase(BaseArtifact):
     extensions = Column(JSON, default=list)
     
     # Exceptions (Many-to-Many) - NEW
-    exceptions = relationship("Exception", secondary=use_case_exceptions, backref="use_cases")
+    # Exceptions (Inline JSON list - replaced M2M)
+    # Structure: [{"trigger": "...", "handling": "...", "steps": [...]}]
+    exceptions = Column(JSON, default=list)
+    # exceptions = relationship("Exception", secondary=use_case_exceptions, backref="use_cases")
     
     # Traceability
     # req_references removed

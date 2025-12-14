@@ -4,6 +4,7 @@ import axios from 'axios';
 import ComponentDiagram from './ComponentDiagram';
 import ArtifactGraphView from './ArtifactGraphView';
 import SequenceDiagramEditor from './SequenceDiagramEditor';
+import PlantUMLDiagramEditor from './PlantUMLDiagramEditor';
 
 export default function DiagramView() {
     const { diagramId } = useParams<{ diagramId: string }>();
@@ -23,6 +24,10 @@ export default function DiagramView() {
 
     if (diagram.type === 'sequence' || diagram.type === 'mermaid') {
         return <SequenceDiagramEditor />;
+    }
+
+    if (diagram.type === 'plantuml') {
+        return <PlantUMLDiagramEditor />;
     }
 
     if (diagram.type === 'artifact_graph') {

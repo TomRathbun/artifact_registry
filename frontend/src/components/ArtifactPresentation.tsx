@@ -1,13 +1,124 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import MarkdownDisplay from './MarkdownDisplay';
 import { NeedsService, UseCasesService, RequirementsService, VisionService, LinkageService, ProjectsService } from '../client';
-import { ArrowLeft, Edit, ExternalLink, X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, MessageSquarePlus, MessageSquare, Tag } from 'lucide-react';
+import {
+    ArrowLeft, Edit, ExternalLink, X, ChevronLeft, ChevronRight,
+    ZoomIn, ZoomOut, MessageSquarePlus, MessageSquare, Tag,
+    FileText, User, Target, Layers, ArrowRight, Zap, AlertTriangle,
+    CheckCircle, List, Activity, GitBranch, Terminal, Maximize2, Minimize2
+} from 'lucide-react';
 import ComponentDiagram from './ComponentDiagram';
 import ArtifactGraphView from './ArtifactGraphView';
 import SequenceDiagramEditor from './SequenceDiagramEditor';
 import CommentPanel from './CommentPanel';
+import PlantUMLBlock from './PlantUMLBlock';
+
+// Helper to generate PlantUML sequence diagram from MSS
+function generateSequenceDiagram(mss: any[], extensions: any[] = [], exceptions: any[] = []) {
+    if (!mss || !Array.isArray(mss) || mss.length === 0) return '';
+
+    extensions = Array.isArray(extensions) ? extensions : [];
+    exceptions = Array.isArray(exceptions) ? exceptions : [];
+
+    let puml = "@startuml\n";
+    puml += "skinparam style strictuml\n";
+    puml += "skinparam sequenceMessageAlign center\n";
+    // puml += "autoactivate on\n"; // Removed to avoid forced returns
+
+    // Define actors (optional, but good for ordering)
+    const actors = new Set<string>();
+    mss.forEach(step => {
+        if (step.actor) actors.add(step.actor);
+        if (step.target_actor) actors.add(step.target_actor);
+    });
+    extensions.forEach(ext => {
+        if (ext.actor) actors.add(ext.actor);
+        if (ext.target_actor) actors.add(ext.target_actor);
+    });
+    exceptions.forEach(exc => {
+        if (exc.steps) {
+            exc.steps.forEach((s: any) => {
+                if (s.actor) actors.add(s.actor);
+                if (s.target_actor) actors.add(s.target_actor);
+            });
+        }
+    });
+
+    // Generate MSS steps
+    puml += `loop Main Flow\n`;
+    mss.forEach(step => {
+        // If we have explicit sequence data (message is required, target defaults to self)
+        if (step.message) {
+            const target = step.target_actor || step.actor;
+
+            // Source -> Target : Message
+            puml += `"${step.actor}" -> "${target}": ${step.message} \n`;
+
+            // Response (Optional)
+            if (step.response) {
+                // Target --> Source : Response
+                puml += `"${target}" --> "${step.actor}": ${step.response} \n`;
+            }
+        } else {
+            // Fallback for steps without explicit sequence data:
+            // Just Note over Actor: Description
+            puml += `note over "${step.actor}": ${step.description} \n`;
+        }
+
+        // Render Extensions for this step
+        const stepExtensions = extensions.filter(ext => parseInt(ext.step, 10) === step.step_num);
+        stepExtensions.forEach(ext => {
+            puml += `alt ${ext.condition} \n`;
+
+            if (ext.message) {
+                const extSource = ext.actor || step.actor; // Default to main step actor if missing
+                const extTarget = ext.target_actor || extSource;
+
+                puml += `"${extSource}" -> "${extTarget}": ${ext.message} \n`;
+
+                if (ext.response) {
+                    puml += `"${extTarget}" --> "${extSource}": ${ext.response} \n`;
+                }
+            } else {
+                // Fallback if no sequence data in extension
+                puml += `note over "${step.actor}": ${ext.handling} \n`;
+            }
+
+            puml += `end\n`;
+        });
+    });
+    puml += `end\n`;
+
+    // Render Exceptions (as global or end-of-flow opt blocks)
+    if (exceptions.length > 0) {
+        puml += `== Exceptions ==\n`; // Visual separator
+        exceptions.forEach(exc => {
+            puml += `opt ${exc.trigger} \n`;
+            if (exc.steps && exc.steps.length > 0) {
+                exc.steps.forEach((step: any) => {
+                    if (step.message) {
+                        const target = step.target_actor || step.actor;
+                        puml += `"${step.actor}" -> "${target}": ${step.message} \n`;
+                        if (step.response) {
+                            puml += `"${target}" --> "${step.actor}": ${step.response} \n`;
+                        }
+                    } else {
+                        puml += `note over "${step.actor}": ${step.description} \n`;
+                    }
+                });
+            } else {
+                puml += `note over "${Array.from(actors)[0] || 'System'}": ${exc.handling} \n`;
+            }
+            puml += `end\n`;
+        });
+    }
+
+    puml += "@enduml";
+    return puml;
+}
 
 // Component to fetch and display person name by ID
 function PersonName({ personId }: { personId: string }) {
@@ -42,10 +153,10 @@ function LinkedArtifactName({ link, onClick }: { link: any; onClick: () => void 
                 case 'requirement':
                     return await RequirementsService.getRequirementApiV1RequirementRequirementsAidGet(link.target_id);
                 case 'diagram':
-                    const diagResponse = await fetch(`/api/v1/diagrams/${link.target_id}`);
+                    const diagResponse = await fetch(`/ api / v1 / diagrams / ${link.target_id} `);
                     return diagResponse.ok ? await diagResponse.json() : null;
                 case 'component':
-                    const compResponse = await fetch(`/api/v1/components/${link.target_id}`);
+                    const compResponse = await fetch(`/ api / v1 / components / ${link.target_id} `);
                     return compResponse.ok ? await compResponse.json() : null;
                 default:
                     return null;
@@ -151,26 +262,26 @@ function SelectableField({
                 onClick(fieldId);
             }}
             className={`
-                relative group rounded-md transition-all duration-200
+                relative group rounded - md transition - all duration - 200
                 ${isActive
                     ? 'ring-2 ring-blue-500 bg-blue-50/50 -m-2 p-2'
                     : 'hover:bg-slate-50 -m-2 p-2 cursor-pointer border border-transparent hover:border-slate-200'
                 }
-            `}
+`}
         >
             <div className="flex items-center justify-between mb-1">
                 {/* Always show label if provided, or if active/hovered to indicate what this field is */}
                 {(label || isActive) && (
-                    <span className={`text-xs font-semibold uppercase tracking-wider ${isActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-600'}`}>
+                    <span className={`text - xs font - semibold uppercase tracking - wider ${isActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-600'} `}>
                         {label}
                     </span>
                 )}
 
                 {/* Comment icon that appears on hover or when active */}
                 <div className={`
-                    opacity-0 group-hover:opacity-100 transition-opacity
+opacity - 0 group - hover: opacity - 100 transition - opacity
                     ${isActive ? 'opacity-100 text-blue-600' : 'text-slate-400'}
-                `}>
+`}>
                     <MessageSquarePlus className="w-4 h-4" />
                 </div>
             </div>
@@ -206,7 +317,7 @@ export default function ArtifactPresentation() {
         });
 
         if (highlightedField) {
-            const field = document.querySelector(`[data-field-name="${highlightedField}"]`);
+            const field = document.querySelector(`[data - field - name= "${highlightedField}"]`);
             if (field) {
                 field.setAttribute('data-highlighted', 'true');
                 field.classList.add('ring-4', 'ring-yellow-200', 'bg-yellow-50');
@@ -261,7 +372,7 @@ export default function ArtifactPresentation() {
     }, [artifactId]);
 
     // Get filtered AIDs from sessionStorage (persisted from list view) or location state
-    const getFilteredAIDsKey = () => `filtered-aids-${projectId}-${artifactType}`;
+    const getFilteredAIDsKey = () => `filtered - aids - ${projectId} -${artifactType} `;
     const getFilteredAIDs = () => {
         // First try location state (direct navigation from list)
         const stateAIDs = (location.state as any)?.filteredAIDs;
@@ -361,7 +472,7 @@ export default function ArtifactPresentation() {
                     const needResponse = await fetch(`/api/v1/need/needs/?project_id=${project.id}`);
                     return needResponse.ok ? await needResponse.json() : [];
                 case 'use_case':
-                    const ucResponse = await fetch(`/api/v1/use_case/use-cases/?project_id=${project.id}`);
+                    const ucResponse = await fetch(`/api/v1/use_case/use_cases/?project_id=${project.id}`);
                     return ucResponse.ok ? await ucResponse.json() : [];
                 case 'requirement':
                     const reqResponse = await fetch(`/api/v1/requirement/requirements/?project_id=${project.id}`);
@@ -1102,6 +1213,10 @@ function NeedPresentation({ artifact, selectedField, onFieldClick }: Presentatio
 }
 
 function UseCasePresentation({ artifact, selectedField, onFieldClick }: PresentationProps) {
+    const sequencePuml = generateSequenceDiagram(artifact.mss, artifact.extensions, artifact.exceptions);
+    const statePuml = generateStateDiagram(artifact);
+    const [expandedDiagram, setExpandedDiagram] = useState<'state' | 'sequence' | null>(null);
+
     return (
         <>
             <div className="grid grid-cols-2 gap-4 mb-3 not-prose">
@@ -1118,6 +1233,8 @@ function UseCasePresentation({ artifact, selectedField, onFieldClick }: Presenta
                     <MarkdownDisplay content={artifact.description || '*No description provided.*'} />
                 </div>
             </SelectableField>
+
+
 
             <div className="mt-4">
                 <SelectableField fieldId="trigger" label="Trigger" isActive={selectedField === 'trigger'} onClick={onFieldClick}>
@@ -1140,13 +1257,15 @@ function UseCasePresentation({ artifact, selectedField, onFieldClick }: Presenta
             <div className="mt-4">
                 <SelectableField fieldId="mss" label="Main Success Scenario" isActive={selectedField === 'mss'} onClick={onFieldClick}>
                     {artifact.mss && artifact.mss.length > 0 ? (
-                        <ol className="list-decimal list-inside mt-1">
-                            {artifact.mss.map((step: any, i: number) => (
-                                <li key={i}>
-                                    <strong>{step.actor}:</strong> {step.description}
-                                </li>
-                            ))}
-                        </ol>
+                        <>
+                            <ol className="list-decimal list-inside mt-1 mb-4">
+                                {artifact.mss.map((step: any, i: number) => (
+                                    <li key={i}>
+                                        <strong>{step.actor}:</strong> {step.description}
+                                    </li>
+                                ))}
+                            </ol>
+                        </>
                     ) : <p className="text-slate-400 italic mt-1">No main success scenario.</p>}
                 </SelectableField>
             </div>
@@ -1162,8 +1281,115 @@ function UseCasePresentation({ artifact, selectedField, onFieldClick }: Presenta
                     ) : <p className="text-slate-400 italic mt-1">No postconditions.</p>}
                 </SelectableField>
             </div>
+
+            {/* Diagrams Section */}
+            <div className={`mt-8 mb-8 gap-6 print:break-inside-avoid transition-all duration-300 ${expandedDiagram ? 'grid grid-cols-1' : 'grid grid-cols-1 lg:grid-cols-2'}`}>
+                <div className={`flex flex-col h-full transition-all duration-300 ${expandedDiagram === 'sequence' ? 'hidden' : ''}`}>
+                    <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider flex items-center">
+                            <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                            Hybrid State Diagram
+                        </h3>
+                        <button
+                            onClick={() => setExpandedDiagram(expandedDiagram === 'state' ? null : 'state')}
+                            className="text-slate-400 hover:text-blue-600 p-1 rounded hover:bg-slate-100"
+                            title={expandedDiagram === 'state' ? "Minimize" : "Maximize"}
+                        >
+                            {expandedDiagram === 'state' ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                        </button>
+                    </div>
+                    <PlantUMLBlock code={statePuml} className="flex-1 w-full bg-white shadow-sm" />
+                </div>
+
+                <div className={`flex flex-col h-full transition-all duration-300 ${expandedDiagram === 'state' ? 'hidden' : ''}`}>
+                    <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider flex items-center">
+                            <span className="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+                            Sequence Diagram
+                        </h3>
+                        <button
+                            onClick={() => setExpandedDiagram(expandedDiagram === 'sequence' ? null : 'sequence')}
+                            className="text-slate-400 hover:text-blue-600 p-1 rounded hover:bg-slate-100"
+                            title={expandedDiagram === 'sequence' ? "Minimize" : "Maximize"}
+                        >
+                            {expandedDiagram === 'sequence' ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                        </button>
+                    </div>
+                    <PlantUMLBlock code={sequencePuml} className="flex-1 w-full bg-white shadow-sm" />
+                </div>
+            </div>
+
         </>
     );
+}
+
+function generateStateDiagram(artifact: any): string {
+    let puml = `@startuml\n`;
+    puml += `title ${artifact.title} - Hybrid State Diagram for ${artifact.aid}\n\n`;
+    puml += `skinparam noteFontSize 12\n`;
+    puml += `skinparam state {\n`;
+    puml += `  FontSize 14\n`;
+    puml += `  BackgroundColor LightBlue\n`;
+    puml += `  BorderColor Black\n`;
+    puml += `}\n`;
+    puml += `skinparam arrowThickness 2\n\n`;
+
+    puml += `[*] -down-> Preconditions_Met : System Initialization\n\n`;
+
+    // Preconditions
+    const preList = artifact.preconditions && artifact.preconditions.length > 0
+        ? artifact.preconditions.map((p: any) => `- ${p.text}`).join('\\n')
+        : '- None';
+    puml += `state Preconditions_Met : Preconditions:\\n${preList}\n\n`;
+
+    // Trigger
+    const trigger = artifact.trigger || "User Action";
+    puml += `Preconditions_Met -down-> Main_Use_Case : [Trigger: ${trigger}]\n\n`;
+
+    // Main Use Case State (MSS + Extensions)
+    let mssText = "Main Success Scenario (MSS) - Model as Sequence Diagram in workshops:\\n";
+    if (artifact.mss && artifact.mss.length > 0) {
+        mssText += artifact.mss.map((s: any) => {
+            const desc = (s.message || s.description || '').replace(/\\n/g, ' ');
+            return `${s.step_num}. ${s.actor}: ${desc}`;
+        }).join('\\n');
+    } else {
+        mssText += "None";
+    }
+
+    if (artifact.extensions && artifact.extensions.length > 0) {
+        mssText += "\\n\\nExtensions:\\n";
+        mssText += artifact.extensions.map((e: any) => {
+            const stepPrefix = e.step ? `${e.step}. ` : '';
+            const handling = (e.handling || e.message || '').replace(/\\n/g, ' ');
+            return `${stepPrefix}[${e.condition}] -> ${handling}`;
+        }).join('\\n');
+    }
+
+    puml += `state Main_Use_Case #LightGreen : ${mssText}\n\n`;
+
+    // Exceptions Note
+    if (artifact.exceptions && artifact.exceptions.length > 0) {
+        let excText = "Exceptions (branch in sequence):\\n";
+        excText += artifact.exceptions.map((e: any) => {
+            const handling = (e.handling || '').replace(/\\n/g, ' ');
+            return `- [${e.trigger}] -> ${handling}`;
+        }).join('\\n');
+        puml += `note right of Main_Use_Case\n${excText}\nend note\n\n`;
+    }
+
+    puml += `Main_Use_Case -down-> Postconditions_Achieved : [MSS Complete / No Unresolved Exceptions]\n\n`;
+
+    // Postconditions
+    const postList = artifact.postconditions && artifact.postconditions.length > 0
+        ? artifact.postconditions.map((p: any) => `- ${p.text}`).join('\\n')
+        : '- None';
+    puml += `state Postconditions_Achieved : Postconditions:\\n${postList}\n\n`;
+
+    puml += `Postconditions_Achieved -down-> [*] : Use Case End\n\n`;
+    puml += `@enduml`;
+
+    return puml;
 }
 
 function RequirementPresentation({ artifact, selectedField, onFieldClick }: PresentationProps) {

@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 
 import axios from 'axios';
-import { Plus, Network, Edit, Trash2, GitGraph, ArrowUp, ArrowDown, Filter, Wand2 } from 'lucide-react';
+import { Plus, Network, Edit, Trash2, GitGraph, ArrowUp, ArrowDown, Filter, Wand2, FileCode } from 'lucide-react';
 import { MetadataService } from '../client';
 
 export default function DiagramList() {
@@ -12,7 +12,7 @@ export default function DiagramList() {
     const [isCreating, setIsCreating] = useState(false);
     const [newDiagramName, setNewDiagramName] = useState('');
     const [newDiagramDesc, setNewDiagramDesc] = useState('');
-    const [newDiagramType, setNewDiagramType] = useState<'component' | 'artifact_graph' | 'mermaid'>('component');
+    const [newDiagramType, setNewDiagramType] = useState<'component' | 'artifact_graph' | 'mermaid' | 'plantuml'>('component');
     const [newDiagramFilter, setNewDiagramFilter] = useState('All');
 
     // Edit/Delete state
@@ -247,7 +247,15 @@ export default function DiagramList() {
                                         className={`p-3 rounded-lg border text-sm font-medium flex flex-col items-center gap-2 ${newDiagramType === 'mermaid' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:bg-slate-50 text-slate-600'}`}
                                     >
                                         <Wand2 className="w-5 h-5" />
-                                        Mermaid Diagram
+                                        Mermaid
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setNewDiagramType('plantuml')}
+                                        className={`p-3 rounded-lg border text-sm font-medium flex flex-col items-center gap-2 ${newDiagramType === 'plantuml' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:bg-slate-50 text-slate-600'}`}
+                                    >
+                                        <FileCode className="w-5 h-5" />
+                                        PlantUML
                                     </button>
                                 </div>
                             </div>
@@ -580,6 +588,11 @@ export default function DiagramList() {
                                             <>
                                                 <Wand2 className="w-4 h-4 text-emerald-600" />
                                                 <span className="text-sm text-slate-600">Mermaid Diagram</span>
+                                            </>
+                                        ) : diagram.type === 'plantuml' ? (
+                                            <>
+                                                <FileCode className="w-4 h-4 text-orange-600" />
+                                                <span className="text-sm text-slate-600">PlantUML Diagram</span>
                                             </>
                                         ) : (
                                             <>

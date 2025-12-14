@@ -108,35 +108,56 @@ const AboutPage: React.FC = () => {
                         <p className="text-slate-500">Loading system info...</p>
                     ) : (
                         <div className="space-y-3">
-                            <div className="flex justify-between border-b border-slate-100 pb-2">
-                                <span className="text-slate-600 font-semibold">Frontend Version:</span>
+                            <div className="flex justify-between border-b border-slate-100 pb-2 group relative cursor-help">
+                                <span className="text-slate-600 font-semibold border-b border-dotted border-slate-300">Frontend Version:</span>
                                 <span className="font-mono font-medium">{packageJson.version}</span>
+                                <div className="invisible group-hover:visible absolute left-0 bottom-full mb-2 w-64 bg-slate-800 text-white text-xs p-2 rounded shadow-lg z-10 pointer-events-none">
+                                    The current version of the Artifact Registry frontend application.
+                                </div>
                             </div>
-                            <div className="flex justify-between border-b border-slate-100 pb-2 pl-4">
-                                <span className="text-slate-500">React Version:</span>
+                            <div className="flex justify-between border-b border-slate-100 pb-2 pl-4 group relative cursor-help">
+                                <span className="text-slate-500 border-b border-dotted border-slate-300">React Version:</span>
                                 <span className="font-mono text-sm">{packageJson.dependencies['react'].replace('^', '')}</span>
+                                <div className="invisible group-hover:visible absolute left-0 bottom-full mb-2 w-64 bg-slate-800 text-white text-xs p-2 rounded shadow-lg z-10 pointer-events-none">
+                                    <strong>React</strong> is a library for building user interfaces. It lets you compose complex UIs from small and isolated pieces of code called "components".
+                                </div>
                             </div>
-                            <div className="flex justify-between border-b border-slate-100 pb-2 pl-4">
-                                <span className="text-slate-500">Vite Version:</span>
+                            <div className="flex justify-between border-b border-slate-100 pb-2 pl-4 group relative cursor-help">
+                                <span className="text-slate-500 border-b border-dotted border-slate-300">Vite Version:</span>
                                 <span className="font-mono text-sm">{packageJson.devDependencies['vite'].replace('^', '')}</span>
+                                <div className="invisible group-hover:visible absolute left-0 bottom-full mb-2 w-64 bg-slate-800 text-white text-xs p-2 rounded shadow-lg z-10 pointer-events-none">
+                                    <strong>Vite</strong> is a build tool that aims to provide a faster and leaner development experience for modern web projects. It consists of a dev server and a build command.
+                                </div>
                             </div>
 
-                            <div className="flex justify-between border-b border-slate-100 pb-2 mt-4">
-                                <span className="text-slate-600 font-semibold">Backend Version:</span>
+                            <div className="flex justify-between border-b border-slate-100 pb-2 mt-4 group relative cursor-help">
+                                <span className="text-slate-600 font-semibold border-b border-dotted border-slate-300">Backend Version:</span>
                                 <span className="font-mono font-medium">{systemInfo?.version || 'Unknown'}</span>
+                                <div className="invisible group-hover:visible absolute left-0 bottom-full mb-2 w-64 bg-slate-800 text-white text-xs p-2 rounded shadow-lg z-10 pointer-events-none">
+                                    The current version of the Artifact Registry backend API.
+                                </div>
                             </div>
-                            <div className="flex justify-between border-b border-slate-100 pb-2 pl-4">
-                                <span className="text-slate-500">FastAPI Version:</span>
+                            <div className="flex justify-between border-b border-slate-100 pb-2 pl-4 group relative cursor-help">
+                                <span className="text-slate-500 border-b border-dotted border-slate-300">FastAPI Version:</span>
                                 <span className="font-mono text-sm">{systemInfo?.fastapi_version || 'Unknown'}</span>
+                                <div className="invisible group-hover:visible absolute left-0 bottom-full mb-2 w-64 bg-slate-800 text-white text-xs p-2 rounded shadow-lg z-10 pointer-events-none">
+                                    <strong>FastAPI</strong> is a modern, fast (high-performance), web framework for building APIs with Python 3.8+ based on standard Python type hints.
+                                </div>
                             </div>
-                            <div className="flex justify-between border-b border-slate-100 pb-2 pl-4">
-                                <span className="text-slate-500">Python Version:</span>
+                            <div className="flex justify-between border-b border-slate-100 pb-2 pl-4 group relative cursor-help">
+                                <span className="text-slate-500 border-b border-dotted border-slate-300">Python Version:</span>
                                 <span className="font-mono text-sm">{systemInfo?.python_version || 'Unknown'}</span>
+                                <div className="invisible group-hover:visible absolute left-0 bottom-full mb-2 w-64 bg-slate-800 text-white text-xs p-2 rounded shadow-lg z-10 pointer-events-none">
+                                    <strong>Python</strong> is a programming language that lets you work quickly and integrate systems more effectively.
+                                </div>
                             </div>
 
-                            <div className="flex justify-between border-b border-slate-100 pb-2 mt-4">
-                                <span className="text-slate-600 font-semibold">{systemInfo?.database_type || 'Database'}:</span>
+                            <div className="flex justify-between border-b border-slate-100 pb-2 mt-4 group relative cursor-help">
+                                <span className="text-slate-600 font-semibold border-b border-dotted border-slate-300">{systemInfo?.database_type || 'Database'}:</span>
                                 <span className="font-mono font-medium">{systemInfo?.database_version || 'Unknown'}</span>
+                                <div className="invisible group-hover:visible absolute left-0 bottom-full mb-2 w-64 bg-slate-800 text-white text-xs p-2 rounded shadow-lg z-10 pointer-events-none">
+                                    <strong>PostgreSQL</strong> is a powerful, open source object-relational database system with over 35 years of active development.
+                                </div>
                             </div>
                         </div>
                     )}

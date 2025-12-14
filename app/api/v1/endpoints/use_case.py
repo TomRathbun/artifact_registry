@@ -175,12 +175,6 @@ def create_use_case(payload: UseCaseCreate, db: Session = Depends(get_db)):
         if len(postconditions) != len(payload.postcondition_ids):
             raise HTTPException(status_code=400, detail="One or more postconditions not found")
     
-    exceptions = []
-    if payload.exception_ids:
-        exceptions = db.query(UseCaseException).filter(UseCaseException.id.in_(payload.exception_ids)).all()
-        if len(exceptions) != len(payload.exception_ids):
-            raise HTTPException(status_code=400, detail="One or more exceptions not found")
-    
     stakeholders = []
     if payload.stakeholder_ids:
         stakeholders = db.query(Person).filter(Person.id.in_(payload.stakeholder_ids)).all()
@@ -201,7 +195,7 @@ def create_use_case(payload: UseCaseCreate, db: Session = Depends(get_db)):
         status=payload.status,
         preconditions=preconditions,
         postconditions=postconditions,
-        exceptions=exceptions,
+        exceptions=[ex.model_dump() for ex in payload.exceptions],
         stakeholders=stakeholders,
         mss=[step.model_dump() for step in payload.mss],
         extensions=[ext.model_dump() for ext in payload.extensions],
@@ -230,20 +224,18 @@ def update_use_case(aid: str, payload: UseCaseCreate, db: Session = Depends(get_
         postconditions = db.query(Postcondition).filter(Postcondition.id.in_(payload.postcondition_ids)).all()
         db_obj.postconditions = postconditions
     
-    if payload.exception_ids is not None:
-        exceptions = db.query(UseCaseException).filter(UseCaseException.id.in_(payload.exception_ids)).all()
-        db_obj.exceptions = exceptions
-    
     if payload.stakeholder_ids is not None:
         stakeholders = db.query(Person).filter(Person.id.in_(payload.stakeholder_ids)).all()
         db_obj.stakeholders = stakeholders
 
     # Update other fields
-    exclude_fields = {'precondition_ids', 'postcondition_ids', 'exception_ids', 'stakeholder_ids'}
+    exclude_fields = {'precondition_ids', 'postcondition_ids', 'stakeholder_ids'}
     for k, v in payload.model_dump(exclude_unset=True, exclude=exclude_fields).items():
         if k == 'mss':
             setattr(db_obj, k, v)
         elif k == 'extensions':
+            setattr(db_obj, k, v)
+        elif k == 'exceptions':
             setattr(db_obj, k, v)
         else:
             setattr(db_obj, k, v)
