@@ -8,7 +8,8 @@ import {
     ArrowLeft, Edit, ExternalLink, X, ChevronLeft, ChevronRight,
     ZoomIn, ZoomOut, MessageSquarePlus, MessageSquare, Tag,
     FileText, User, Target, Layers, ArrowRight, Zap, AlertTriangle,
-    CheckCircle, List, Activity, GitBranch, Terminal, Maximize2, Minimize2
+    CheckCircle, List, Activity, GitBranch, Terminal, Maximize2, Minimize2,
+    Languages
 } from 'lucide-react';
 import ComponentDiagram from './ComponentDiagram';
 import ArtifactGraphView from './ArtifactGraphView';
@@ -317,7 +318,7 @@ export default function ArtifactPresentation() {
         });
 
         if (highlightedField) {
-            const field = document.querySelector(`[data - field - name= "${highlightedField}"]`);
+            const field = document.querySelector(`[data-field-name="${highlightedField}"]`);
             if (field) {
                 field.setAttribute('data-highlighted', 'true');
                 field.classList.add('ring-4', 'ring-yellow-200', 'bg-yellow-50');
@@ -425,6 +426,12 @@ export default function ArtifactPresentation() {
         setSelectedText(null);
     };
 
+    // Translation State
+    const [isArabic, setIsArabic] = useState(false);
+    const [translatedCache, setTranslatedCache] = useState<Record<string, any>>({});
+    const [isTranslating, setIsTranslating] = useState(false);
+
+
     // Fetch project details
     const { data: project } = useQuery({
         queryKey: ['project', projectId],
@@ -510,7 +517,7 @@ export default function ArtifactPresentation() {
     };
 
     // Fetch artifact data
-    const { data: artifact, isLoading } = useQuery({
+    const { data: rawArtifact, isLoading } = useQuery({
         queryKey: ['artifact', artifactType, artifactId],
         queryFn: async () => {
             switch (artifactType) {
@@ -536,8 +543,8 @@ export default function ArtifactPresentation() {
     // Update status mutation
     const updateStatusMutation = useMutation({
         mutationFn: async (newStatus: string) => {
-            if (!artifact) throw new Error('Artifact not loaded');
-            const currentStatus = ('status' in artifact && artifact.status) ? artifact.status : 'Draft';
+            if (!rawArtifact) throw new Error('Artifact not loaded');
+            const currentStatus = ('status' in rawArtifact && rawArtifact.status) ? rawArtifact.status : 'Draft';
             const response = await fetch(`/api/v1/events/${artifactType}/${artifactId}/transition`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -594,6 +601,58 @@ export default function ArtifactPresentation() {
         navigate(`/project/${projectId}/${artifactType}/${artifactId}/edit`);
     };
 
+    const handleToggleLanguage = async () => {
+        if (isArabic) {
+            setIsArabic(false);
+            return;
+        }
+
+        if (translatedCache[artifactId!]) {
+            setIsArabic(true);
+            return;
+        }
+
+        if (!rawArtifact) return;
+
+        setIsTranslating(true);
+        try {
+            const textsToTranslate: string[] = [];
+            if (rawArtifact.title) textsToTranslate.push(rawArtifact.title);
+            if (rawArtifact.description) textsToTranslate.push(rawArtifact.description);
+            if (rawArtifact.text) textsToTranslate.push(rawArtifact.text);
+            // Add rationale if exists
+            if (rawArtifact.rationale) textsToTranslate.push(rawArtifact.rationale);
+
+            const response = await fetch('/api/v1/translation/translate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: textsToTranslate, target: 'ar' })
+            });
+
+            if (!response.ok) throw new Error('Translation failed');
+
+            const data = await response.json();
+            const translatedTexts = data.translated_text;
+
+            const newArtifact = { ...rawArtifact };
+            let i = 0;
+            if (rawArtifact.title) newArtifact.title = translatedTexts[i++];
+            if (rawArtifact.description) newArtifact.description = translatedTexts[i++];
+            if (rawArtifact.text) newArtifact.text = translatedTexts[i++];
+            if (rawArtifact.rationale) newArtifact.rationale = translatedTexts[i++];
+
+            setTranslatedCache(prev => ({ ...prev, [artifactId!]: newArtifact }));
+            setIsArabic(true);
+        } catch (e) {
+            console.error("Translation failed", e);
+            alert("Translation failed");
+        } finally {
+            setIsTranslating(false);
+        }
+    };
+
+    const artifact = (isArabic && artifactId && translatedCache[artifactId]) ? translatedCache[artifactId] : rawArtifact;
+
     if (isLoading) {
         return <div className="p-6 text-center">Loading...</div>;
     }
@@ -626,7 +685,7 @@ export default function ArtifactPresentation() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50" onClick={handleBackgroundClick} onMouseUp={handleTextSelection}>
+        <div className="min-h-screen bg-slate-50" onClick={handleBackgroundClick} onMouseUp={handleTextSelection} dir={isArabic ? 'rtl' : 'ltr'}>
             {/* Header */}
             <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
                 <div className="max-w-7xl mx-auto px-6 py-3">
@@ -731,6 +790,20 @@ export default function ArtifactPresentation() {
                                     </select>
                                 </div>
                             )}
+                            {/* Translation Button */}
+                            <button
+                                onClick={handleToggleLanguage}
+                                disabled={isTranslating}
+                                className={`p-2 rounded-md transition-colors mr-2 ${isArabic ? 'bg-green-100 text-green-700' : 'text-slate-600 hover:bg-slate-100'}`}
+                                title={isArabic ? "Switch to English" : "Switch to Arabic"}
+                            >
+                                {isTranslating ? (
+                                    <div className="w-4 h-4 border-2 border-slate-600 border-t-transparent rounded-full animate-spin"></div>
+                                ) : (
+                                    <Languages className="w-4 h-4" />
+                                )}
+                            </button>
+
                             {/* Edit Button */}
                             <button
                                 onClick={handleEditClick}
@@ -977,6 +1050,7 @@ export default function ArtifactPresentation() {
                                 <NeedPresentation
                                     artifact={artifact}
                                     selectedField={selectedField}
+                                    highlightedField={highlightedField}
                                     onFieldClick={setSelectedField}
                                 />
                             )}
@@ -984,6 +1058,7 @@ export default function ArtifactPresentation() {
                                 <UseCasePresentation
                                     artifact={artifact}
                                     selectedField={selectedField}
+                                    highlightedField={highlightedField}
                                     onFieldClick={setSelectedField}
                                 />
                             )}
@@ -991,6 +1066,7 @@ export default function ArtifactPresentation() {
                                 <RequirementPresentation
                                     artifact={artifact}
                                     selectedField={selectedField}
+                                    highlightedField={highlightedField}
                                     onFieldClick={setSelectedField}
                                 />
                             )}
@@ -998,6 +1074,7 @@ export default function ArtifactPresentation() {
                                 <VisionPresentation
                                     artifact={artifact}
                                     selectedField={selectedField}
+                                    highlightedField={highlightedField}
                                     onFieldClick={setSelectedField}
                                 />
                             )}
@@ -1005,6 +1082,7 @@ export default function ArtifactPresentation() {
                                 <DocumentPresentation
                                     artifact={artifact}
                                     selectedField={selectedField}
+                                    highlightedField={highlightedField}
                                     onFieldClick={setSelectedField}
                                 />
                             )}
@@ -1091,23 +1169,25 @@ export default function ArtifactPresentation() {
 interface PresentationProps {
     artifact: any;
     selectedField: string | null;
+    highlightedField: string | null;
     onFieldClick: (field: string) => void;
 }
 
-function NeedPresentation({ artifact, selectedField, onFieldClick }: PresentationProps) {
+function NeedPresentation({ artifact, selectedField, highlightedField, onFieldClick }: PresentationProps) {
+    const isFieldActive = (field: string) => selectedField === field || highlightedField === field;
     return (
         <>
             <div className="grid grid-cols-2 gap-4 mb-3 not-prose">
-                <SelectableField fieldId="area" label="Area" isActive={selectedField === 'area'} onClick={onFieldClick}>
+                <SelectableField fieldId="area" label="Area" isActive={isFieldActive('area')} onClick={onFieldClick}>
                     <p className="text-slate-900">{artifact.area || 'N/A'}</p>
                 </SelectableField>
-                <SelectableField fieldId="level" label="Level" isActive={selectedField === 'level'} onClick={onFieldClick}>
+                <SelectableField fieldId="level" label="Level" isActive={isFieldActive('level')} onClick={onFieldClick}>
                     <p className="text-slate-900">{artifact.level || 'N/A'}</p>
                 </SelectableField>
-                <SelectableField fieldId="owner" label="Owner" isActive={selectedField === 'owner'} onClick={onFieldClick}>
+                <SelectableField fieldId="owner" label="Owner" isActive={isFieldActive('owner')} onClick={onFieldClick}>
                     <p className="text-slate-900">{artifact.owner_id ? <PersonName personId={artifact.owner_id} /> : 'N/A'}</p>
                 </SelectableField>
-                <SelectableField fieldId="stakeholder" label="Stakeholder" isActive={selectedField === 'stakeholder'} onClick={onFieldClick}>
+                <SelectableField fieldId="stakeholder" label="Stakeholder" isActive={isFieldActive('stakeholder')} onClick={onFieldClick}>
                     <p className="text-slate-900">{artifact.stakeholder_id ? <PersonName personId={artifact.stakeholder_id} /> : 'N/A'}</p>
                 </SelectableField>
             </div>
@@ -1115,7 +1195,7 @@ function NeedPresentation({ artifact, selectedField, onFieldClick }: Presentatio
             <SelectableField
                 fieldId="description"
                 label="Description"
-                isActive={selectedField === 'description'}
+                isActive={isFieldActive('description')}
                 onClick={onFieldClick}
             >
                 <div className="mt-1">
@@ -1212,18 +1292,19 @@ function NeedPresentation({ artifact, selectedField, onFieldClick }: Presentatio
     );
 }
 
-function UseCasePresentation({ artifact, selectedField, onFieldClick }: PresentationProps) {
+function UseCasePresentation({ artifact, selectedField, highlightedField, onFieldClick }: PresentationProps) {
     const sequencePuml = generateSequenceDiagram(artifact.mss, artifact.extensions, artifact.exceptions);
     const statePuml = generateStateDiagram(artifact);
     const [expandedDiagram, setExpandedDiagram] = useState<'state' | 'sequence' | null>(null);
+    const isFieldActive = (field: string) => selectedField === field || highlightedField === field;
 
     return (
         <>
             <div className="grid grid-cols-2 gap-4 mb-3 not-prose">
-                <SelectableField fieldId="area" label="Area" isActive={selectedField === 'area'} onClick={onFieldClick}>
+                <SelectableField fieldId="area" label="Area" isActive={isFieldActive('area')} onClick={onFieldClick}>
                     <p className="text-slate-900">{artifact.area || 'N/A'}</p>
                 </SelectableField>
-                <SelectableField fieldId="primary_actor" label="Primary Actor" isActive={selectedField === 'primary_actor'} onClick={onFieldClick}>
+                <SelectableField fieldId="primary_actor" label="Primary Actor" isActive={isFieldActive('primary_actor')} onClick={onFieldClick}>
                     <p className="text-slate-900">{artifact.primary_actor?.name || 'N/A'}</p>
                 </SelectableField>
             </div>
@@ -1392,23 +1473,26 @@ function generateStateDiagram(artifact: any): string {
     return puml;
 }
 
-function RequirementPresentation({ artifact, selectedField, onFieldClick }: PresentationProps) {
+// function DocumentPresentation ... skipped to save space if not modifying
+
+function RequirementPresentation({ artifact, selectedField, highlightedField, onFieldClick }: PresentationProps) {
+    const isFieldActive = (field: string) => selectedField === field || highlightedField === field;
     return (
         <>
             <div className="grid grid-cols-3 gap-4 mb-3 not-prose">
                 {/* Metadata fields */}
-                <SelectableField fieldId="short_name" label="Short Name" isActive={selectedField === 'short_name'} onClick={onFieldClick}>
+                <SelectableField fieldId="short_name" label="Short Name" isActive={isFieldActive('short_name')} onClick={onFieldClick}>
                     <p className="text-slate-900 font-mono">{artifact.short_name}</p>
                 </SelectableField>
-                <SelectableField fieldId="area" label="Area" isActive={selectedField === 'area'} onClick={onFieldClick}>
+                <SelectableField fieldId="area" label="Area" isActive={isFieldActive('area')} onClick={onFieldClick}>
                     <p className="text-slate-900">{artifact.area || 'N/A'}</p>
                 </SelectableField>
-                <SelectableField fieldId="level" label="Level" isActive={selectedField === 'level'} onClick={onFieldClick}>
+                <SelectableField fieldId="level" label="Level" isActive={isFieldActive('level')} onClick={onFieldClick}>
                     <p className="text-slate-900">{artifact.level?.toUpperCase() || 'N/A'}</p>
                 </SelectableField>
             </div>
 
-            <SelectableField fieldId="text" label="Requirement Text" isActive={selectedField === 'text'} onClick={onFieldClick}>
+            <SelectableField fieldId="text" label="Requirement Text" isActive={isFieldActive('text')} onClick={onFieldClick}>
                 <div className="bg-slate-50 p-4 rounded-md border border-slate-200 mt-1">
                     <MarkdownDisplay content={artifact.text || ''} />
                 </div>
@@ -1429,13 +1513,14 @@ function RequirementPresentation({ artifact, selectedField, onFieldClick }: Pres
     );
 }
 
-function VisionPresentation({ artifact, selectedField, onFieldClick }: PresentationProps) {
+function VisionPresentation({ artifact, selectedField, highlightedField, onFieldClick }: PresentationProps) {
+    const isFieldActive = (field: string) => selectedField === field || highlightedField === field;
     return (
         <>
 
 
             <div className="mt-4">
-                <SelectableField fieldId="description" label="Description" isActive={selectedField === 'description'} onClick={onFieldClick}>
+                <SelectableField fieldId="description" label="Description" isActive={isFieldActive('description')} onClick={onFieldClick}>
                     <div className="mt-1">
                         {artifact.description ? (
                             <MarkdownDisplay content={artifact.description} />
