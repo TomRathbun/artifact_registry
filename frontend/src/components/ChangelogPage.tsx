@@ -11,6 +11,17 @@ interface ChangeLogEntry {
 
 const changelogData: ChangeLogEntry[] = [
     {
+        version: '0.1.3',
+        date: '2025-12-14',
+        type: 'minor',
+        changes: [
+            'Implemented Arabic Translation support for Artifact Presentation view',
+            'Fixed critical crash when hovering over comments in presentation mode',
+            'Added database auto-migration on restore to ensure schema consistency',
+            'Improved database connection resilience with auto-reconnect (pool_pre_ping)'
+        ]
+    },
+    {
         version: '0.1.2',
         date: '2025-12-12',
         type: 'patch',
