@@ -9,6 +9,8 @@ import os
 from pathlib import Path
 from datetime import datetime
 import tempfile
+from alembic.config import Config
+from alembic import command
 
 router = APIRouter()
 
@@ -157,7 +159,18 @@ async def restore_database(request: Request):
             if result.returncode != 0 and "ERROR" in result.stderr:
                 raise Exception(f"Restore failed: {result.stderr}")
             
-            return {"message": "Database restored successfully", "warnings": result.stderr if result.stderr else None}
+            # Run database migrations to ensure schema is up to date
+            try:
+                # Assuming alembic.ini is in the root directory
+                alembic_cfg = Config("alembic.ini")
+                command.upgrade(alembic_cfg, "head")
+            except Exception as e:
+                return {
+                    "message": "Database restored successfully, but schema migration failed.",
+                    "warnings": f"Migration error: {str(e)}. Please check logs."
+                }
+            
+            return {"message": "Database restored and migrations applied successfully", "warnings": result.stderr if result.stderr else None}
             
         finally:
             # Clean up temp file
