@@ -1,3 +1,4 @@
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Union
@@ -13,7 +14,7 @@ if os.getenv("TRANSLATION_VERIFY_SSL", "true").lower() == "false":
     # Monkey-patch Session.request to disable verification by default
     _original_request = requests.Session.request
     def _insecure_request(self, method, url, *args, **kwargs):
-        kwargs.setdefault('verify', False)
+        kwargs['verify'] = False
         return _original_request(self, method, url, *args, **kwargs)
     
     requests.Session.request = _insecure_request
