@@ -6,6 +6,10 @@ import VisionHeader from './VisionHeader';
 import ImportConflictModal from './ImportConflictModal';
 import axios from 'axios';
 import { Download, Upload, Trash2, Edit, FileDown, Copy, Clipboard, Files, ArrowUp, ArrowDown, Filter, RotateCcw } from 'lucide-react';
+import { marked } from 'marked';
+import mermaid from 'mermaid';
+import * as htmlToImage from 'html-to-image';
+import { generateSequenceDiagram, generateStateDiagram, getPlantUMLImageUrl } from '../utils/plantuml';
 import { ConfirmationModal } from './ConfirmationModal';
 
 interface ArtifactListViewProps {
@@ -54,6 +58,11 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
     const [resizingColumn, setResizingColumn] = useState<string | null>(null);
     const [resizeStartX, setResizeStartX] = useState(0);
     const [resizeStartWidth, setResizeStartWidth] = useState(0);
+
+    // Initialize mermaid
+    useEffect(() => {
+        mermaid.initialize({ startOnLoad: false });
+    }, []);
 
     // Update widths when artifact type changes, if not found in storage
     useEffect(() => {
@@ -182,6 +191,9 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
     const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' | null }>(initialFilters.sortConfig);
     const [activeFilterDropdown, setActiveFilterDropdown] = useState<string | null>(null);
     const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>(initialFilters.columnFilters);
+    const [pendingFilters, setPendingFilters] = useState<Record<string, string[]>>(initialFilters.columnFilters);
+
+
 
     // Import Conflict State
     const [showImportModal, setShowImportModal] = useState(false);
@@ -399,8 +411,14 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
         return [...new Set(values)].filter(v => v).sort() as string[];
     };
 
+
+
+    // ...
+
+
+
     const toggleFilter = (key: string, value: string) => {
-        setColumnFilters(prev => {
+        setPendingFilters(prev => {
             const current = prev[key] || [];
             const updated = current.includes(value)
                 ? current.filter(v => v !== value)
@@ -410,10 +428,15 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
     };
 
     const clearColumnFilter = (key: string) => {
-        setColumnFilters(prev => {
+        const update = (prev: Record<string, string[]>) => {
             const updated = { ...prev };
             delete updated[key];
             return updated;
+        };
+        setPendingFilters(prev => {
+            const newState = update(prev);
+            setColumnFilters(newState); // Immediate apply for clear
+            return newState;
         });
     };
 
@@ -423,12 +446,14 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
         setDebouncedSearch('');
         setSortConfig({ key: null, direction: null });
         setColumnFilters({});
+        setPendingFilters({});
     };
 
     // Close filter dropdown when clicking outside
     useEffect(() => {
         const handleClickOutside = () => {
             if (activeFilterDropdown) {
+                setColumnFilters(pendingFilters);
                 setActiveFilterDropdown(null);
             }
         };
@@ -437,7 +462,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
             document.addEventListener('click', handleClickOutside);
             return () => document.removeEventListener('click', handleClickOutside);
         }
-    }, [activeFilterDropdown]);
+    }, [activeFilterDropdown, pendingFilters]);
 
     // Get filtered AIDs for presentation mode navigation
     const getFilteredAIDs = () => {
@@ -632,16 +657,12 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
 
     // Export to JSON
     const handleExport = () => {
-        if (!artifacts || artifacts.length === 0) {
-            alert('No artifacts to export');
+        const filteredArtifacts = getFilteredAndSortedArtifacts();
+        if (!filteredArtifacts || filteredArtifacts.length === 0) {
+            alert('No artifacts to export matching current filters');
             return;
         }
-        if (!stakeholders || !owners) {
-            alert('Metadata is still loading. Please wait a moment and try again.');
-            return;
-        }
-
-        const exportArtifacts = artifacts.map(prepareArtifactForExport);
+        const exportArtifacts = filteredArtifacts.map(prepareArtifactForExport);
 
         // Collect relevant linkages
         const relevantLinkages: string[][] = [];
@@ -1338,16 +1359,18 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
     };
 
     const handleExportMarkdown = () => {
-        if (!artifacts) return;
+        const filteredArtifacts = getFilteredAndSortedArtifacts();
+        if (!filteredArtifacts || filteredArtifacts.length === 0) return;
+
         let content = `# ${artifactType.charAt(0).toUpperCase() + artifactType.slice(1)} Export\n\n`;
         content += `**Date**: ${new Date().toLocaleDateString()}\n\n---\n\n`;
 
-        artifacts.forEach((a: any) => {
+        filteredArtifacts.forEach((a: any) => {
             switch (artifactType) {
                 case 'vision':
                     content += `# ${a.title}\n\n`;
-                    content += `**Date**: ${new Date(a.created_at).toLocaleDateString()}\n\n`;
-                    content += `${a.vision_statement}\n\n---\n\n`;
+                    content += `**Date**: ${a.created_date ? new Date(a.created_date).toLocaleDateString() : '-'}\n\n`;
+                    content += `${a.description || a.vision_statement || ''}\n\n---\n\n`;
                     break;
                 case 'need':
                     let stakeholderName = a.stakeholder;
@@ -1462,8 +1485,10 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
         URL.revokeObjectURL(url);
     };
 
-    const handleExportWord = () => {
-        if (!artifacts) return;
+    const handleExportWord = async () => {
+        const filteredArtifacts = getFilteredAndSortedArtifacts();
+        if (!filteredArtifacts || filteredArtifacts.length === 0) return;
+
         let content = `
             <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
             <head>
@@ -1487,12 +1512,47 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
             <hr/>
         `;
 
-        artifacts.forEach((a: any) => {
+        for (const a of filteredArtifacts) {
             switch (artifactType) {
                 case 'vision':
                     content += `<h1>${a.title}</h1>`;
-                    content += `<p><strong>Date:</strong> ${new Date(a.created_at).toLocaleDateString()}</p>`;
-                    content += `<p>${a.vision_statement}</p><hr/>`;
+                    content += `<p><strong>Date:</strong> ${a.created_date ? new Date(a.created_date).toLocaleDateString() : '-'}</p>`;
+
+                    let description = a.description || a.vision_statement || '';
+
+                    // Process Mermaid diagrams
+                    const mermaidRegex = /```mermaid\n([\s\S]*?)\n```/g;
+                    let match;
+                    const replacements = [];
+
+                    while ((match = mermaidRegex.exec(description)) !== null) {
+                        try {
+                            const id = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                            const { svg } = await mermaid.render(id, match[1]);
+
+                            // Create a temporary container to render SVG to PNG
+                            const container = document.createElement('div');
+                            container.innerHTML = svg;
+                            document.body.appendChild(container);
+
+                            const dataUrl = await htmlToImage.toPng(container);
+                            document.body.removeChild(container);
+
+                            replacements.push({
+                                original: match[0],
+                                replacement: `![Mermaid Diagram](${dataUrl})`
+                            });
+                        } catch (e) {
+                            console.error('Failed to render mermaid diagram', e);
+                        }
+                    }
+
+                    for (const r of replacements) {
+                        description = description.replace(r.original, r.replacement);
+                    }
+
+                    const descHtml = await marked.parse(description);
+                    content += `<div>${descHtml}</div><hr/>`;
                     break;
                 case 'need':
                     let stakeholderName = a.stakeholder;
@@ -1505,29 +1565,29 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                     const needOwnerName = 'Air Power Commander';
                     content += `<h2>${a.aid}: ${a.title}</h2>`;
                     content += `
-                        <table style="width: 100%; margin-bottom: 20px; border-collapse: collapse;">
-                            <tr>
-                                <td style="width: 50%; padding-bottom: 15px;">
-                                    <div style="font-size: 0.8em; color: #64748b; font-weight: bold; text-transform: uppercase;">Area</div>
-                                    <div style="font-weight: 500; font-size: 1.1em;">${areaCode}</div>
-                                </td>
-                                <td style="width: 50%; padding-bottom: 15px;">
-                                    <div style="font-size: 0.8em; color: #64748b; font-weight: bold; text-transform: uppercase;">Level</div>
-                                    <div style="font-weight: 500; font-size: 1.1em;">${level}</div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style="width: 50%; padding-bottom: 15px;">
-                                    <div style="font-size: 0.8em; color: #64748b; font-weight: bold; text-transform: uppercase;">Owner</div>
-                                    <div style="font-weight: 500; font-size: 1.1em;">${needOwnerName}</div>
-                                </td>
-                                <td style="width: 50%; padding-bottom: 15px;">
-                                    <div style="font-size: 0.8em; color: #64748b; font-weight: bold; text-transform: uppercase;">Stakeholder</div>
-                                    <div style="font-weight: 500; font-size: 1.1em;">${stakeholderName || '-'}</div>
-                                </td>
-                            </tr>
-                        </table>
-                    `;
+                            <table style="width: 100%; margin-bottom: 20px; border-collapse: collapse;">
+                                <tr>
+                                    <td style="width: 50%; padding-bottom: 15px;">
+                                        <div style="font-size: 0.8em; color: #64748b; font-weight: bold; text-transform: uppercase;">Area</div>
+                                        <div style="font-weight: 500; font-size: 1.1em;">${areaCode}</div>
+                                    </td>
+                                    <td style="width: 50%; padding-bottom: 15px;">
+                                        <div style="font-size: 0.8em; color: #64748b; font-weight: bold; text-transform: uppercase;">Level</div>
+                                        <div style="font-weight: 500; font-size: 1.1em;">${level}</div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="width: 50%; padding-bottom: 15px;">
+                                        <div style="font-size: 0.8em; color: #64748b; font-weight: bold; text-transform: uppercase;">Owner</div>
+                                        <div style="font-weight: 500; font-size: 1.1em;">${needOwnerName}</div>
+                                    </td>
+                                    <td style="width: 50%; padding-bottom: 15px;">
+                                        <div style="font-size: 0.8em; color: #64748b; font-weight: bold; text-transform: uppercase;">Stakeholder</div>
+                                        <div style="font-weight: 500; font-size: 1.1em;">${stakeholderName || '-'}</div>
+                                    </td>
+                                </tr>
+                            </table>
+                        `;
                     content += `<div style="font-size: 0.8em; color: #64748b; font-weight: bold; text-transform: uppercase; margin-bottom: 5px;">Description</div>`;
                     content += `<p style="margin-top: 0;">${a.description}</p>`;
                     if (a.rationale) {
@@ -1590,16 +1650,57 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                         content += a.preconditions.map((p: any) => `<li>${p.text}</li>`).join('');
                     } else { content += `<li>-</li>`; }
                     content += `</ul>`;
+
                     content += `<h3>Main Flow</h3><ol>`;
                     if (a.mss && a.mss.length > 0) {
                         content += a.mss.map((step: any) => `<li><strong>${step.actor}</strong>: ${step.description}</li>`).join('');
                     } else { content += `<li>-</li>`; }
                     content += `</ol>`;
+
                     content += `<h3>Postconditions</h3><ul>`;
                     if (a.postconditions && a.postconditions.length > 0) {
                         content += a.postconditions.map((p: any) => `<li>${p.text}</li>`).join('');
                     } else { content += `<li>-</li>`; }
-                    content += `</ul><hr/>`;
+                    content += `</ul>`;
+
+                    // Diagrams
+                    try {
+                        const statePuml = generateStateDiagram(a);
+                        const seqPuml = generateSequenceDiagram(a.mss, a.extensions, a.exceptions);
+
+                        const stateUrl = getPlantUMLImageUrl(statePuml, 'png');
+                        const seqUrl = getPlantUMLImageUrl(seqPuml, 'png');
+
+                        if (stateUrl) {
+                            const resp = await fetch(stateUrl);
+                            if (resp.ok) {
+                                const blob = await resp.blob();
+                                const base64 = await new Promise((resolve) => {
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => resolve(reader.result);
+                                    reader.readAsDataURL(blob);
+                                });
+                                content += `<h3>Hybrid State Diagram</h3><img src="${base64}" style="max-width: 100%; border: 1px solid #ddd;" /><br/>`;
+                            }
+                        }
+
+                        if (seqUrl) {
+                            const resp = await fetch(seqUrl);
+                            if (resp.ok) {
+                                const blob = await resp.blob();
+                                const base64 = await new Promise((resolve) => {
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => resolve(reader.result);
+                                    reader.readAsDataURL(blob);
+                                });
+                                content += `<h3>Sequence Diagram</h3><img src="${base64}" style="max-width: 100%; border: 1px solid #ddd;" /><br/>`;
+                            }
+                        }
+                    } catch (e) {
+                        console.error("Failed to export diagrams", e);
+                    }
+
+                    content += `<hr/>`;
                     break;
                 case 'requirement':
                     let ownerName = a.owner;
@@ -1614,7 +1715,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                     content += `<hr/>`;
                     break;
             }
-        });
+        }
 
         content += `</body></html>`;
         const blob = new Blob([content], { type: 'application/msword' });
@@ -1985,7 +2086,15 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                                     className="flex items-center gap-1 cursor-pointer hover:bg-slate-200 px-1 py-0.5 rounded"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setActiveFilterDropdown(activeFilterDropdown === col.key ? null : col.key);
+                                        if (activeFilterDropdown !== col.key) {
+                                            // Opening new dropdown: Sync pending with current applied filters
+                                            setPendingFilters(columnFilters);
+                                            setActiveFilterDropdown(col.key);
+                                        } else {
+                                            // Closing current dropdown: Commit pending changes
+                                            setColumnFilters(pendingFilters);
+                                            setActiveFilterDropdown(null);
+                                        }
                                     }}
                                 >
                                     <Filter className={`w-3 h-3 ${columnFilters[col.key]?.length > 0 ? 'text-blue-600' : 'text-slate-400'}`} />
@@ -2033,7 +2142,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                                                 >
                                                     <input
                                                         type="checkbox"
-                                                        checked={columnFilters[col.key]?.includes(value) || false}
+                                                        checked={pendingFilters[col.key]?.includes(value) || false}
                                                         onChange={() => toggleFilter(col.key, value)}
                                                         className="w-3 h-3 text-blue-600 rounded"
                                                     />

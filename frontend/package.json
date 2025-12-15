@@ -12,6 +12,7 @@
   "dependencies": {
     "@tanstack/react-query": "^5.90.10",
     "@types/dagre": "^0.7.53",
+    "@types/marked": "^6.0.0",
     "@types/react-syntax-highlighter": "^15.5.13",
     "@uiw/react-md-editor": "^4.0.8",
     "axios": "^1.13.2",
@@ -19,6 +20,7 @@
     "dagre": "^0.8.5",
     "html-to-image": "^1.11.13",
     "lucide-react": "^0.554.0",
+    "marked": "^17.0.1",
     "mermaid": "^11.12.2",
     "plantuml-encoder": "^1.4.0",
     "react": "^19.2.0",
