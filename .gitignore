@@ -36,7 +36,6 @@ venv.bak/
 *.sqlite3
 registry.db
 tr2_registry.db
-uploads/
 
 # Node.js / Frontend
 frontend/node_modules/
