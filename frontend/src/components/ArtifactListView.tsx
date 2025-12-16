@@ -1512,6 +1512,55 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
             <hr/>
         `;
 
+
+        const processMarkdownImages = async (markdown: string): Promise<string> => {
+            if (!markdown) return '';
+            const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+            let match;
+            const replacements = [];
+
+            while ((match = imageRegex.exec(markdown)) !== null) {
+                const alt = match[1];
+                let src = match[2];
+
+                // Skip if already base64 (unlikely for raw markdown but possible if multi-pass)
+                if (src.startsWith('data:')) continue;
+
+                // Handle local URLs if needed - e.g. /uploads/... -> full URL
+                // Assuming standard fetch can handle relative URLs if serving from same origin
+                // But for Node/Script context, might need full URL? Use window.location.origin
+                if (src.startsWith('/')) {
+                    src = `${window.location.origin}${src}`;
+                }
+
+                try {
+                    const resp = await fetch(src);
+                    if (resp.ok) {
+                        const blob = await resp.blob();
+                        const base64 = await new Promise<string>((resolve) => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => resolve(reader.result as string);
+                            reader.readAsDataURL(blob);
+                        });
+                        replacements.push({
+                            original: match[0],
+                            replacement: `![${alt}](${base64})`
+                        });
+                    } else {
+                        console.warn(`Failed to fetch image: ${src}`);
+                    }
+                } catch (e) {
+                    console.error(`Error processing image ${src}:`, e);
+                }
+            }
+
+            let processed = markdown;
+            for (const r of replacements) {
+                processed = processed.replace(r.original, r.replacement);
+            }
+            return processed;
+        };
+
         for (const a of filteredArtifacts) {
             switch (artifactType) {
                 case 'vision':
@@ -1519,6 +1568,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                     content += `<p><strong>Date:</strong> ${a.created_date ? new Date(a.created_date).toLocaleDateString() : '-'}</p>`;
 
                     let description = a.description || a.vision_statement || '';
+                    description = await processMarkdownImages(description);
 
                     // Process Mermaid diagrams
                     const mermaidRegex = /```mermaid\n([\s\S]*?)\n```/g;
@@ -1588,11 +1638,17 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                                 </tr>
                             </table>
                         `;
+
+                    const needDesc = await processMarkdownImages(a.description || '');
+                    const needDescHtml = await marked.parse(needDesc);
                     content += `<div style="font-size: 0.8em; color: #64748b; font-weight: bold; text-transform: uppercase; margin-bottom: 5px;">Description</div>`;
-                    content += `<p style="margin-top: 0;">${a.description}</p>`;
+                    content += `<div style="margin-top: 0;">${needDescHtml}</div>`;
+
                     if (a.rationale) {
+                        const rationale = await processMarkdownImages(a.rationale || '');
+                        const rationaleHtml = await marked.parse(rationale);
                         content += `<div style="font-size: 0.8em; color: #64748b; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; margin-top: 20px;">Rationale</div>`;
-                        content += `<p style="margin-top: 0;">${a.rationale}</p>`;
+                        content += `<div style="margin-top: 0;">${rationaleHtml}</div>`;
                     }
                     if (a.sites && a.sites.length > 0) {
                         content += `<div style="font-size: 0.8em; color: #64748b; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; margin-top: 20px;">Related Sites</div>`;
@@ -1643,7 +1699,9 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                     break;
                 case 'use_case':
                     content += `<h2>${a.aid}: ${a.title}</h2>`;
-                    content += `<p><strong>Description:</strong> ${a.description || '-'}</p>`;
+                    const ucDesc = await processMarkdownImages(a.description || '');
+                    const ucDescHtml = await marked.parse(ucDesc);
+                    content += `<div style="margin-bottom: 10px;"><strong>Description:</strong> <div>${ucDescHtml || '-'}</div></div>`;
                     content += `<p><strong>Primary Actor:</strong> ${a.primary_actor?.name || '-'}</p>`;
                     content += `<h3>Preconditions</h3><ul>`;
                     if (a.preconditions && a.preconditions.length > 0) {
@@ -1710,8 +1768,14 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                     }
                     content += `<h2>${a.aid}: ${a.short_name}</h2>`;
                     content += `<div class="meta"><strong>Owner:</strong> ${ownerName || '-'} | <strong>Status:</strong> ${a.status || '-'} | <strong>Type:</strong> ${a.ears_type || '-'}</div>`;
-                    content += `<blockquote>${a.text}</blockquote>`;
-                    if (a.rationale) content += `*Rationale*: ${a.rationale}`;
+                    const reqText = await processMarkdownImages(a.text || '');
+                    const reqTextHtml = await marked.parse(reqText);
+                    content += `<blockquote>${reqTextHtml}</blockquote>`;
+                    if (a.rationale) {
+                        const reqRat = await processMarkdownImages(a.rationale);
+                        const reqRatHtml = await marked.parse(reqRat);
+                        content += `<div class="rationale"><strong>Rationale:</strong> ${reqRatHtml}</div>`;
+                    }
                     content += `<hr/>`;
                     break;
             }
