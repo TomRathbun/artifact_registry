@@ -1372,51 +1372,81 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                     content += `**Date**: ${a.created_date ? new Date(a.created_date).toLocaleDateString() : '-'}\n\n`;
                     content += `${a.description || a.vision_statement || ''}\n\n---\n\n`;
                     break;
-                case 'need':
+                case 'need': {
                     let stakeholderName = a.stakeholder;
                     if (stakeholders) {
                         const sObj = stakeholders.find((s: any) => s.id === a.stakeholder_id || s.id === a.stakeholder || s.name === a.stakeholder);
                         if (sObj) stakeholderName = sObj.name;
                     }
+
+                    let ownerName = a.owner;
+                    if (owners) {
+                        const ownerObj = owners.find((o: any) => o.id === a.owner_id || o.id === a.owner || o.name === a.owner);
+                        if (ownerObj) ownerName = ownerObj.name;
+                    }
+
                     const areaCode = a.area || '-';
-                    const level = 'Mission';
-                    const needOwnerName = 'Air Power Commander';
+                    const level = a.level || '-';
 
                     content += `## ${a.aid}: ${a.title}\n\n`;
 
-                    // Metadata Table
-                    content += `| Area | Level | Owner | Stakeholder |\n`;
-                    content += `| --- | --- | --- | --- |\n`;
-                    content += `| ${areaCode} | ${level} | ${needOwnerName} | ${stakeholderName || '-'} |\n\n`;
+                    // Check for linkages (derives_from)
+                    if (linkages) {
+                        const related = linkages.filter((l: any) => l.source_id === a.aid || l.source_id === a.id);
+                        const derivesFrom = related.filter((l: any) => l.relationship_type === 'derives_from');
+                        if (derivesFrom.length > 0) {
+                            content += `*derives_from*: ${derivesFrom.map((l: any) => l.target_id).join(', ')}\n\n`;
+                        }
+                    }
 
-                    content += `### Description\n\n${a.description}\n\n`;
+                    content += `**Area**: ${areaCode} | **Level**: ${level}\n`;
+                    content += `**Owner**: ${ownerName || '-'} | **Stakeholder**: ${stakeholderName || '-'}\n\n`;
+
+                    content += `### Description\n\n${a.description || '-'}\n\n`;
 
                     if (a.rationale) {
-                        content += `### Rationale\n\n> ${a.rationale}\n\n`;
+                        content += `### Rationale\n\n${a.rationale}\n\n`;
                     }
 
                     if (a.sites && a.sites.length > 0) {
                         content += `### Related Sites\n\n`;
-                        const siteNames = a.sites.map((site: any) => typeof site === 'string' ? site : site.name);
-                        content += siteNames.map((s: string) => `* \`${s}\``).join(' ') + '\n\n';
+                        a.sites.forEach((site: any) => {
+                            const sName = typeof site === 'string' ? site : (site.name || 'Unknown');
+                            let badges = [];
+                            if (site.security_domain) badges.push(`\`${site.security_domain}\``);
+                            if (site.tags && Array.isArray(site.tags)) {
+                                badges.push(...site.tags.map((t: string) => `🏷️ ${t}`));
+                            }
+                            content += `* **${sName}** ${badges.join(' ')}\n`;
+                        });
+                        content += '\n';
                     } else if (a.site_ids && allSites) {
                         content += `### Related Sites\n\n`;
-                        const siteNames: string[] = [];
                         a.site_ids.forEach((sid: string) => {
                             const site = allSites.find((s: any) => s.id === sid);
-                            if (site) siteNames.push(site.name);
+                            if (site) {
+                                let badges = [];
+                                if (site.security_domain) badges.push(`\`${site.security_domain}\``);
+                                if ((site as any).tags && Array.isArray((site as any).tags)) {
+                                    badges.push(...(site as any).tags.map((t: string) => `🏷️ ${t}`));
+                                }
+                                content += `* **${site.name}** ${badges.join(' ')}\n`;
+                            }
                         });
-                        content += siteNames.map((s: string) => `* \`${s}\``).join(' ') + '\n\n';
+                        content += '\n';
                     }
 
                     if (a.components && a.components.length > 0) {
                         content += `### Related Components\n\n`;
                         a.components.forEach((comp: any) => {
                             const cName = comp.name || (typeof comp === 'string' ? comp : 'Unknown');
-                            let details = `**${cName}**`;
-                            if (comp.type) details += ` (${comp.type})`;
-                            if (comp.lifecycle) details += ` [${comp.lifecycle}]`;
-                            content += `* ${details}\n`;
+                            let badges = [];
+                            if (comp.type) badges.push(`\`${comp.type}\``);
+                            if ((comp as any).lifecycle) badges.push(`\`${(comp as any).lifecycle}\``);
+                            if (comp.tags && Array.isArray(comp.tags)) {
+                                badges.push(...comp.tags.map((t: string) => `🏷️ ${t}`));
+                            }
+                            content += `* **${cName}** ${badges.join(' ')}\n`;
                         });
                         content += '\n';
                     } else if (a.component_ids && allComponents) {
@@ -1424,7 +1454,13 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                         a.component_ids.forEach((cid: string) => {
                             const comp = allComponents.find((c: any) => c.id === cid);
                             if (comp) {
-                                content += `* **${comp.name}** (${comp.type || 'Unknown'})\n`;
+                                let badges = [];
+                                if (comp.type) badges.push(`\`${comp.type}\``);
+                                if ((comp as any).lifecycle) badges.push(`\`${(comp as any).lifecycle}\``);
+                                if ((comp as any).tags && Array.isArray((comp as any).tags)) {
+                                    badges.push(...(comp as any).tags.map((t: string) => `🏷️ ${t}`));
+                                }
+                                content += `* **${comp.name}** ${badges.join(' ')}\n`;
                             }
                         });
                         content += '\n';
@@ -1432,10 +1468,14 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
 
                     content += `---\n\n`;
                     break;
+                }
+
                 case 'use_case':
                     content += `## ${a.aid}: ${a.title}\n\n`;
+                    content += `**Area**: ${a.area || '-'}\n\n`;
                     content += `**Description**: ${a.description || '-'}\n\n`;
                     content += `**Primary Actor**: ${a.primary_actor?.name || '-'}\n\n`;
+                    content += `**Trigger**: ${a.trigger || '-'}\n\n`;
 
                     content += `### Preconditions\n`;
                     if (a.preconditions && a.preconditions.length > 0) {
@@ -1446,7 +1486,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
 
                     content += `### Main Flow\n`;
                     if (a.mss && a.mss.length > 0) {
-                        content += a.mss.map((step: any) => `${step.step_num}. **${step.actor}**: ${step.description}`).join('\n') + '\n\n';
+                        content += a.mss.map((step: any) => `${step.step_num || (a.mss.indexOf(step) + 1)}. **${step.actor}**: ${step.description}`).join('\n') + '\n\n';
                     } else {
                         content += '-\n\n';
                     }
@@ -1457,9 +1497,28 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                     } else {
                         content += '-\n\n';
                     }
+
+                    // Add Diagrams
+                    try {
+                        const statePuml = generateStateDiagram(a);
+                        const seqPuml = generateSequenceDiagram(a.mss, a.extensions, a.exceptions);
+                        const stateUrl = getPlantUMLImageUrl(statePuml, 'png');
+                        const seqUrl = getPlantUMLImageUrl(seqPuml, 'png');
+
+                        content += `### Diagrams\n\n`;
+                        if (stateUrl) {
+                            content += `#### Hybrid State Diagram\n\n![State Diagram](${stateUrl})\n\n`;
+                        }
+                        if (seqUrl) {
+                            content += `#### Sequence Diagram\n\n![Sequence Diagram](${seqUrl})\n\n`;
+                        }
+                    } catch (e) {
+                        console.error("Failed to generate diagrams for markdown export", e);
+                    }
+
                     content += `---\n\n`;
                     break;
-                case 'requirement':
+                case 'requirement': {
                     // Resolve owner name
                     let ownerName = a.owner;
                     if (owners) {
@@ -1473,6 +1532,8 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                     if (a.rationale) content += `*Rationale*: ${a.rationale}\n\n`;
                     content += `---\n\n`;
                     break;
+                }
+
             }
         });
 
@@ -1489,6 +1550,13 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
         const filteredArtifacts = getFilteredAndSortedArtifacts();
         if (!filteredArtifacts || filteredArtifacts.length === 0) return;
 
+        // Custom renderer to ensure images are resized in Word
+        const renderer = new marked.Renderer();
+        renderer.image = ({ href, text }) => {
+            // Add inline styles that Word respects
+            return `<img src="${href}" alt="${text}" style="max-width: 100%; height: auto; display: block; margin: 10px 0;" />`;
+        };
+
         let content = `
             <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
             <head>
@@ -1504,6 +1572,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                     ul, ol { margin-bottom: 15px; }
                     li { margin-bottom: 5px; }
                     .rationale { background: #f9f9f9; padding: 10px; border-radius: 4px; font-size: 0.9em; }
+                    img { max-width: 100%; height: auto; display: block; margin: 10px 0; border: 1px solid #eee; }
                 </style>
             </head>
             <body>
@@ -1588,6 +1657,41 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
             return processed;
         };
 
+        const processMermaidDiagrams = async (markdown: string): Promise<string> => {
+            if (!markdown) return '';
+            const mermaidRegex = /```mermaid\n([\s\S]*?)\n```/g;
+            let match;
+            const replacements = [];
+
+            while ((match = mermaidRegex.exec(markdown)) !== null) {
+                try {
+                    const id = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                    const { svg } = await mermaid.render(id, match[1]);
+
+                    // Create a temporary container to render SVG to PNG
+                    const container = document.createElement('div');
+                    container.innerHTML = svg;
+                    document.body.appendChild(container);
+
+                    const dataUrl = await htmlToImage.toPng(container);
+                    document.body.removeChild(container);
+
+                    replacements.push({
+                        original: match[0],
+                        replacement: `![Mermaid Diagram](${dataUrl})`
+                    });
+                } catch (e) {
+                    console.error('Failed to render mermaid diagram', e);
+                }
+            }
+
+            let processed = markdown;
+            for (const r of replacements) {
+                processed = processed.replace(r.original, r.replacement);
+            }
+            return processed;
+        };
+
         for (const a of filteredArtifacts) {
             switch (artifactType) {
                 case 'vision':
@@ -1598,37 +1702,11 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                     description = await processMarkdownImages(description);
 
                     // Process Mermaid diagrams
-                    const mermaidRegex = /```mermaid\n([\s\S]*?)\n```/g;
-                    let match;
-                    const replacements = [];
 
-                    while ((match = mermaidRegex.exec(description)) !== null) {
-                        try {
-                            const id = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-                            const { svg } = await mermaid.render(id, match[1]);
+                    // Process Mermaid diagrams
+                    description = await processMermaidDiagrams(description);
 
-                            // Create a temporary container to render SVG to PNG
-                            const container = document.createElement('div');
-                            container.innerHTML = svg;
-                            document.body.appendChild(container);
-
-                            const dataUrl = await htmlToImage.toPng(container);
-                            document.body.removeChild(container);
-
-                            replacements.push({
-                                original: match[0],
-                                replacement: `![Mermaid Diagram](${dataUrl})`
-                            });
-                        } catch (e) {
-                            console.error('Failed to render mermaid diagram', e);
-                        }
-                    }
-
-                    for (const r of replacements) {
-                        description = description.replace(r.original, r.replacement);
-                    }
-
-                    const descHtml = await marked.parse(description);
+                    const descHtml = await marked.parse(description, { renderer });
                     content += `<div>${descHtml}</div><hr/>`;
                     break;
                 case 'need':
@@ -1667,13 +1745,13 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                         `;
 
                     const needDesc = await processMarkdownImages(a.description || '');
-                    const needDescHtml = await marked.parse(needDesc);
+                    const needDescHtml = await marked.parse(needDesc, { renderer });
                     content += `<div style="font-size: 0.8em; color: #64748b; font-weight: bold; text-transform: uppercase; margin-bottom: 5px;">Description</div>`;
                     content += `<div style="margin-top: 0;">${needDescHtml}</div>`;
 
                     if (a.rationale) {
                         const rationale = await processMarkdownImages(a.rationale || '');
-                        const rationaleHtml = await marked.parse(rationale);
+                        const rationaleHtml = await marked.parse(rationale, { renderer });
                         content += `<div style="font-size: 0.8em; color: #64748b; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; margin-top: 20px;">Rationale</div>`;
                         content += `<div style="margin-top: 0;">${rationaleHtml}</div>`;
                     }
@@ -1727,7 +1805,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                 case 'use_case':
                     content += `<h2>${a.aid}: ${a.title}</h2>`;
                     const ucDesc = await processMarkdownImages(a.description || '');
-                    const ucDescHtml = await marked.parse(ucDesc);
+                    const ucDescHtml = await marked.parse(ucDesc, { renderer });
                     content += `<div style="margin-bottom: 10px;"><strong>Description:</strong> <div>${ucDescHtml || '-'}</div></div>`;
                     content += `<p><strong>Primary Actor:</strong> ${a.primary_actor?.name || '-'}</p>`;
                     content += `<h3>Preconditions</h3><ul>`;
@@ -1796,11 +1874,11 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                     content += `<h2>${a.aid}: ${a.short_name}</h2>`;
                     content += `<div class="meta"><strong>Owner:</strong> ${ownerName || '-'} | <strong>Status:</strong> ${a.status || '-'} | <strong>Type:</strong> ${a.ears_type || '-'}</div>`;
                     const reqText = await processMarkdownImages(a.text || '');
-                    const reqTextHtml = await marked.parse(reqText);
+                    const reqTextHtml = await marked.parse(reqText, { renderer });
                     content += `<blockquote>${reqTextHtml}</blockquote>`;
                     if (a.rationale) {
                         const reqRat = await processMarkdownImages(a.rationale);
-                        const reqRatHtml = await marked.parse(reqRat);
+                        const reqRatHtml = await marked.parse(reqRat, { renderer });
                         content += `<div class="rationale"><strong>Rationale:</strong> ${reqRatHtml}</div>`;
                     }
                     content += `<hr/>`;
@@ -1810,7 +1888,8 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                     content += `<p><strong>File Name:</strong> ${a.content_url || '-'}</p>`;
                     content += `<p><strong>Type:</strong> ${a.document_type || '-'}</p>`;
                     const docContent = await processMarkdownImages(a.content_text || '');
-                    const docContentHtml = await marked.parse(docContent);
+                    const docContentWithMermaid = await processMermaidDiagrams(docContent);
+                    const docContentHtml = await marked.parse(docContentWithMermaid, { renderer });
                     content += `<div>${docContentHtml}</div>`;
                     content += `<hr/>`;
                     break;
@@ -2006,7 +2085,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
 
     return (
         <div className="space-y-6">
-            {artifactType !== 'vision' && vision && <VisionHeader vision={vision[0]} />}
+            {artifactType !== 'vision' && vision && <VisionHeader visions={vision} />}
 
             <ImportConflictModal
                 isOpen={showImportModal}
