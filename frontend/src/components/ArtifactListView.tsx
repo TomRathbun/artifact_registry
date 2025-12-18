@@ -1523,18 +1523,21 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                 const alt = match[1];
                 let src = match[2];
 
-                // Skip if already base64 (unlikely for raw markdown but possible if multi-pass)
+                // Skip if already base64
                 if (src.startsWith('data:')) continue;
 
-                // Handle local URLs if needed - e.g. /uploads/... -> full URL
-                // Assuming standard fetch can handle relative URLs if serving from same origin
-                // But for Node/Script context, might need full URL? Use window.location.origin
+                let fetchUrl = src;
                 if (src.startsWith('/')) {
-                    src = `${window.location.origin}${src}`;
+                    fetchUrl = `${window.location.origin}${src}`;
+                } else if (src.startsWith('http')) {
+                    fetchUrl = src;
+                } else {
+                    // Relative path? Assume root if starts with uploads/, otherwise maybe it's just a filename?
+                    fetchUrl = `${window.location.origin}/${src}`;
                 }
 
                 try {
-                    const resp = await fetch(src);
+                    const resp = await fetch(fetchUrl);
                     if (resp.ok) {
                         const blob = await resp.blob();
                         const base64 = await new Promise<string>((resolve) => {
@@ -1547,7 +1550,31 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                             replacement: `![${alt}](${base64})`
                         });
                     } else {
-                        console.warn(`Failed to fetch image: ${src}`);
+                        // Fallback: Try a common pattern if the first fail was a 404 and it looks like a filename
+                        if (!src.includes('/') && !src.startsWith('http')) {
+                            const fallbackUrl = `${window.location.origin}/api/v1/documents/files/${src}`;
+                            try {
+                                const resp2 = await fetch(fallbackUrl);
+                                if (resp2.ok) {
+                                    const blob2 = await resp2.blob();
+                                    const base64_2 = await new Promise<string>((resolve) => {
+                                        const reader2 = new FileReader();
+                                        reader2.onloadend = () => resolve(reader2.result as string);
+                                        reader2.readAsDataURL(blob2);
+                                    });
+                                    replacements.push({
+                                        original: match[0],
+                                        replacement: `![${alt}](${base64_2})`
+                                    });
+                                } else {
+                                    console.warn(`Failed to fetch image (fallback): ${fallbackUrl}`);
+                                }
+                            } catch (e2) {
+                                console.error("Fallback fetch error", e2);
+                            }
+                        } else {
+                            console.warn(`Failed to fetch image: ${fetchUrl}`);
+                        }
                     }
                 } catch (e) {
                     console.error(`Error processing image ${src}:`, e);
@@ -1776,6 +1803,15 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                         const reqRatHtml = await marked.parse(reqRat);
                         content += `<div class="rationale"><strong>Rationale:</strong> ${reqRatHtml}</div>`;
                     }
+                    content += `<hr/>`;
+                    break;
+                case 'document':
+                    content += `<h2>${a.aid}: ${a.title}</h2>`;
+                    content += `<p><strong>File Name:</strong> ${a.content_url || '-'}</p>`;
+                    content += `<p><strong>Type:</strong> ${a.document_type || '-'}</p>`;
+                    const docContent = await processMarkdownImages(a.content_text || '');
+                    const docContentHtml = await marked.parse(docContent);
+                    content += `<div>${docContentHtml}</div>`;
                     content += `<hr/>`;
                     break;
             }
