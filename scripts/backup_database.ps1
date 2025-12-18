@@ -24,7 +24,7 @@ if (-not (Test-Path "$PSScriptRoot\..\db_backups")) {
     --if-exists
 
 if ($LASTEXITCODE -eq 0) {
-    Write-Host "✓ Database backed up successfully to: $backupFile" -ForegroundColor Green
+    Write-Host "[OK] Database backed up successfully to: $backupFile" -ForegroundColor Green
     Write-Host ""
     Write-Host "To restore on another machine:" -ForegroundColor Yellow
     Write-Host "  1. Start PostgreSQL: .\start_db.ps1" -ForegroundColor Gray
@@ -33,6 +33,6 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "File size: $((Get-Item $backupFile).Length / 1KB) KB" -ForegroundColor Cyan
 }
 else {
-    Write-Host "✗ Backup failed!" -ForegroundColor Red
+    Write-Host "[ERROR] Backup failed!" -ForegroundColor Red
     exit 1
 }
