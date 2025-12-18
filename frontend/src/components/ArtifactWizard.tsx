@@ -22,6 +22,13 @@ import CommentPanel from './CommentPanel';
 import MermaidBlock from './MermaidBlock';
 import PlantUMLBlock from './PlantUMLBlock';
 
+const extractText = (c: any): string => {
+    if (typeof c === 'string') return c;
+    if (Array.isArray(c)) return c.map(extractText).join('');
+    if (c?.props?.children) return extractText(c.props.children);
+    return String(c || '');
+};
+
 
 type ArtifactType = 'vision' | 'need' | 'use_case' | 'requirement' | 'document';
 
@@ -756,12 +763,52 @@ export default function ArtifactWizard() {
                         <label className="block text-sm font-medium text-slate-700 mb-1">
                             Requirement Text
                         </label>
-                        <textarea
-                            {...register('text', { required: true })}
-                            className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            rows={4}
-                            placeholder="The system shall..."
-                            onFocus={() => setFocusedField('text')}
+                        <Controller
+                            control={control}
+                            name="text"
+                            render={({ field }) => (
+                                <div data-color-mode="light">
+                                    <MDEditor
+                                        value={field.value || ''}
+                                        onChange={field.onChange}
+                                        preview="live"
+                                        height={300}
+                                        className="border border-slate-300 rounded-md overflow-hidden"
+                                        onFocus={() => setFocusedField('text')}
+                                        previewOptions={{
+                                            remarkPlugins: [remarkGfm],
+                                            className: 'prose prose-slate max-w-none p-4',
+                                            components: {
+                                                code: ({ node, inline, className, children, ...props }: any) => {
+                                                    const match = /language-(\w+)/.exec(className || '');
+                                                    const language = match ? match[1] : '';
+
+                                                    if (!inline && language === 'mermaid') {
+                                                        return (
+                                                            <div className="not-prose">
+                                                                <MermaidBlock chart={extractText(children).replace(/\n$/, '')} />
+                                                            </div>
+                                                        );
+                                                    }
+
+                                                    if (!inline && language === 'plantuml') {
+                                                        return (
+                                                            <div className="not-prose">
+                                                                <PlantUMLBlock code={extractText(children).replace(/\n$/, '')} />
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return (
+                                                        <code className={className} {...props}>
+                                                            {children}
+                                                        </code>
+                                                    );
+                                                }
+                                            }
+                                        }}
+                                    />
+                                </div>
+                            )}
                         />
                     </div>
                 ) : (
@@ -777,23 +824,32 @@ export default function ArtifactWizard() {
                                     <MDEditor
                                         value={field.value || ''}
                                         onChange={field.onChange}
-                                        preview="edit"
-                                        height={300}
+                                        preview="live"
+                                        height={400}
                                         className="border border-slate-300 rounded-md overflow-hidden"
                                         onFocus={() => setFocusedField('description')}
                                         previewOptions={{
                                             remarkPlugins: [remarkGfm],
+                                            className: 'prose prose-slate max-w-none p-4',
                                             components: {
                                                 code: ({ node, inline, className, children, ...props }: any) => {
                                                     const match = /language-(\w+)/.exec(className || '');
                                                     const language = match ? match[1] : '';
 
                                                     if (!inline && language === 'mermaid') {
-                                                        return <MermaidBlock chart={String(children).replace(/\n$/, '')} />;
+                                                        return (
+                                                            <div className="not-prose">
+                                                                <MermaidBlock chart={extractText(children).replace(/\n$/, '')} />
+                                                            </div>
+                                                        );
                                                     }
 
                                                     if (!inline && language === 'plantuml') {
-                                                        return <PlantUMLBlock code={String(children).replace(/\n$/, '')} />;
+                                                        return (
+                                                            <div className="not-prose">
+                                                                <PlantUMLBlock code={extractText(children).replace(/\n$/, '')} />
+                                                            </div>
+                                                        );
                                                     }
 
                                                     return (
@@ -843,7 +899,46 @@ export default function ArtifactWizard() {
                     <>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Rationale</label>
-                            <textarea {...register('rationale')} className="w-full px-3 py-2 border border-slate-300 rounded-md" rows={2} onFocus={() => setFocusedField('rationale')} />
+                            <Controller
+                                control={control}
+                                name="rationale"
+                                render={({ field }) => (
+                                    <div data-color-mode="light">
+                                        <MDEditor
+                                            value={field.value || ''}
+                                            onChange={field.onChange}
+                                            preview="live"
+                                            height={200}
+                                            className="border border-slate-300 rounded-md overflow-hidden"
+                                            onFocus={() => setFocusedField('rationale')}
+                                            previewOptions={{
+                                                remarkPlugins: [remarkGfm],
+                                                className: 'prose prose-slate max-w-none p-4',
+                                                components: {
+                                                    code: ({ node, inline, className, children, ...props }: any) => {
+                                                        const match = /language-(\w+)/.exec(className || '');
+                                                        const language = match ? match[1] : '';
+
+                                                        if (!inline && language === 'mermaid') {
+                                                            return <MermaidBlock chart={String(children).replace(/\n$/, '')} />;
+                                                        }
+
+                                                        if (!inline && language === 'plantuml') {
+                                                            return <PlantUMLBlock code={String(children).replace(/\n$/, '')} />;
+                                                        }
+
+                                                        return (
+                                                            <code className={className} {...props}>
+                                                                {children}
+                                                            </code>
+                                                        );
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                )}
+                            />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
@@ -1452,22 +1547,32 @@ export default function ArtifactWizard() {
                                             <MDEditor
                                                 value={field.value || ''}
                                                 onChange={field.onChange}
-                                                preview="edit"
-                                                height={400}
+                                                preview="live"
+                                                height={500}
                                                 className="border border-slate-300 rounded-md overflow-hidden"
+                                                onFocus={() => setFocusedField('content_text')}
                                                 previewOptions={{
                                                     remarkPlugins: [remarkGfm],
+                                                    className: 'prose prose-slate max-w-none p-4',
                                                     components: {
                                                         code: ({ node, inline, className, children, ...props }: any) => {
                                                             const match = /language-(\w+)/.exec(className || '');
                                                             const language = match ? match[1] : '';
 
                                                             if (!inline && language === 'mermaid') {
-                                                                return <MermaidBlock chart={String(children).replace(/\n$/, '')} />;
+                                                                return (
+                                                                    <div className="not-prose">
+                                                                        <MermaidBlock chart={extractText(children).replace(/\n$/, '')} />
+                                                                    </div>
+                                                                );
                                                             }
 
                                                             if (!inline && language === 'plantuml') {
-                                                                return <PlantUMLBlock code={String(children).replace(/\n$/, '')} />;
+                                                                return (
+                                                                    <div className="not-prose">
+                                                                        <PlantUMLBlock code={extractText(children).replace(/\n$/, '')} />
+                                                                    </div>
+                                                                );
                                                             }
 
                                                             return (

@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 
 import axios from 'axios';
-import { Plus, Network, Edit, Trash2, GitGraph, ArrowUp, ArrowDown, Filter, Wand2, FileCode } from 'lucide-react';
+import { Plus, Network, Edit, Trash2, GitGraph, ArrowUp, ArrowDown, Filter, Wand2, FileCode, Check, FileText } from 'lucide-react';
 import { MetadataService } from '../client';
 
 export default function DiagramList() {
@@ -26,6 +26,7 @@ export default function DiagramList() {
     });
     const [activeFilterDropdown, setActiveFilterDropdown] = useState<string | null>(null);
     const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({});
+    const [copyStatus, setCopyStatus] = useState<string | null>(null);
 
     const { data: diagrams, isLoading, isError, error } = useQuery({
         queryKey: ['diagrams', projectId],
@@ -139,13 +140,13 @@ export default function DiagramList() {
     }, [diagrams, columnFilters, sortConfig]);
 
     useEffect(() => {
-        const handleClickOutside = () => {
-            if (activeFilterDropdown) setActiveFilterDropdown(null);
+        const handleClickOutside = (e: MouseEvent) => {
+            if (activeFilterDropdown && !(e.target as HTMLElement).closest('.filter-container')) {
+                setActiveFilterDropdown(null);
+            }
         };
-        if (activeFilterDropdown) {
-            document.addEventListener('click', handleClickOutside);
-            return () => document.removeEventListener('click', handleClickOutside);
-        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [activeFilterDropdown]);
 
     const getUniqueValuesForColumn = (key: string): string[] => {
@@ -154,7 +155,9 @@ export default function DiagramList() {
         diagrams.forEach((d: any) => {
             if (d[key]) values.add(String(d[key]));
         });
-        return Array.from(values).sort();
+        // We do NOT sort here to keep the filter options in the same relative order 
+        // as they appear in the listView (usually by name or ID).
+        return Array.from(values);
     };
 
     const toggleFilter = (key: string, value: string) => {
@@ -185,6 +188,27 @@ export default function DiagramList() {
             key,
             direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
         }));
+    };
+
+    const handleCopyMarkdown = async (diagram: any) => {
+        let text = "";
+        const isTextDiagram = diagram.type === 'mermaid' || diagram.type === 'sequence' || diagram.type === 'plantuml';
+
+        if (isTextDiagram) {
+            const lang = diagram.type === 'plantuml' ? 'plantuml' : 'mermaid';
+            text = `\`\`\`${lang}\n${diagram.content || ""}\n\`\`\``;
+        } else {
+            const url = `${window.location.origin}/projects/${projectId}/diagrams/${diagram.id}`;
+            text = `[Diagram: ${diagram.name}](${url})`;
+        }
+
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopyStatus(diagram.id);
+            setTimeout(() => setCopyStatus(null), 2000);
+        } catch (err) {
+            console.error("Failed to copy", err);
+        }
     };
 
     if (isLoading) return <div className="p-8 text-center text-slate-500">Loading diagrams...</div>;
@@ -218,17 +242,17 @@ export default function DiagramList() {
 
             {/* Create Modal */}
             {isCreating && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
                         <h2 className="text-xl font-semibold mb-4">Create New Diagram</h2>
                         <form onSubmit={handleCreate} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Type</label>
-                                <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-2 gap-2">
                                     <button
                                         type="button"
                                         onClick={() => setNewDiagramType('component')}
-                                        className={`p-3 rounded-lg border text-sm font-medium flex flex-col items-center gap-2 ${newDiagramType === 'component' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:bg-slate-50 text-slate-600'}`}
+                                        className={`p-3 rounded-lg border text-sm font-medium flex flex-col items-center gap-2 transition-all ${newDiagramType === 'component' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:bg-slate-50 text-slate-600'}`}
                                     >
                                         <Network className="w-5 h-5" />
                                         Component
@@ -236,7 +260,7 @@ export default function DiagramList() {
                                     <button
                                         type="button"
                                         onClick={() => setNewDiagramType('artifact_graph')}
-                                        className={`p-3 rounded-lg border text-sm font-medium flex flex-col items-center gap-2 ${newDiagramType === 'artifact_graph' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:bg-slate-50 text-slate-600'}`}
+                                        className={`p-3 rounded-lg border text-sm font-medium flex flex-col items-center gap-2 transition-all ${newDiagramType === 'artifact_graph' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:bg-slate-50 text-slate-600'}`}
                                     >
                                         <GitGraph className="w-5 h-5" />
                                         Artifact Graph
@@ -244,7 +268,7 @@ export default function DiagramList() {
                                     <button
                                         type="button"
                                         onClick={() => setNewDiagramType('mermaid')}
-                                        className={`p-3 rounded-lg border text-sm font-medium flex flex-col items-center gap-2 ${newDiagramType === 'mermaid' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:bg-slate-50 text-slate-600'}`}
+                                        className={`p-3 rounded-lg border text-sm font-medium flex flex-col items-center gap-2 transition-all ${newDiagramType === 'mermaid' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:bg-slate-50 text-slate-600'}`}
                                     >
                                         <Wand2 className="w-5 h-5" />
                                         Mermaid
@@ -252,7 +276,7 @@ export default function DiagramList() {
                                     <button
                                         type="button"
                                         onClick={() => setNewDiagramType('plantuml')}
-                                        className={`p-3 rounded-lg border text-sm font-medium flex flex-col items-center gap-2 ${newDiagramType === 'plantuml' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:bg-slate-50 text-slate-600'}`}
+                                        className={`p-3 rounded-lg border text-sm font-medium flex flex-col items-center gap-2 transition-all ${newDiagramType === 'plantuml' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:bg-slate-50 text-slate-600'}`}
                                     >
                                         <FileCode className="w-5 h-5" />
                                         PlantUML
@@ -305,8 +329,8 @@ export default function DiagramList() {
 
             {/* Edit Modal */}
             {editingDiagram && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
                         <h2 className="text-xl font-semibold mb-4">Edit Diagram</h2>
                         <form onSubmit={handleUpdate} className="space-y-4">
                             <div>
@@ -369,8 +393,8 @@ export default function DiagramList() {
 
             {/* Delete Confirmation Modal */}
             {deletingDiagramId && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
                         <h2 className="text-xl font-semibold mb-2 text-red-600">Delete Diagram?</h2>
                         <p className="text-slate-600 mb-6">
                             Are you sure you want to delete this diagram? This action cannot be undone.
@@ -394,262 +418,153 @@ export default function DiagramList() {
                 </div>
             )}
 
-            <div className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden overflow-x-auto">
-                <div className="min-w-[1000px]">
-                    <div className="grid gap-2 p-3 border-b bg-slate-50 font-medium text-slate-700"
-                        style={{ gridTemplateColumns: '30px 250px 150px 1fr 200px 100px' }}>
-
-                        {/* Checkbox */}
-                        <div className="flex items-center justify-center">
-                            <input
-                                type="checkbox"
-                                className="rounded border-slate-300"
-                                checked={filteredDiagrams.length > 0 && filteredDiagrams.every((d: any) => selectedItems.includes(d.id))}
-                                onChange={() => {
-                                    if (filteredDiagrams.every((d: any) => selectedItems.includes(d.id))) {
-                                        setSelectedItems([]);
-                                    } else {
-                                        setSelectedItems(filteredDiagrams.map((d: any) => d.id));
-                                    }
-                                }}
-                            />
-                        </div>
-
-                        {/* Name Column */}
-                        <div className="flex items-center gap-1 select-none relative">
-                            <div className="flex items-center gap-1 cursor-pointer hover:bg-slate-200 px-1 py-0.5 rounded"
-                                onClick={(e) => { e.stopPropagation(); setActiveFilterDropdown(activeFilterDropdown === 'name' ? null : 'name'); }}>
-                                <Filter className={`w-3 h-3 ${columnFilters['name']?.length > 0 ? 'text-blue-600' : 'text-slate-400'}`} />
-                                {columnFilters['name']?.length > 0 && (
-                                    <span className="text-xs bg-blue-600 text-white rounded-full w-4 h-4 flex items-center justify-center">
-                                        {columnFilters['name'].length}
-                                    </span>
-                                )}
-                            </div>
-                            <div className="cursor-pointer hover:bg-slate-100 flex-1 flex items-center gap-1" onClick={() => handleSort('name')}>
-                                Name
-                                {sortConfig.key === 'name' && (
-                                    <span className="text-slate-400">
-                                        {sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
-                                    </span>
-                                )}
-                            </div>
-                            {activeFilterDropdown === 'name' && (
-                                <div className="absolute top-8 left-0 bg-white border shadow-lg rounded-md p-2 z-50 w-64 max-h-60 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                                    <div className="flex justify-between items-center mb-2 pb-2 border-b">
-                                        <span className="text-xs font-semibold text-slate-500">Filter Name</span>
-                                        <button onClick={() => clearColumnFilter('name')} className="text-xs text-blue-600 hover:underline">Clear</button>
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 font-semibold text-sm">
+                                <th className="p-4 w-12">
+                                    <input
+                                        type="checkbox"
+                                        className="rounded border-slate-300"
+                                        checked={filteredDiagrams.length > 0 && filteredDiagrams.every((d: any) => selectedItems.includes(d.id))}
+                                        onChange={() => {
+                                            if (filteredDiagrams.every((d: any) => selectedItems.includes(d.id))) {
+                                                setSelectedItems([]);
+                                            } else {
+                                                setSelectedItems(filteredDiagrams.map((d: any) => d.id));
+                                            }
+                                        }}
+                                    />
+                                </th>
+                                <th className="p-4 relative filter-container">
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => handleSort('name')} className="hover:text-blue-600 flex items-center gap-1">
+                                            Name
+                                            {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? <ArrowUp className="w-3" /> : <ArrowDown className="w-3" />)}
+                                        </button>
+                                        <button onClick={() => setActiveFilterDropdown(activeFilterDropdown === 'name' ? null : 'name')}>
+                                            <Filter className={`w-3 h-3 ${columnFilters['name']?.length ? 'text-blue-600' : 'text-slate-400'}`} />
+                                        </button>
                                     </div>
-                                    <div className="space-y-1">
-                                        {getUniqueValuesForColumn('name').map((value: string) => (
-                                            <label key={value} className="flex items-center gap-2 p-1 hover:bg-slate-50 rounded cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={columnFilters['name']?.includes(value)}
-                                                    onChange={() => toggleFilter('name', value)}
-                                                    className="rounded border-slate-300"
-                                                />
-                                                <span className="text-sm truncate" title={value}>{value}</span>
-                                            </label>
-                                        ))}
+                                    {activeFilterDropdown === 'name' && (
+                                        <div className="absolute top-full left-0 mt-1 bg-white border shadow-xl rounded-lg p-3 z-50 w-64 min-w-full">
+                                            <div className="flex justify-between items-center mb-2 text-xs">
+                                                <span className="font-bold text-slate-500 uppercase">Filter</span>
+                                                <button onClick={() => clearColumnFilter('name')} className="text-blue-600 hover:underline font-medium">Clear</button>
+                                            </div>
+                                            <div className="space-y-1 max-h-48 overflow-y-auto">
+                                                {getUniqueValuesForColumn('name').map(val => (
+                                                    <label key={val} className="flex items-center gap-2 p-1 hover:bg-slate-50 rounded cursor-pointer text-sm">
+                                                        <input type="checkbox" checked={columnFilters['name']?.includes(val)} onChange={() => toggleFilter('name', val)} />
+                                                        <span className="truncate">{val}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </th>
+                                <th className="p-4 relative filter-container">
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => handleSort('type')} className="hover:text-blue-600 flex items-center gap-1">
+                                            Type
+                                        </button>
+                                        <button onClick={() => setActiveFilterDropdown(activeFilterDropdown === 'type' ? null : 'type')}>
+                                            <Filter className={`w-3 h-3 ${columnFilters['type']?.length ? 'text-blue-600' : 'text-slate-400'}`} />
+                                        </button>
                                     </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Type Column */}
-                        <div className="flex items-center gap-1 select-none relative">
-                            <div className="flex items-center gap-1 cursor-pointer hover:bg-slate-200 px-1 py-0.5 rounded"
-                                onClick={(e) => { e.stopPropagation(); setActiveFilterDropdown(activeFilterDropdown === 'type' ? null : 'type'); }}>
-                                <Filter className={`w-3 h-3 ${columnFilters['type']?.length > 0 ? 'text-blue-600' : 'text-slate-400'}`} />
-                                {columnFilters['type']?.length > 0 && (
-                                    <span className="text-xs bg-blue-600 text-white rounded-full w-4 h-4 flex items-center justify-center">
-                                        {columnFilters['type'].length}
-                                    </span>
-                                )}
-                            </div>
-                            <div className="cursor-pointer hover:bg-slate-100 flex-1 flex items-center gap-1" onClick={() => handleSort('type')}>
-                                Type
-                                {sortConfig.key === 'type' && (
-                                    <span className="text-slate-400">
-                                        {sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
-                                    </span>
-                                )}
-                            </div>
-                            {activeFilterDropdown === 'type' && (
-                                <div className="absolute top-8 left-0 bg-white border shadow-lg rounded-md p-2 z-50 w-48 max-h-60 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                                    <div className="flex justify-between items-center mb-2 pb-2 border-b">
-                                        <span className="text-xs font-semibold text-slate-500">Filter Type</span>
-                                        <button onClick={() => clearColumnFilter('type')} className="text-xs text-blue-600 hover:underline">Clear</button>
-                                    </div>
-                                    <div className="space-y-1">
-                                        {getUniqueValuesForColumn('type').map((value: string) => (
-                                            <label key={value} className="flex items-center gap-2 p-1 hover:bg-slate-50 rounded cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={columnFilters['type']?.includes(value)}
-                                                    onChange={() => toggleFilter('type', value)}
-                                                    className="rounded border-slate-300"
-                                                />
-                                                <span className="text-sm">{value}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Description Column */}
-                        <div className="flex items-center gap-1 select-none relative">
-                            <div className="flex items-center gap-1 cursor-pointer hover:bg-slate-200 px-1 py-0.5 rounded"
-                                onClick={(e) => { e.stopPropagation(); setActiveFilterDropdown(activeFilterDropdown === 'description' ? null : 'description'); }}>
-                                <Filter className={`w-3 h-3 ${columnFilters['description']?.length > 0 ? 'text-blue-600' : 'text-slate-400'}`} />
-                                {columnFilters['description']?.length > 0 && (
-                                    <span className="text-xs bg-blue-600 text-white rounded-full w-4 h-4 flex items-center justify-center">
-                                        {columnFilters['description'].length}
-                                    </span>
-                                )}
-                            </div>
-                            <div className="cursor-pointer hover:bg-slate-100 flex-1 flex items-center gap-1" onClick={() => handleSort('description')}>
-                                Description
-                                {sortConfig.key === 'description' && (
-                                    <span className="text-slate-400">
-                                        {sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
-                                    </span>
-                                )}
-                            </div>
-                            {activeFilterDropdown === 'description' && (
-                                <div className="absolute top-8 left-0 bg-white border shadow-lg rounded-md p-2 z-50 w-80 max-h-60 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                                    <div className="flex justify-between items-center mb-2 pb-2 border-b">
-                                        <span className="text-xs font-semibold text-slate-500">Filter Description</span>
-                                        <button onClick={() => clearColumnFilter('description')} className="text-xs text-blue-600 hover:underline">Clear</button>
-                                    </div>
-                                    <div className="space-y-1">
-                                        {getUniqueValuesForColumn('description').map((value: string) => (
-                                            <label key={value} className="flex items-center gap-2 p-1 hover:bg-slate-50 rounded cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={columnFilters['description']?.includes(value)}
-                                                    onChange={() => toggleFilter('description', value)}
-                                                    className="rounded border-slate-300"
-                                                />
-                                                <span className="text-sm truncate" title={value}>{value}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Details Column (Sorting/Filtering omitted for simplicity as it's computed/polymorphic) */}
-                        <div className="flex items-center gap-1 p-1 px-2">
-                            Details
-                        </div>
-
-                        {/* Actions */}
-                        <div className="text-right p-1 px-2">Actions</div>
-                    </div>
-
-                    <ul className="divide-y divide-slate-100">
-                        {filteredDiagrams.map((diagram: any) => (
-                            <li key={diagram.id} className={`hover:bg-slate-50 transition-colors ${selectedItems.includes(diagram.id) ? 'bg-blue-50' : ''}`}>
-                                <div className="grid gap-2 p-3 items-center"
-                                    style={{ gridTemplateColumns: '30px 250px 150px 1fr 200px 100px' }}>
-
-                                    {/* Checkbox */}
-                                    <div className="flex items-center justify-center">
+                                    {activeFilterDropdown === 'type' && (
+                                        <div className="absolute top-full left-0 mt-1 bg-white border shadow-xl rounded-lg p-3 z-50 w-48">
+                                            <div className="space-y-1">
+                                                {['component', 'artifact_graph', 'mermaid', 'plantuml'].map(val => (
+                                                    <label key={val} className="flex items-center gap-2 p-1 hover:bg-slate-50 rounded cursor-pointer text-sm">
+                                                        <input type="checkbox" checked={columnFilters['type']?.includes(val)} onChange={() => toggleFilter('type', val)} />
+                                                        <span>{val.replace('_', ' ')}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </th>
+                                <th className="p-4">Description</th>
+                                <th className="p-4">Details</th>
+                                <th className="p-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 italic text-sm">
+                            {filteredDiagrams.map((diagram: any) => (
+                                <tr key={diagram.id} className={`hover:bg-slate-50 transition-colors ${selectedItems.includes(diagram.id) ? 'bg-blue-50' : ''}`}>
+                                    <td className="p-4 text-center">
                                         <input
                                             type="checkbox"
                                             className="rounded border-slate-300"
                                             checked={selectedItems.includes(diagram.id)}
                                             onChange={() => {
-                                                if (selectedItems.includes(diagram.id)) {
-                                                    setSelectedItems(selectedItems.filter(id => id !== diagram.id));
-                                                } else {
-                                                    setSelectedItems([...selectedItems, diagram.id]);
-                                                }
+                                                setSelectedItems(prev => prev.includes(diagram.id) ? prev.filter(id => id !== diagram.id) : [...prev, diagram.id]);
                                             }}
                                         />
-                                    </div>
-
-                                    {/* Name */}
-                                    <Link to={`${diagram.id}`} className="font-medium text-slate-900 hover:text-blue-600 truncate" title={diagram.name}>
-                                        {diagram.name}
-                                    </Link>
-
-                                    {/* Type */}
-                                    <div className="flex items-center gap-2">
+                                    </td>
+                                    <td className="p-4 font-bold not-italic">
+                                        <Link to={`${diagram.id}`} className="text-slate-900 hover:text-blue-600 transition-colors">
+                                            {diagram.name}
+                                        </Link>
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="flex items-center gap-2 not-italic">
+                                            {diagram.type === 'artifact_graph' ? <GitGraph className="w-4 h-4 text-purple-600" /> :
+                                                diagram.type === 'mermaid' || diagram.type === 'sequence' ? <Wand2 className="w-4 h-4 text-emerald-600" /> :
+                                                    diagram.type === 'plantuml' ? <FileCode className="w-4 h-4 text-orange-600" /> :
+                                                        <Network className="w-4 h-4 text-blue-600" />}
+                                            <span className="capitalize">{diagram.type.replace('_', ' ')}</span>
+                                        </div>
+                                    </td>
+                                    <td className="p-4 text-slate-500 truncate max-w-xs">{diagram.description || '-'}</td>
+                                    <td className="p-4 not-italic">
                                         {diagram.type === 'artifact_graph' ? (
-                                            <>
-                                                <GitGraph className="w-4 h-4 text-purple-600" />
-                                                <span className="text-sm text-slate-600">Artifact Graph</span>
-                                            </>
-                                        ) : (diagram.type === 'sequence' || diagram.type === 'mermaid') ? (
-                                            <>
-                                                <Wand2 className="w-4 h-4 text-emerald-600" />
-                                                <span className="text-sm text-slate-600">Mermaid Diagram</span>
-                                            </>
-                                        ) : diagram.type === 'plantuml' ? (
-                                            <>
-                                                <FileCode className="w-4 h-4 text-orange-600" />
-                                                <span className="text-sm text-slate-600">PlantUML Diagram</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Network className="w-4 h-4 text-blue-600" />
-                                                <span className="text-sm text-slate-600">Component Diagram</span>
-                                            </>
-                                        )}
-                                    </div>
-
-                                    {/* Description */}
-                                    <div className="text-sm text-slate-500 truncate" title={diagram.description}>
-                                        {diagram.description || '-'}
-                                    </div>
-
-                                    {/* Details */}
-                                    <div>
-                                        {diagram.type === 'artifact_graph' && diagram.filter_data?.area ? (
-                                            <span className="px-2 py-1 text-xs font-medium bg-slate-100 text-slate-600 rounded-full">
-                                                Area: {diagram.filter_data.area}
-                                            </span>
+                                            <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 rounded-full">{diagram.filter_data?.area || 'All Areas'}</span>
                                         ) : diagram.type === 'component' ? (
-                                            <span className="text-sm text-slate-500">
-                                                {diagram.components?.length || 0} components
-                                            </span>
-                                        ) : (
-                                            <span className="text-sm text-slate-400">-</span>
-                                        )}
-                                    </div>
-
-                                    {/* Actions */}
-                                    <div className="flex justify-end gap-2">
-                                        <button
-                                            onClick={() => setEditingDiagram(diagram)}
-                                            className="p-1 text-slate-400 hover:text-blue-600 transition-colors rounded hover:bg-blue-50"
-                                            title="Edit"
-                                        >
-                                            <Edit className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => setDeletingDiagramId(diagram.id)}
-                                            className="p-1 text-slate-400 hover:text-red-600 transition-colors rounded hover:bg-red-50"
-                                            title="Delete"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </div>
-                            </li>
-                        ))}
-                        {filteredDiagrams.length === 0 && (
-                            <li className="p-12 text-center text-slate-500">
-                                <Network className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                                <p>No diagrams found matching your filters.</p>
-                            </li>
-                        )}
-                    </ul>
+                                            <span className="text-xs text-slate-500">{diagram.components?.length || 0} Components</span>
+                                        ) : '-'}
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="flex justify-end gap-1 not-italic">
+                                            <button
+                                                onClick={() => handleCopyMarkdown(diagram)}
+                                                className={`p-1.5 rounded-lg transition-all ${copyStatus === diagram.id ? 'bg-green-100 text-green-700' : 'text-slate-400 hover:text-slate-900 hover:bg-slate-100'}`}
+                                                title="Copy Markdown"
+                                            >
+                                                {copyStatus === diagram.id ? <Check className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                                            </button>
+                                            <button
+                                                onClick={() => setEditingDiagram(diagram)}
+                                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                                title="Edit"
+                                            >
+                                                <Edit className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => setDeletingDiagramId(diagram.id)}
+                                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                title="Delete"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
+                {filteredDiagrams.length === 0 && (
+                    <div className="p-20 text-center">
+                        <div className="bg-slate-50 inline-block p-4 rounded-full mb-4">
+                            <Network className="w-8 h-8 text-slate-300" />
+                        </div>
+                        <h3 className="text-slate-900 font-bold">No diagrams found</h3>
+                        <p className="text-slate-500 text-sm">Try adjusting your filters or create a new diagram.</p>
+                    </div>
+                )}
             </div>
         </div>
     );

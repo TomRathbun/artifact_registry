@@ -408,7 +408,9 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
             if (key === 'description') return a.description || a.text || '';
             return a[key] || '';
         });
-        return [...new Set(values)].filter(v => v).sort() as string[];
+        // We do NOT sort here because users want the filter options to appear 
+        // in the same logical order as the artifacts in the table (usually by Artifact ID).
+        return [...new Set(values)].filter(v => v) as string[];
     };
 
 
@@ -1553,8 +1555,8 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
         // Custom renderer to ensure images are resized in Word
         const renderer = new marked.Renderer();
         renderer.image = ({ href, text }) => {
-            // Add inline styles that Word respects
-            return `<img src="${href}" alt="${text}" style="max-width: 100%; height: auto; display: block; margin: 10px 0;" />`;
+            // Add inline styles and attributes that Word respects for page-width fitting
+            return `<img src="${href}" alt="${text}" width="100%" style="width: 100%; max-width: 100%; height: auto; display: block; margin: 10px 0;" />`;
         };
 
         let content = `
@@ -1572,7 +1574,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                     ul, ol { margin-bottom: 15px; }
                     li { margin-bottom: 5px; }
                     .rationale { background: #f9f9f9; padding: 10px; border-radius: 4px; font-size: 0.9em; }
-                    img { max-width: 100%; height: auto; display: block; margin: 10px 0; border: 1px solid #eee; }
+                    img { width: 100%; max-width: 100%; height: auto; display: block; margin: 10px 0; border: 1px solid #eee; }
                 </style>
             </head>
             <body>
@@ -1843,7 +1845,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                                     reader.onloadend = () => resolve(reader.result);
                                     reader.readAsDataURL(blob);
                                 });
-                                content += `<h3>Hybrid State Diagram</h3><img src="${base64}" style="max-width: 100%; border: 1px solid #ddd;" /><br/>`;
+                                content += `<h3>Hybrid State Diagram</h3><img src="${base64}" width="100%" style="width: 100%; max-width: 100%; border: 1px solid #ddd;" /><br/>`;
                             }
                         }
 
@@ -1856,7 +1858,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                                     reader.onloadend = () => resolve(reader.result);
                                     reader.readAsDataURL(blob);
                                 });
-                                content += `<h3>Sequence Diagram</h3><img src="${base64}" style="max-width: 100%; border: 1px solid #ddd;" /><br/>`;
+                                content += `<h3>Sequence Diagram</h3><img src="${base64}" width="100%" style="width: 100%; max-width: 100%; border: 1px solid #ddd;" /><br/>`;
                             }
                         }
                     } catch (e) {

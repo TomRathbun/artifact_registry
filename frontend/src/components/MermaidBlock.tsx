@@ -12,22 +12,32 @@ const MermaidBlock: React.FC<MermaidBlockProps> = ({ chart }) => {
     useEffect(() => {
         mermaid.initialize({ startOnLoad: false, theme: 'default' });
 
-        const renderChart = async () => {
+        const renderChart = async (chartString: string) => {
             try {
                 const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
-                const { svg } = await mermaid.render(id, chart);
+                const { svg } = await mermaid.render(id, chartString);
                 setSvg(svg);
                 setError(null);
             } catch (err: any) {
                 console.error('Mermaid render error:', err);
-                setError('Syntax error in Mermaid diagram');
-                // Mermaid might leave residuals or fail silently in some versions, but usually throws.
+                setError(err.message || 'Syntax error in Mermaid diagram');
             }
         };
 
-        if (chart) {
-            renderChart();
+        // Ensure chart is always a string before processing
+        if (typeof chart !== 'string') {
+            setError('Internal error: Mermaid content is not a string');
+            return;
         }
+
+        const trimmedChart = chart.trim();
+        // Basic validation to prevent [object Object] rendering
+        if (trimmedChart.includes('[object Object]')) {
+            setError('Internal error: diagram content was passed as a React object instead of text.');
+            return;
+        }
+
+        renderChart(trimmedChart);
     }, [chart]);
 
     if (error) {
