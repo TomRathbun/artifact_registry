@@ -117,7 +117,7 @@ const ExceptionStepsEditor = ({ nestIndex, control, register, actors }: { nestIn
                         </div>
                         <div>
                             <label className="block text-[10px] font-medium text-slate-500 mb-0.5">Description (Action)</label>
-                            <textarea {...register(`exceptions.${nestIndex}.steps.${k}.description`)} rows={2} className="w-full px-2 py-1 text-xs border border-slate-300 rounded resize-none" placeholder="Description of action..." />
+                            <textarea {...register(`exceptions.${nestIndex}.steps.${k}.description`)} rows={2} className="w-full px-2 py-1 text-xs border border-slate-300 rounded resize-none" placeholder="Description of action..." spellCheck={true} />
                         </div>
                     </div>
                 ))}
@@ -343,6 +343,10 @@ export default function ArtifactWizard() {
                 case 'need': return await NeedsService.getNeedApiV1NeedNeedsAidGet(artifactId);
                 case 'use_case': return await UseCasesService.getUseCaseApiV1UseCaseUseCasesAidGet(artifactId);
                 case 'requirement': return await RequirementsService.getRequirementApiV1RequirementRequirementsAidGet(artifactId);
+                case 'document':
+                    const response = await fetch(`/api/v1/documents/${artifactId}`);
+                    if (!response.ok) throw new Error('Failed to fetch document');
+                    return await response.json();
             }
         },
         enabled: !!artifactId
@@ -754,6 +758,7 @@ export default function ArtifactWizard() {
                             className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder="Artifact Title"
                             onFocus={() => setFocusedField('title')}
+                            spellCheck={true}
                         />
                     </div>
                 )}
@@ -773,6 +778,7 @@ export default function ArtifactWizard() {
                                         onChange={field.onChange}
                                         preview="live"
                                         height={300}
+                                        textareaProps={{ spellCheck: true }}
                                         className="border border-slate-300 rounded-md overflow-hidden"
                                         onFocus={() => setFocusedField('text')}
                                         previewOptions={{
@@ -826,6 +832,7 @@ export default function ArtifactWizard() {
                                         onChange={field.onChange}
                                         preview="live"
                                         height={400}
+                                        textareaProps={{ spellCheck: true }}
                                         className="border border-slate-300 rounded-md overflow-hidden"
                                         onFocus={() => setFocusedField('description')}
                                         previewOptions={{
@@ -909,6 +916,7 @@ export default function ArtifactWizard() {
                                             onChange={field.onChange}
                                             preview="live"
                                             height={200}
+                                            textareaProps={{ spellCheck: true }}
                                             className="border border-slate-300 rounded-md overflow-hidden"
                                             onFocus={() => setFocusedField('rationale')}
                                             previewOptions={{
@@ -1038,6 +1046,7 @@ export default function ArtifactWizard() {
                                 {...register('title', { required: true })}
                                 className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 placeholder="Use Case Title"
+                                spellCheck={true}
                             />
                         </div>
                         <div>
@@ -1059,6 +1068,7 @@ export default function ArtifactWizard() {
                                 className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 rows={4}
                                 placeholder="Description..."
+                                spellCheck={true}
                             />
                         </div>
                         <div>
@@ -1120,7 +1130,7 @@ export default function ArtifactWizard() {
 
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Trigger</label>
-                            <input {...register('trigger')} className="w-full px-3 py-2 border border-slate-300 rounded-md" />
+                            <input {...register('trigger')} className="w-full px-3 py-2 border border-slate-300 rounded-md" spellCheck={true} />
                         </div>
                         <div className="mt-6">
                             <div className="flex justify-between items-center mb-2">
@@ -1170,7 +1180,7 @@ export default function ArtifactWizard() {
                                         </div>
                                         <div>
                                             <label className="block text-xs font-medium text-slate-500 mb-1">Description (Action)</label>
-                                            <textarea {...register(`mss.${index}.description`)} rows={2} className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md" />
+                                            <textarea {...register(`mss.${index}.description`)} rows={2} className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md" spellCheck={true} />
                                         </div>
                                     </div>
                                 ))}
@@ -1228,11 +1238,11 @@ export default function ArtifactWizard() {
                                         <div className="grid grid-cols-2 gap-3">
                                             <div>
                                                 <label className="block text-xs font-medium text-slate-500 mb-1">Condition</label>
-                                                <input {...register(`extensions.${index}.condition`)} placeholder="e.g. Network Fail" className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md" />
+                                                <input {...register(`extensions.${index}.condition`)} placeholder="e.g. Network Fail" className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md" spellCheck={true} />
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-medium text-slate-500 mb-1">Handling</label>
-                                                <input {...register(`extensions.${index}.handling`)} placeholder="e.g. Retry 3x" className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md" />
+                                                <input {...register(`extensions.${index}.handling`)} placeholder="e.g. Retry 3x" className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md" spellCheck={true} />
                                             </div>
                                         </div>
                                     </div>
@@ -1258,11 +1268,11 @@ export default function ArtifactWizard() {
                                         <div className="grid grid-cols-1 gap-3 mb-3">
                                             <div>
                                                 <label className="block text-xs font-medium text-slate-500 mb-1">Trigger</label>
-                                                <input {...register(`exceptions.${index}.trigger` as const)} placeholder="Trigger condition" className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md" />
+                                                <input {...register(`exceptions.${index}.trigger` as const)} placeholder="Trigger condition" className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md" spellCheck={true} />
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-medium text-slate-500 mb-1">Handling</label>
-                                                <textarea {...register(`exceptions.${index}.handling` as const)} rows={2} placeholder="Handling logic" className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md" />
+                                                <textarea {...register(`exceptions.${index}.handling` as const)} rows={2} placeholder="Handling logic" className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded-md" spellCheck={true} />
                                             </div>
                                             <div>
                                                 <ExceptionStepsEditor
@@ -1549,6 +1559,7 @@ export default function ArtifactWizard() {
                                                 onChange={field.onChange}
                                                 preview="live"
                                                 height={500}
+                                                textareaProps={{ spellCheck: true }}
                                                 className="border border-slate-300 rounded-md overflow-hidden"
                                                 onFocus={() => setFocusedField('content_text')}
                                                 previewOptions={{
@@ -1774,7 +1785,7 @@ export default function ArtifactWizard() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
-                                    <textarea name="description" className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" rows={2} />
+                                    <textarea name="description" className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" rows={2} spellCheck={true} />
                                 </div>
                                 <button
                                     type="submit"
@@ -1859,7 +1870,7 @@ export default function ArtifactWizard() {
 
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
-                                    <textarea name="description" className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" rows={2} />
+                                    <textarea name="description" className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" rows={2} spellCheck={true} />
                                 </div>
 
                                 <button
@@ -1901,6 +1912,7 @@ export default function ArtifactWizard() {
                                         required
                                         className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 h-24"
                                         placeholder="e.g., User is logged in"
+                                        spellCheck={true}
                                     />
                                 </div>
                                 <button
@@ -1937,6 +1949,7 @@ export default function ArtifactWizard() {
                                         required
                                         className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 h-24"
                                         placeholder="e.g., System records the transaction"
+                                        spellCheck={true}
                                     />
                                 </div>
                                 <div className="flex justify-end gap-2 mt-4">
@@ -1994,6 +2007,7 @@ export default function ArtifactWizard() {
                                         placeholder="Optional description"
                                         className="w-full px-3 py-2 border rounded-md"
                                         rows={3}
+                                        spellCheck={true}
                                     />
                                 </div>
                                 <div className="flex justify-end gap-2 mt-4">
@@ -2033,6 +2047,7 @@ export default function ArtifactWizard() {
                                         placeholder="Why are you making this change?"
                                         className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                                         rows={3}
+                                        spellCheck={true}
                                     />
                                 </div>
                                 <div>
@@ -2043,6 +2058,7 @@ export default function ArtifactWizard() {
                                         placeholder="Additional context..."
                                         className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
                                         rows={2}
+                                        spellCheck={true}
                                     />
                                 </div>
                                 <div className="flex justify-end gap-2 mt-4">

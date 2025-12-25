@@ -183,6 +183,7 @@ export default function SiteManager() {
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         className="w-full p-2 border rounded-md"
                         required
+                        spellCheck={true}
                     />
                 </div>
 
@@ -193,6 +194,7 @@ export default function SiteManager() {
                         value={formData.security_domain}
                         onChange={(e) => setFormData({ ...formData, security_domain: e.target.value })}
                         className="w-full p-2 border rounded-md"
+                        spellCheck={true}
                     />
                 </div>
                 <div>
@@ -203,6 +205,7 @@ export default function SiteManager() {
                         onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
                         className="w-full p-2 border rounded-md"
                         placeholder="e.g. production, remote, critical"
+                        spellCheck={true}
                     />
                 </div>
                 <div className="flex gap-3 pt-4 border-t">

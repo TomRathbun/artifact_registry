@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import MarkdownDisplay from './MarkdownDisplay';
-import { NeedsService, UseCasesService, RequirementsService, VisionService, LinkageService, ProjectsService } from '../client';
+import { NeedsService, UseCasesService, RequirementsService, VisionService, LinkageService, ProjectsService, MetadataService } from '../client';
 import {
     ArrowLeft, Edit, ExternalLink, X, ChevronLeft, ChevronRight,
     ZoomIn, ZoomOut, MessageSquarePlus, MessageSquare, Tag,
@@ -53,11 +53,14 @@ function LinkedArtifactName({ link, onClick }: { link: any; onClick: () => void 
                 case 'requirement':
                     return await RequirementsService.getRequirementApiV1RequirementRequirementsAidGet(link.target_id);
                 case 'diagram':
-                    const diagResponse = await fetch(`/ api / v1 / diagrams / ${link.target_id} `);
+                    const diagResponse = await fetch(`/api/v1/diagrams/${link.target_id}`);
                     return diagResponse.ok ? await diagResponse.json() : null;
                 case 'component':
-                    const compResponse = await fetch(`/ api / v1 / components / ${link.target_id} `);
+                    const compResponse = await fetch(`/api/v1/components/${link.target_id}`);
                     return compResponse.ok ? await compResponse.json() : null;
+                case 'document':
+                    const docResponse = await fetch(`/api/v1/documents/${link.target_id}`);
+                    return docResponse.ok ? await docResponse.json() : null;
                 default:
                     return null;
             }
@@ -210,6 +213,14 @@ export default function ArtifactPresentation() {
     const [showRenameDialog, setShowRenameDialog] = useState(false);
     const [newAidValue, setNewAidValue] = useState('');
     const [isRenaming, setIsRenaming] = useState(false);
+    const [renameMode, setRenameMode] = useState<'AID' | 'AREA'>('AID');
+    const [selectedArea, setSelectedArea] = useState<string>('');
+
+    // Fetch areas for the rename dialog
+    const { data: areas } = useQuery({
+        queryKey: ['areas'],
+        queryFn: () => MetadataService.listAreasApiV1MetadataMetadataAreasGet(),
+    });
 
     const handleRenameAid = async () => {
         if (!newAidValue || newAidValue === artifactId) {
@@ -225,7 +236,8 @@ export default function ArtifactPresentation() {
                 body: JSON.stringify({
                     artifact_type: artifactType,
                     old_aid: artifactId,
-                    new_aid: newAidValue
+                    new_aid: newAidValue,
+                    new_area: renameMode === 'AREA' ? selectedArea : undefined
                 })
             });
 
@@ -401,6 +413,9 @@ export default function ArtifactPresentation() {
                                 return await UseCasesService.getUseCaseApiV1UseCaseUseCasesAidGet(aid);
                             case 'requirement':
                                 return await RequirementsService.getRequirementApiV1RequirementRequirementsAidGet(aid);
+                            case 'document':
+                                const docResponse = await fetch(`/api/v1/documents/${aid}`);
+                                return docResponse.ok ? await docResponse.json() : null;
                             default:
                                 return null;
                         }
@@ -425,6 +440,9 @@ export default function ArtifactPresentation() {
                 case 'requirement':
                     const reqResponse = await fetch(`/api/v1/requirement/requirements/?project_id=${project.id}`);
                     return reqResponse.ok ? await reqResponse.json() : [];
+                case 'document':
+                    const docResponse = await fetch(`/api/v1/documents/?project_id=${project.id}`);
+                    return docResponse.ok ? await docResponse.json() : [];
                 default:
                     return [];
             }
@@ -827,16 +845,6 @@ export default function ArtifactPresentation() {
                                     {/* Document Specific Preview */}
                                     {selectedLink.target_artifact_type === 'document' && 'document_type' in linkedArtifact && (
                                         <div className="mb-4">
-                                            <div className="flex gap-2 mb-3">
-                                                <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs font-medium uppercase tracking-wider border border-slate-200">
-                                                    {linkedArtifact.document_type}
-                                                </span>
-                                                {linkedArtifact.mime_type && (
-                                                    <span className="px-2 py-1 bg-slate-100 text-slate-500 rounded text-xs font-mono border border-slate-200">
-                                                        {linkedArtifact.mime_type}
-                                                    </span>
-                                                )}
-                                            </div>
 
                                             {linkedArtifact.content_url && (
                                                 <a
@@ -1157,17 +1165,82 @@ export default function ArtifactPresentation() {
                             Ensure the new AID is unique within your project.
                         </p>
 
-                        <div className="mb-4">
-                            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">New AID</label>
-                            <input
-                                type="text"
-                                value={newAidValue}
-                                onChange={(e) => setNewAidValue(e.target.value.toUpperCase())}
-                                className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm"
-                                placeholder="e.g. TR2-AIC2-NEED-001"
-                                autoFocus
-                            />
+                        <div className="flex border-b border-slate-200 mb-6">
+                            <button
+                                onClick={() => setRenameMode('AID')}
+                                className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${renameMode === 'AID' ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                            >
+                                Change Number/Full AID
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setRenameMode('AREA');
+                                    // Pre-select current area if found
+                                    if (artifact.area) {
+                                        setSelectedArea(artifact.area);
+                                    }
+                                }}
+                                className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${renameMode === 'AREA' ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                            >
+                                Change Area
+                            </button>
                         </div>
+
+                        {renameMode === 'AID' ? (
+                            <div className="mb-4">
+                                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">New AID</label>
+                                <input
+                                    type="text"
+                                    value={newAidValue}
+                                    onChange={(e) => setNewAidValue(e.target.value.toUpperCase())}
+                                    className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm"
+                                    placeholder="e.g. TR2-AIC2-NEED-001"
+                                    autoFocus
+                                />
+                                <p className="text-[10px] text-slate-400 mt-1 italic">Type the full new ID, including number changes.</p>
+                            </div>
+                        ) : (
+                            <div className="mb-4 space-y-4">
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Select New Area</label>
+                                    <select
+                                        value={selectedArea}
+                                        onChange={(e) => {
+                                            const newArea = e.target.value;
+                                            setSelectedArea(newArea);
+                                            // Auto-construct new AID by replacing the area part
+                                            // Assuming format: PROJ-AREA-TYPE-NUM
+                                            const parts = artifactId!.split('-');
+                                            if (parts.length >= 4) {
+                                                // Standard format: [PROJ, AREA, TYPE, NUM]
+                                                // We replace index 1 (Area)
+                                                parts[1] = newArea;
+                                                setNewAidValue(parts.join('-'));
+                                            } else if (parts.length === 3) {
+                                                // Format: [AREA, TYPE, NUM] - maybe?
+                                                parts[0] = newArea;
+                                                setNewAidValue(parts.join('-'));
+                                            }
+                                        }}
+                                        className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                                    >
+                                        <option value="">Select Area...</option>
+                                        {areas?.map((a: any) => (
+                                            <option key={a.code} value={a.code}>{a.code} - {a.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Target AID (Preview)</label>
+                                    <input
+                                        type="text"
+                                        value={newAidValue}
+                                        readOnly
+                                        className="w-full px-3 py-2 border border-slate-100 bg-slate-50 text-slate-500 rounded font-mono text-sm"
+                                    />
+                                </div>
+                            </div>
+                        )}
 
                         <div className="flex justify-end gap-3 mt-6">
                             <button
@@ -1501,14 +1574,6 @@ function VisionPresentation({ artifact, selectedField, highlightedField, onField
 function DocumentPresentation({ artifact, selectedField, onFieldClick }: PresentationProps) {
     return (
         <>
-            <div className="grid grid-cols-2 gap-4 mb-4 not-prose">
-                <SelectableField fieldId="type" label="Type" isActive={selectedField === 'type'} onClick={onFieldClick}>
-                    <p className="text-slate-900 capitalize">{artifact.document_type || 'Unknown'}</p>
-                </SelectableField>
-                <SelectableField fieldId="mime_type" label="MIME Type" isActive={selectedField === 'mime_type'} onClick={onFieldClick}>
-                    <p className="text-slate-900">{artifact.mime_type || 'N/A'}</p>
-                </SelectableField>
-            </div>
 
             <SelectableField fieldId="description" label="Description" isActive={selectedField === 'description'} onClick={onFieldClick}>
                 <div className="mt-1">

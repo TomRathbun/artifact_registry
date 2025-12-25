@@ -407,6 +407,7 @@ export default function ProjectDashboard() {
                                 {...register('name', { required: true })}
                                 className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 placeholder="e.g. TR3"
+                                spellCheck={true}
                             />
                         </div>
                         <div>
@@ -416,6 +417,7 @@ export default function ProjectDashboard() {
                                 className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 rows={3}
                                 placeholder="Project goals..."
+                                spellCheck={true}
                             />
                         </div>
                         <button

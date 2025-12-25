@@ -245,6 +245,7 @@ export default function ManagementView({ type }: ManagementViewProps) {
                                 onChange={e => setFormData({ ...formData, code: e.target.value })}
                                 disabled={!!isEditing} // PK cannot be changed
                                 className="mt-1 block w-full rounded-md border-slate-300 shadow-sm border p-2"
+                                spellCheck={true}
                             />
                         </div>
                         <div>
@@ -254,6 +255,7 @@ export default function ManagementView({ type }: ManagementViewProps) {
                                 value={formData.name || ''}
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                                 className="mt-1 block w-full rounded-md border-slate-300 shadow-sm border p-2"
+                                spellCheck={true}
                             />
                         </div>
                         <div className="col-span-2">
@@ -262,6 +264,7 @@ export default function ManagementView({ type }: ManagementViewProps) {
                                 value={formData.description || ''}
                                 onChange={e => setFormData({ ...formData, description: e.target.value })}
                                 className="mt-1 block w-full rounded-md border-slate-300 shadow-sm border p-2"
+                                spellCheck={true}
                             />
                         </div>
                     </>
@@ -275,6 +278,7 @@ export default function ManagementView({ type }: ManagementViewProps) {
                                 value={formData.name || ''}
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                                 className="mt-1 block w-full rounded-md border-slate-300 shadow-sm border p-2"
+                                spellCheck={true}
                             />
                         </div>
 
@@ -307,6 +311,7 @@ export default function ManagementView({ type }: ManagementViewProps) {
                                 value={formData.description || ''}
                                 onChange={e => setFormData({ ...formData, description: e.target.value })}
                                 className="mt-1 block w-full rounded-md border-slate-300 shadow-sm border p-2"
+                                spellCheck={true}
                             />
                         </div>
                     </>

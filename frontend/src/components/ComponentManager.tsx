@@ -412,6 +412,7 @@ export default function ComponentManager() {
                                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                             className="w-full p-2 border rounded-md"
                                             required
+                                            spellCheck={true}
                                         />
                                     </div>
                                     <div>
@@ -514,6 +515,7 @@ export default function ComponentManager() {
                                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                         className="w-full p-2 border rounded-md"
                                         rows={3}
+                                        spellCheck={true}
                                     />
                                 </div>
 
@@ -594,6 +596,7 @@ export default function ComponentManager() {
                                                     onChange={(e) => setLinkData({ ...linkData, cardinality: e.target.value })}
                                                     placeholder="e.g. 1, 0..1, 1..*"
                                                     className="w-full p-2 border rounded text-sm"
+                                                    spellCheck={true}
                                                 />
                                             </div>
                                         )}
@@ -607,6 +610,7 @@ export default function ComponentManager() {
                                                         onChange={(e) => setLinkData({ ...linkData, protocol: e.target.value })}
                                                         placeholder="e.g. TCP, HTTP"
                                                         className="w-full p-2 border rounded text-sm"
+                                                        spellCheck={true}
                                                     />
                                                 </div>
                                                 <div>
@@ -617,6 +621,7 @@ export default function ComponentManager() {
                                                         onChange={(e) => setLinkData({ ...linkData, data_items: e.target.value })}
                                                         placeholder="e.g. Packets, JSON"
                                                         className="w-full p-2 border rounded text-sm"
+                                                        spellCheck={true}
                                                     />
                                                 </div>
                                             </>

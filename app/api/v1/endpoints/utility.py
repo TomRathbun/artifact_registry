@@ -43,6 +43,10 @@ def rename_aid(data: AIDRename, db: Session = Depends(deps.get_db)):
         data_dict = {name: getattr(old_artifact, name) for name in column_names}
         data_dict['aid'] = data.new_aid
         
+        # Scenario 1: Update area field if provided
+        if data.new_area and 'area' in data_dict:
+            data_dict['area'] = data.new_area
+            
         new_artifact = model(**data_dict)
         db.add(new_artifact)
         

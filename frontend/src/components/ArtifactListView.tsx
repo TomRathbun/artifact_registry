@@ -1174,6 +1174,17 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                         case 'requirement':
                             result = await RequirementService.createRequirementApiV1RequirementRequirementsPost(artifact);
                             break;
+                        case 'document':
+                            const response = await fetch('/api/v1/documents/', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify(artifact),
+                            });
+                            if (!response.ok) throw new Error('Failed to import document');
+                            result = await response.json();
+                            break;
                     }
 
                     // Map old AID to new AID
@@ -1532,6 +1543,15 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                     content += `**Owner**: ${ownerName || '-'} | **Status**: ${a.status || '-'} | **Type**: ${a.ears_type || '-'}\n\n`;
                     content += `> ${a.text}\n\n`;
                     if (a.rationale) content += `*Rationale*: ${a.rationale}\n\n`;
+                    content += `---\n\n`;
+                    break;
+                }
+                case 'document': {
+                    content += `## ${a.aid}: ${a.title}\n\n`;
+                    content += `**Status**: ${a.status || '-'} | **Type**: ${a.document_type || '-'}\n\n`;
+                    if (a.content_url) content += `*URL/File*: ${a.content_url}\n\n`;
+                    if (a.description) content += `${a.description}\n\n`;
+                    if (a.content_text) content += `${a.content_text}\n\n`;
                     content += `---\n\n`;
                     break;
                 }

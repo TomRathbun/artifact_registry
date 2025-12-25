@@ -37,6 +37,11 @@ export default function ArtifactEditor() {
                     case 'requirement':
                         data = await RequirementService.getRequirementApiV1RequirementRequirementsAidGet(artifactId);
                         break;
+                    case 'document':
+                        const response = await fetch(`/api/v1/documents/${artifactId}`);
+                        if (!response.ok) throw new Error('Failed to fetch document');
+                        data = await response.json();
+                        break;
                     default:
                         throw new Error('Unsupported artifact type');
                 }
@@ -62,6 +67,16 @@ export default function ArtifactEditor() {
                     return UseCaseService.updateUseCaseApiV1UseCaseUseCasesAidPut(artifactId, updated);
                 case 'requirement':
                     return RequirementService.updateRequirementApiV1RequirementRequirementsAidPut(artifactId, updated);
+                case 'document':
+                    const response = await fetch(`/api/v1/documents/${artifactId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(updated),
+                    });
+                    if (!response.ok) throw new Error('Failed to update document');
+                    return await response.json();
                 default:
                     throw new Error('Unsupported artifact type');
             }
@@ -97,6 +112,7 @@ export default function ArtifactEditor() {
                         value={artifact.title || artifact.short_name || ''}
                         onChange={handleChange}
                         className="w-full border rounded px-3 py-2"
+                        spellCheck={true}
                     />
                 </div>
                 <div>
@@ -126,6 +142,7 @@ export default function ArtifactEditor() {
                             onChange={handleChange}
                             className="w-full border rounded px-3 py-2 font-mono text-sm"
                             rows={12}
+                            spellCheck={true}
                         />
                     ) : (
                         <div className="w-full border rounded px-3 py-2 min-h-[300px] bg-gray-50 overflow-y-auto">

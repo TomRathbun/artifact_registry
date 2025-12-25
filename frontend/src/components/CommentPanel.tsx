@@ -375,6 +375,7 @@ export default function CommentPanel({ artifactAid, artifactType, selectedField,
                             placeholder={`Add a comment to ${fieldLabel}...`}
                             className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
                             rows={3}
+                            spellCheck={true}
                         />
                         <button
                             onClick={handleAddComment}
