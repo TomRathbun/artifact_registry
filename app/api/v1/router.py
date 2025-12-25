@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import users, linkage, need, use_case, vision, metadata, projects, site, component, diagram, artifact_event, system, document, database, comment, requirement, images, translation, utility
+from app.api.v1.endpoints import users, linkage, need, use_case, vision, metadata, projects, site, component, diagram, artifact_event, system, document, database, comment, requirement, images, translation, utility, reports
 
 
 api_router = APIRouter()
@@ -22,4 +22,5 @@ api_router.include_router(comment.router, prefix="/comments", tags=["comments"])
 api_router.include_router(images.router, prefix="/images", tags=["images"])
 api_router.include_router(translation.router, prefix="/translation", tags=["translation"])
 api_router.include_router(utility.router, prefix="/utility", tags=["utility"])
+api_router.include_router(reports.router, prefix="/reports", tags=["reports"])
 

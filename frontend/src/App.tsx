@@ -19,6 +19,7 @@ import AboutPage from './components/AboutPage';
 import ChangelogPage from './components/ChangelogPage';
 
 import ImageGallery from './components/ImageGallery';
+import StatisticsView from './components/StatisticsView';
 
 const queryClient = new QueryClient();
 
@@ -56,6 +57,7 @@ function App() {
 
               <Route path="linkages" element={<LinkageListView />} />
               <Route path="graph" element={<ArtifactGraphView />} />
+              <Route path="statistics" element={<StatisticsView />} />
               {/* Create new artifact */}
               <Route path=":artifactType/create" element={<ArtifactWizard />} />
               {/* View artifact in presentation mode (new default) */}

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 
 # Area Schemas
@@ -11,8 +11,7 @@ class AreaCreate(AreaBase):
     pass
 
 class AreaOut(AreaBase):
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Person Schemas
 class PersonBase(BaseModel):
@@ -28,5 +27,4 @@ class PersonCreate(PersonBase):
 class PersonOut(PersonBase):
     id: str
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

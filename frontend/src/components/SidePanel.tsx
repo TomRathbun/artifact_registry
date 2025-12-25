@@ -1,5 +1,5 @@
 import { NavLink, Link } from 'react-router-dom';
-import { ArrowLeft, Users, FileText, List, Settings, Network, Image } from 'lucide-react';
+import { ArrowLeft, Users, FileText, List, Settings, Network, Image, LayoutDashboard } from 'lucide-react';
 
 import { useQuery } from '@tanstack/react-query';
 import { ProjectsService } from '../client';
@@ -91,6 +91,16 @@ export default function SidePanel({ projectId }: SidePanelProps) {
                         }
                     >
                         <Network className="w-4 h-4" /> Linkages
+                    </NavLink>
+                </li>
+                <li>
+                    <NavLink
+                        to={`${base}/statistics`}
+                        className={({ isActive }) =>
+                            `flex items-center gap-2 p-2 rounded hover:bg-slate-700 ${isActive ? 'bg-slate-700' : ''}`
+                        }
+                    >
+                        <LayoutDashboard className="w-4 h-4" /> Statistics
                     </NavLink>
                 </li>
             </ul>

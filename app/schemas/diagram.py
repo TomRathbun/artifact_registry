@@ -1,5 +1,5 @@
 from typing import List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
 class DiagramComponentUpdate(BaseModel):
@@ -12,8 +12,7 @@ class DiagramComponentOut(BaseModel):
     x: int
     y: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class DiagramCreate(BaseModel):
     name: str
@@ -39,8 +38,7 @@ class DiagramEdgeOut(BaseModel):
     source_handle: Optional[str] = None
     target_handle: Optional[str] = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class DiagramOut(BaseModel):
     id: str
@@ -55,5 +53,4 @@ class DiagramOut(BaseModel):
     components: List[DiagramComponentOut] = []
     edges: List[DiagramEdgeOut] = []
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
