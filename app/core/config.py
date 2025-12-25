@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change-me-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    DATABASE_URL: str = "postgresql://admin@localhost:5432/registry"
+    DATABASE_URL: str = "postgresql://admin@127.0.0.1:5433/registry"
 
     # class Config:
     #     env_file = ".env"

@@ -17,13 +17,46 @@ from app.api.v1.router import api_router
 from app.db.session import SessionLocal
 from app.db.base import Base, engine
 
-# Create tables if they don't exist
-Base.metadata.create_all(bind=engine)
+import time
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Create tables if they don't exist with retries
+    max_retries = 5
+    retry_delay = 2
+    for attempt in range(max_retries):
+        try:
+            print(f"Database connection attempt {attempt + 1}/{max_retries}...")
+            Base.metadata.create_all(bind=engine)
+            
+            # Seed initial user
+            with SessionLocal() as db:
+                from app.db.models.user import User
+                if not db.query(User).filter(User.username == "rathbun").first():
+                    db.add(User(
+                        aid="rathbun",
+                        username="rathbun",
+                        email="rathbunt@gmail.com",
+                        hashed_password=SECL_PASS_HASH),
+                    )
+                    db.commit()
+            print("Database initialized successfully.")
+            break
+        except Exception as e:
+            if attempt < max_retries - 1:
+                print(f"Database connection failed: {e}. Retrying in {retry_delay}s...")
+                time.sleep(retry_delay)
+            else:
+                print(f"Database connection failed after {max_retries} attempts: {e}")
+                # We don't raise here to allow the app to start (so logs are visible), 
+                # but subsequent requests will fail.
+    yield
 
 # TODO: Replace with actual hash or load from env
 SECL_PASS_HASH = "$argon2id$v=19$m=65536,t=3,p=4$..." 
 
-app = FastAPI(title=settings.PROJECT_NAME)
+app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
 from fastapi.staticfiles import StaticFiles
 import os
@@ -47,19 +80,6 @@ app.add_middleware(
 
 app.include_router(api_router, prefix="/api/v1")
 
-with SessionLocal() as db:
-    from app.db.models.user import User
-    # Check if user exists to avoid error if table is empty
-    try:
-        if not db.query(User).filter(User.username == "rathbun").first():
-            db.add(User(
-                aid="rathbun",
-                username="rathbun",
-                email="rathbunt@gmail.com",
-                hashed_password=SECL_PASS_HASH),
-            )
-            db.commit()
-    except Exception as e:
-        print(f"Error seeding user: {e}")
+# Trigger reload
 
 # Trigger reload
