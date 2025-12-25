@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import ReactFlow, { Background, Controls } from 'reactflow';
+import ReactFlow, { Background } from 'reactflow';
 import type { Node, Edge } from 'reactflow';
 import 'reactflow/dist/style.css';
 import packageJsonRaw from '../../package.json';
@@ -51,7 +51,7 @@ const nodes: Node[] = [
             label: (
                 <div>
                     <div className="font-bold">PostgreSQL</div>
-                    <div className="text-xs opacity-80">Port 5432</div>
+                    <div className="text-xs opacity-80">Port 5433</div>
                 </div>
             )
         },
@@ -93,10 +93,10 @@ const AboutPage: React.FC = () => {
     return (
         <div className="p-8 max-w-5xl mx-auto">
             <button
-                onClick={() => navigate(-1)}
+                onClick={() => navigate('/')}
                 className="flex items-center gap-2 text-slate-500 hover:text-slate-700 mb-6 transition-colors"
             >
-                <ArrowLeft className="w-4 h-4" /> Back
+                <ArrowLeft className="w-4 h-4" /> Home
             </button>
             <h1 className="text-3xl font-bold mb-6 text-slate-800">About Artifact Registry</h1>
 
@@ -176,15 +176,26 @@ const AboutPage: React.FC = () => {
             {/* Architecture Diagram */}
             <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200 h-[500px]">
                 <h2 className="text-xl font-semibold mb-4 text-slate-700">System Architecture</h2>
-                <div className="h-[400px] border border-slate-100 rounded bg-slate-50">
+                <div className="h-[400px] w-full border border-slate-200 rounded-lg overflow-hidden bg-white shadow-inner mb-6">
                     <ReactFlow
                         nodes={nodes}
                         edges={edges}
+                        onNodeClick={(_event, node) => {
+                            if (node.id === 'frontend') {
+                                window.location.href = '/dependencies?type=frontend';
+                            } else if (node.id === 'backend') {
+                                window.location.href = '/dependencies?type=backend';
+                            }
+                        }}
                         fitView
-                        attributionPosition="bottom-right"
+                        draggable={false}
+                        panOnDrag={false}
+                        zoomOnScroll={false}
+                        zoomOnPinch={false}
+                        nodesConnectable={false}
+                        elementsSelectable={true}
                     >
-                        <Background color="#ccc" gap={16} />
-                        <Controls />
+                        <Background />
                     </ReactFlow>
                 </div>
             </div>

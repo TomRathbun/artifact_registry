@@ -20,6 +20,7 @@ import ChangelogPage from './components/ChangelogPage';
 
 import ImageGallery from './components/ImageGallery';
 import StatisticsView from './components/StatisticsView';
+import DependencyPage from './components/DependencyPage';
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ function App() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/changelog" element={<ChangelogPage />} />
             <Route path="/images" element={<ImageGallery />} />
+            <Route path="/dependencies" element={<DependencyPage />} />
             {/* Project layout with side panel */}
             <Route path="/project/:projectId" element={<ProjectLayout />}>
               <Route path="images" element={<ImageGallery />} />

@@ -11,6 +11,18 @@ interface ChangeLogEntry {
 
 const changelogData: ChangeLogEntry[] = [
     {
+        version: '0.1.4',
+        date: '2025-12-25',
+        type: 'minor',
+        changes: [
+            'Enhanced System Stability: Relocated local PostgreSQL to port 5433 and implemented robust connection retries',
+            'Added Dependency Management: View and upgrade Frontend (NPM) and Backend (PyPI) packages directly from the UI',
+            'Interactive Architecture: Updated System Architecture diagram to be interactive with real-time status and navigation',
+            'Advanced Artifact Renaming: Enabled renaming artifacts across different Areas and IDs',
+            'UX Improvements: graceful error handling for database connection failures'
+        ]
+    },
+    {
         version: '0.1.3',
         date: '2025-12-14',
         type: 'minor',
