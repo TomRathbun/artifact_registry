@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import ReactFlow, {
     MiniMap,
     Controls,
@@ -6,11 +6,13 @@ import ReactFlow, {
     useNodesState,
     useEdgesState,
     addEdge,
+    reconnectEdge,
     type Connection,
     type Edge,
     type Node,
     Position,
     MarkerType,
+    type NodeTypes,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import dagre from 'dagre';
@@ -19,6 +21,7 @@ import { toPng, toSvg } from 'html-to-image';
 import { Download, Search, Check, X, Plus, List, Link as LinkIcon, Save, Camera } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
+import MultiHandleNode from './MultiHandleNode';
 import {
     VisionService,
     NeedsService,
@@ -71,6 +74,8 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
+    const nodeTypes = useMemo<NodeTypes>(() => ({ custom: MultiHandleNode }), []);
+
     const [selectedArea, setSelectedArea] = React.useState<string>(initialArea);
     const [edgeType, setEdgeType] = React.useState<'default' | 'straight' | 'step' | 'smoothstep'>('smoothstep');
     const [selectedAids, setSelectedAids] = React.useState<Set<string>>(new Set());
@@ -98,9 +103,13 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
             if (diagram.filter_data?.area) {
                 setSelectedArea(diagram.filter_data.area);
             }
+            if (diagram.filter_data?.edges) {
+                // Restore edges with handles if available
+                // We will handle edge merging in the main useEffect
+            }
             setHasLoadedInitial(true);
         }
-    }, [diagram, hasLoadedInitial]);
+    }, [diagram]);
 
     useEffect(() => {
         if (!diagramId) setSelectedArea(initialArea);
@@ -177,9 +186,10 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
             const savedPos = diagram?.filter_data?.positions?.[id];
             return {
                 id,
+                type: 'custom',
                 data: {
                     label: (
-                        <div className="flex flex-col items-center text-center">
+                        <div className="flex flex-col items-center text-center w-full h-full">
                             {shortId === 'DIAGRAM' ? (
                                 <>
                                     <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Diagram</div>
@@ -201,7 +211,7 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
                     background: '#fff',
                     border: `1px solid ${color}`,
                     borderRadius: '8px',
-                    padding: '12px',
+                    padding: 0, // Removed to allow handles to be on the true edge
                     width: nodeWidth,
                     minHeight: nodeHeight,
                     fontSize: '12px',
@@ -247,15 +257,25 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
         const nodesInGraph = new Set(newNodes.map(n => n.id));
         const processedLinkEdges = new Set<string>();
 
+        // Load edge handles from saved diagram if available
+        const savedEdges = diagram?.filter_data?.edges || {};
+
         linkages.forEach((l: any) => {
             const uniqueKey = l.aid || `${l.source_id}-${l.target_id}-${l.relationship_type}`;
+            const edgeId = `e${uniqueKey}`;
+
             if (nodesInGraph.has(l.source_id) && nodesInGraph.has(l.target_id) && !processedLinkEdges.has(uniqueKey)) {
                 processedLinkEdges.add(uniqueKey);
+
+                const savedEdge = savedEdges[edgeId];
+
                 newEdges.push({
-                    id: `e${uniqueKey}`,
+                    id: edgeId,
                     source: l.source_id,
                     target: l.target_id,
                     type: edgeType,
+                    sourceHandle: savedEdge?.sourceHandle || undefined,
+                    targetHandle: savedEdge?.targetHandle || undefined,
                     label: l.relationship_type,
                     labelStyle: { fill: '#475569', fontWeight: 700, fontSize: 10, fontFamily: 'sans-serif' },
                     labelBgStyle: { fill: '#f8fafc', fillOpacity: 1 },
@@ -263,7 +283,8 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
                     labelBgBorderRadius: 4,
                     markerEnd: { type: MarkerType.ArrowClosed, color: '#94a3b8' },
                     animated: true,
-                    style: { stroke: '#94a3b8' }
+                    style: { stroke: '#94a3b8' },
+                    reconnectable: true
                 });
             }
         });
@@ -287,6 +308,13 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
         [setEdges]
     );
 
+    const onReconnect = useCallback(
+        (oldEdge: Edge, newConnection: Connection) => {
+            setEdges((els) => reconnectEdge(oldEdge, newConnection, els));
+        },
+        [setEdges]
+    );
+
     const saveMutation = useMutation({
         mutationFn: async () => {
             if (!diagramId) return;
@@ -295,10 +323,16 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
                 positions[n.id] = { x: n.position.x, y: n.position.y };
             });
 
+            const edgesData: Record<string, { sourceHandle?: string | null; targetHandle?: string | null }> = {};
+            edges.forEach(e => {
+                edgesData[e.id] = { sourceHandle: e.sourceHandle, targetHandle: e.targetHandle };
+            });
+
             const filterData = {
                 area: selectedArea,
                 selection: Array.from(selectedAids),
-                positions
+                positions,
+                edges: edgesData
             };
 
             await axios.put(`/api/v1/diagrams/${diagramId}`, { filter_data: filterData });
@@ -556,6 +590,9 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
+                onReconnect={onReconnect}
+                edgeUpdaterRadius={20}
+                nodeTypes={nodeTypes}
                 fitView
                 attributionPosition="bottom-right"
             >
