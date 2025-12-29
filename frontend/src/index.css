@@ -1,6 +1,6 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "tailwindcss/utilities";
+
 
 body {
     background-image: url('/assets/background.png');
@@ -11,5 +11,5 @@ body {
 
 /* Prevent clicking inside this element from deselecting text */
 .prevent-deselect {
-    /* No styles needed, class name is used for logic in ArtifactPresentation.tsx */
+    user-select: none
 }
