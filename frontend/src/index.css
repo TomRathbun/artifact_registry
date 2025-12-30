@@ -13,3 +13,18 @@ body {
 .prevent-deselect {
     user-select: none
 }
+
+/* Compact markdown for list views */
+.list-view-description .markdown-content.prose {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+}
+
+.list-view-description .markdown-content.prose p {
+    margin: 0;
+}
+
+.list-view-description .markdown-content.prose blockquote {
+    margin: 0;
+    padding: 0 0 0 0.5rem;
+}

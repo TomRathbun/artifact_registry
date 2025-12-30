@@ -12,7 +12,7 @@ interface Dependency {
 }
 
 const DependencyPage: React.FC = () => {
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const type = searchParams.get('type') || 'frontend'; // 'frontend' or 'backend'
 
     const [loading, setLoading] = useState(true);
@@ -117,13 +117,13 @@ const DependencyPage: React.FC = () => {
 
                 <div className="flex bg-slate-100 p-1 rounded-lg">
                     <button
-                        onClick={() => window.history.replaceState(null, '', '?type=frontend')}
+                        onClick={() => setSearchParams({ type: 'frontend' })}
                         className={`px-4 py-2 rounded-md transition-all ${type === 'frontend' ? 'bg-white shadow text-blue-600 font-medium' : 'text-slate-600 hover:text-slate-900'}`}
                     >
                         Frontend (NPM)
                     </button>
                     <button
-                        onClick={() => window.history.replaceState(null, '', '?type=backend')}
+                        onClick={() => setSearchParams({ type: 'backend' })}
                         className={`px-4 py-2 rounded-md transition-all ${type === 'backend' ? 'bg-white shadow text-emerald-600 font-medium' : 'text-slate-600 hover:text-slate-900'}`}
                     >
                         Backend (PyPI)

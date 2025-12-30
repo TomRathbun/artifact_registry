@@ -11,6 +11,17 @@ interface ChangeLogEntry {
 
 const changelogData: ChangeLogEntry[] = [
     {
+        version: '0.1.5',
+        date: '2025-12-26',
+        type: 'minor',
+        changes: [
+            'Interactive Graph Reconnection: Enabled bidirectional edge reconnection in the Artifact Graph View',
+            'Rich List Views: Implemented Markdown and Mermaid rendering for description fields in all list views',
+            'UI Polishing: Softened table borders and refined typography for a cleaner, modern look',
+            'System Update: Upgraded Node.js to v20.19.6 for improved performance and security'
+        ]
+    },
+    {
         version: '0.1.4',
         date: '2025-12-25',
         type: 'minor',

@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom';
 import { MetadataService, ProjectsService } from '../client';
 import { Plus, Edit, Trash2, Save, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 import { ConfirmationModal } from './ConfirmationModal';
+import MarkdownDisplay from './MarkdownDisplay';
 
 interface ManagementViewProps {
     type: 'area' | 'people';
@@ -410,7 +411,7 @@ export default function ManagementView({ type }: ManagementViewProps) {
             )}
 
             {type === 'people' ? (
-                <div className="bg-white border rounded-md shadow-sm">
+                <div className="bg-white border border-slate-200 rounded-md shadow-sm">
                     {/* Header Row */}
                     <div className="grid gap-2 p-3 border-b bg-slate-50 font-medium text-slate-700" style={{ gridTemplateColumns: 'auto 1fr 200px 1fr 100px' }}>
                         <div className="flex items-center">
@@ -642,7 +643,11 @@ export default function ManagementView({ type }: ManagementViewProps) {
                                     </div>
 
                                     {/* Description */}
-                                    <div className="text-sm text-slate-600 truncate">{item.description || '-'}</div>
+                                    <div className="text-sm text-slate-600 max-h-20 overflow-hidden">
+                                        <div className="pointer-events-none line-clamp-2 list-view-description">
+                                            <MarkdownDisplay content={item.description || '-'} />
+                                        </div>
+                                    </div>
 
                                     {/* Actions */}
                                     <div className="flex justify-end gap-1">
@@ -680,7 +685,7 @@ export default function ManagementView({ type }: ManagementViewProps) {
                     </ul>
                 </div>
             ) : (
-                <div className="bg-white border rounded-md shadow-sm">
+                <div className="bg-white border border-slate-200 rounded-md shadow-sm">
                     {/* Header Row */}
                     <div className="grid gap-2 p-3 border-b bg-slate-50 font-medium text-slate-700" style={{ gridTemplateColumns: 'auto 120px 200px 1fr 100px' }}>
                         <div className="flex items-center">
@@ -906,7 +911,11 @@ export default function ManagementView({ type }: ManagementViewProps) {
                                     <div className="font-medium">{item.name}</div>
 
                                     {/* Description */}
-                                    <div className="text-sm text-slate-600 truncate">{item.description || '-'}</div>
+                                    <div className="text-sm text-slate-600 max-h-20 overflow-hidden">
+                                        <div className="pointer-events-none line-clamp-2 list-view-description">
+                                            <MarkdownDisplay content={item.description || '-'} />
+                                        </div>
+                                    </div>
 
                                     {/* Actions */}
                                     <div className="flex justify-end gap-1">

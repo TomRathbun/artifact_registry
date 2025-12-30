@@ -302,7 +302,7 @@ export default function SiteManager() {
                 </div>
             )}
 
-            <div className="bg-white border rounded-md shadow-sm">
+            <div className="bg-white border border-slate-200 rounded-md shadow-sm">
                 {/* Header Row */}
                 <div className="grid gap-2 p-3 border-b bg-slate-50 font-medium text-slate-700" style={{ gridTemplateColumns: 'auto 1.5fr 1fr 1.5fr 100px' }}>
                     <div className="flex items-center">

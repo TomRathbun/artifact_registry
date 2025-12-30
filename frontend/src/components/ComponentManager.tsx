@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom';
 import { ComponentService, ProjectsService } from '../client';
 import { Plus, Trash2, Save, X, Link as LinkIcon, Edit, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 import { ConfirmationModal } from './ConfirmationModal';
+import MarkdownDisplay from './MarkdownDisplay';
 
 export default function ComponentManager() {
     const { projectId } = useParams<{ projectId: string }>();
@@ -683,7 +684,7 @@ export default function ComponentManager() {
                 </div>
             )}
 
-            <div className="bg-white border rounded-md shadow-sm overflow-x-auto">
+            <div className="bg-white border border-slate-200 rounded-md shadow-sm overflow-x-auto">
                 <div className="min-w-[1000px]">
                     <div className="grid gap-2 p-3 border-b bg-slate-50 font-medium text-slate-700"
                         style={{ gridTemplateColumns: '30px 200px 100px 1fr 100px 200px 100px' }}>
@@ -956,8 +957,10 @@ export default function ComponentManager() {
                                     </div>
 
                                     {/* Description */}
-                                    <div className="text-sm text-slate-600 truncate" title={comp.description}>
-                                        {comp.description}
+                                    <div className="text-sm text-slate-600 max-h-20 overflow-hidden" title={comp.description}>
+                                        <div className="pointer-events-none line-clamp-2 list-view-description">
+                                            <MarkdownDisplay content={comp.description || ''} />
+                                        </div>
                                     </div>
 
                                     {/* Lifecycle */}

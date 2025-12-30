@@ -11,6 +11,7 @@ import mermaid from 'mermaid';
 import * as htmlToImage from 'html-to-image';
 import { generateSequenceDiagram, generateStateDiagram, getPlantUMLImageUrl } from '../utils/plantuml';
 import { ConfirmationModal } from './ConfirmationModal';
+import MarkdownDisplay from './MarkdownDisplay';
 
 interface ArtifactListViewProps {
     artifactType: 'vision' | 'need' | 'use_case' | 'requirement' | 'actor' | 'stakeholder' | 'area' | 'document';
@@ -2253,7 +2254,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
             </div>
 
             {/* List */}
-            <div className="bg-white border rounded-md shadow-sm overflow-x-auto">
+            <div className="bg-white border border-slate-200 rounded-md shadow-sm overflow-x-auto">
                 <div style={{ minWidth: '100%' }}>
                     {/* Header Row */}
                     <div className="grid gap-2 p-3 border-b bg-slate-50 font-medium text-slate-700 sticky top-0 z-10" style={{ gridTemplateColumns: getGridTemplate() }}>
@@ -2427,10 +2428,12 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                                     {/* Description / Text */}
                                     <Link
                                         to={`/project/${projectId}/${artifactType}/${a.aid}`}
-                                        className="text-sm text-slate-600 truncate"
+                                        className="text-sm text-slate-600 block max-h-20 overflow-hidden"
                                         title={a.description || a.text}
                                     >
-                                        {a.description || a.text || '-'}
+                                        <div className="pointer-events-none line-clamp-2 list-view-description">
+                                            <MarkdownDisplay content={a.description || a.text || '-'} />
+                                        </div>
                                     </Link>
 
                                     {/* Status */}

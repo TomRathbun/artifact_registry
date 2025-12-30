@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom';
 
 import axios from 'axios';
 import { Plus, Network, Edit, Trash2, GitGraph, ArrowUp, ArrowDown, Filter, Wand2, FileCode, Check, FileText } from 'lucide-react';
+import MarkdownDisplay from './MarkdownDisplay';
 import { MetadataService } from '../client';
 
 export default function DiagramList() {
@@ -518,7 +519,11 @@ export default function DiagramList() {
                                             <span className="capitalize">{diagram.type.replace('_', ' ')}</span>
                                         </div>
                                     </td>
-                                    <td className="p-4 text-slate-500 truncate max-w-xs">{diagram.description || '-'}</td>
+                                    <td className="p-4 text-slate-500 max-w-xs overflow-hidden">
+                                        <div className="pointer-events-none line-clamp-2 list-view-description">
+                                            <MarkdownDisplay content={diagram.description || '-'} />
+                                        </div>
+                                    </td>
                                     <td className="p-4 not-italic">
                                         {diagram.type === 'artifact_graph' ? (
                                             <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 rounded-full">{diagram.filter_data?.area || 'All Areas'}</span>
