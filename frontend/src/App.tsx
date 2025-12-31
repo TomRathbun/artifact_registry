@@ -39,7 +39,7 @@ function App() {
             <Route path="/project/:projectId" element={<ProjectLayout />}>
               <Route path="images" element={<ImageGallery />} />
               {/* List views */}
-              <Route index element={<ArtifactListView artifactType="need" />} />
+              <Route index element={<ArtifactListView artifactType="vision" />} />
               <Route path="visions" element={<ArtifactListView artifactType="vision" />} />
               <Route path="needs" element={<ArtifactListView artifactType="need" />} />
               <Route path="use-cases" element={<ArtifactListView artifactType="use_case" />} />
