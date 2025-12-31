@@ -63,3 +63,5 @@ Thumbs.db
 # PostgreSQL Portable
 .postgres_bin/
 postgres_data/
+db_backups/
+*.sql

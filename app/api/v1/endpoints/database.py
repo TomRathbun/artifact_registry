@@ -14,7 +14,8 @@ from alembic import command
 
 router = APIRouter()
 
-DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
+DB_PORT = os.getenv("DB_PORT", "5433")
 DB_USER = os.getenv("DB_USER", "admin")
 DB_NAME = os.getenv("DB_NAME", "registry")
 BACKUP_DIR = Path("db_backups")
@@ -40,6 +41,7 @@ async def backup_database():
         cmd = [
             str(PG_DUMP),
             "-h", DB_HOST,
+            "-p", DB_PORT,
             "-U", DB_USER,
             "-d", DB_NAME,
             "-f", str(filepath),
@@ -88,6 +90,7 @@ async def restore_database(request: Request):
             terminate_cmd = [
                 str(PG_BIN_DIR / ("psql.exe" if os.name == 'nt' else "psql")),
                 "-h", DB_HOST,
+                "-p", DB_PORT,
                 "-U", DB_USER,
                 "-d", "postgres",
                 "-c", f"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{DB_NAME}' AND pid <> pg_backend_pid();"
@@ -104,6 +107,7 @@ async def restore_database(request: Request):
             drop_cmd = [
                 str(PG_BIN_DIR / ("psql.exe" if os.name == 'nt' else "psql")),
                 "-h", DB_HOST,
+                "-p", DB_PORT,
                 "-U", DB_USER,
                 "-d", "postgres",
                 "-c", f"DROP DATABASE IF EXISTS {DB_NAME};"
@@ -123,6 +127,7 @@ async def restore_database(request: Request):
             create_cmd = [
                 str(PG_BIN_DIR / ("psql.exe" if os.name == 'nt' else "psql")),
                 "-h", DB_HOST,
+                "-p", DB_PORT,
                 "-U", DB_USER,
                 "-d", "postgres",
                 "-c", f"CREATE DATABASE {DB_NAME};"
@@ -142,6 +147,7 @@ async def restore_database(request: Request):
             cmd = [
                 str(PG_BIN_DIR / ("psql.exe" if os.name == 'nt' else "psql")),
                 "-h", DB_HOST,
+                "-p", DB_PORT,
                 "-U", DB_USER,
                 "-d", DB_NAME,
                 "-f", tmp_path,
