@@ -11,7 +11,7 @@ from app.db.base import Base, BaseArtifact
 use_case_preconditions = Table(
     "use_case_preconditions",
     Base.metadata,
-    Column("use_case_id", String, ForeignKey("use_cases.aid"), primary_key=True),
+    Column("use_case_id", String, ForeignKey("use_cases.aid", ondelete="CASCADE"), primary_key=True),
     Column("precondition_id", String, ForeignKey("preconditions.id"), primary_key=True),
     extend_existing=True,
 )
@@ -20,7 +20,7 @@ use_case_preconditions = Table(
 use_case_stakeholders = Table(
     "use_case_stakeholders",
     Base.metadata,
-    Column("use_case_id", String, ForeignKey("use_cases.aid"), primary_key=True),
+    Column("use_case_id", String, ForeignKey("use_cases.aid", ondelete="CASCADE"), primary_key=True),
     Column("person_id", String, ForeignKey("people.id"), primary_key=True),
     extend_existing=True,
 )
@@ -29,7 +29,7 @@ use_case_stakeholders = Table(
 use_case_postconditions = Table(
     "use_case_postconditions",
     Base.metadata,
-    Column("use_case_id", String, ForeignKey("use_cases.aid"), primary_key=True),
+    Column("use_case_id", String, ForeignKey("use_cases.aid", ondelete="CASCADE"), primary_key=True),
     Column("postcondition_id", String, ForeignKey("postconditions.id"), primary_key=True),
     extend_existing=True,
 )
@@ -38,7 +38,7 @@ use_case_postconditions = Table(
 use_case_exceptions = Table(
     "use_case_exceptions",
     Base.metadata,
-    Column("use_case_id", String, ForeignKey("use_cases.aid"), primary_key=True),
+    Column("use_case_id", String, ForeignKey("use_cases.aid", ondelete="CASCADE"), primary_key=True),
     Column("exception_id", String, ForeignKey("exceptions.id"), primary_key=True),
     extend_existing=True,
 )
