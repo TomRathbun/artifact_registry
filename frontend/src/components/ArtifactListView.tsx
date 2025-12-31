@@ -2432,7 +2432,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                                         title={a.description || a.text}
                                     >
                                         <div className="pointer-events-none line-clamp-2 list-view-description">
-                                            <MarkdownDisplay content={a.description || a.text || '-'} />
+                                            <MarkdownDisplay content={a.description || a.text || '-'} compact />
                                         </div>
                                     </Link>
 

@@ -5,6 +5,7 @@ from app.api import deps
 from app.db.models.document import Document, DocumentType
 from app.schemas import document as schemas
 from app.utils.id_generator import generate_artifact_id
+from app.core.config import settings
 import shutil
 import os
 from pathlib import Path
@@ -12,8 +13,7 @@ from datetime import datetime
 
 router = APIRouter()
 
-UPLOAD_DIR = Path("uploads")
-UPLOAD_DIR.mkdir(exist_ok=True)
+UPLOAD_DIR = settings.UPLOAD_DIR
 
 @router.get("/", response_model=List[schemas.Document])
 def read_documents(

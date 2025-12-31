@@ -11,6 +11,20 @@ interface ChangeLogEntry {
 
 const changelogData: ChangeLogEntry[] = [
     {
+        version: '0.1.6',
+        date: '2025-12-31',
+        type: 'minor',
+        changes: [
+            'Fixed Vision Markdown Rendering: Solved typography conflicts and enabled proper heading/list formatting in presentation mode',
+            'Optimized List View Layouts: Introduced "Compact MD" mode for table descriptions to maintain consistent row heights',
+            'Enhanced Diagram Tools: Added "Capture as PNG to Clipboard" and simplified capture UI in the Graph View',
+            'Improved Connection Snapping: Resized and relocated node handles for perfect edge snapping on all four sides',
+            'Smart Edge Elevation: Selected relationship lines now automatically jump to the front of the graph for easier editing',
+            'Backend Upgrade Fix: Resolved "uv add --dry-run" error, allowing dependency upgrades through the UI',
+            'Modernized Runtime: Upgraded project to Node.js v22.21.1'
+        ]
+    },
+    {
         version: '0.1.5',
         date: '2025-12-26',
         type: 'minor',

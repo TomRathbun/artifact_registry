@@ -3,7 +3,6 @@
 # Dr Thomas Rathbun / SECL MBSE Team – Phase 2
 
 from datetime import datetime, timedelta, UTC
-
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from fastapi import FastAPI, APIRouter, Form
@@ -11,14 +10,15 @@ from fastapi import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from jose import jwt
 from pydantic import BaseModel
+import os
+import time
+from contextlib import asynccontextmanager
+from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.api.v1.router import api_router
 from app.db.session import SessionLocal
 from app.db.base import Base, engine
-
-import time
-from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -49,8 +49,6 @@ async def lifespan(app: FastAPI):
                 time.sleep(retry_delay)
             else:
                 print(f"Database connection failed after {max_retries} attempts: {e}")
-                # We don't raise here to allow the app to start (so logs are visible), 
-                # but subsequent requests will fail.
     yield
 
 # TODO: Replace with actual hash or load from env
@@ -58,16 +56,13 @@ SECL_PASS_HASH = "$argon2id$v=19$m=65536,t=3,p=4$..."
 
 app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
-from fastapi.staticfiles import StaticFiles
-import os
-
-# Get absolute path relative to this file (artifact_registry.py is in root)
-current_dir = os.path.dirname(os.path.abspath(__file__))
-UPLOAD_DIR = os.path.join(current_dir, "uploads")
-if not os.path.exists(UPLOAD_DIR):
-    os.makedirs(UPLOAD_DIR)
-
+# MOUNT UPLOADS USING CENTRAL SETTINGS
+UPLOAD_DIR = str(settings.UPLOAD_DIR.resolve())
+print(f"!!! ENTRY POINT MOUNTING !!!")
 print(f"Mounting /uploads to: {UPLOAD_DIR}")
+print(f"Path Exists: {os.path.exists(UPLOAD_DIR)}")
+print(f"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 app.add_middleware(
@@ -79,7 +74,3 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix="/api/v1")
-
-# Trigger reload
-
-# Trigger reload

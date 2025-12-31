@@ -8,8 +8,31 @@ from app.db.models.use_case import UseCase
 from app.db.models.requirement import Requirement
 from app.db.models.vision import Vision
 from app.db.models.document import Document
+from app.utils.id_generator import generate_artifact_id
 
 router = APIRouter()
+
+@router.get("/suggest-aid")
+def suggest_aid(
+    artifact_type: str,
+    area: str,
+    project_id: str,
+    db: Session = Depends(deps.get_db)
+):
+    artifact_type_map = {
+        "need": Need,
+        "use_case": UseCase,
+        "requirement": Requirement,
+        "vision": Vision,
+        "document": Document,
+    }
+    
+    model = artifact_type_map.get(artifact_type.lower())
+    if not model:
+        raise HTTPException(status_code=400, detail=f"Unsupported artifact type: {artifact_type}")
+        
+    new_aid = generate_artifact_id(db, model, area, project_id)
+    return {"suggested_aid": new_aid}
 
 @router.post("/rename-aid")
 def rename_aid(data: AIDRename, db: Session = Depends(deps.get_db)):

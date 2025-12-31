@@ -11,6 +11,7 @@ from datetime import datetime
 import tempfile
 from alembic.config import Config
 from alembic import command
+from app.core.config import settings
 
 router = APIRouter()
 
@@ -18,8 +19,7 @@ DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
 DB_PORT = os.getenv("DB_PORT", "5433")
 DB_USER = os.getenv("DB_USER", "admin")
 DB_NAME = os.getenv("DB_NAME", "registry")
-BACKUP_DIR = Path("db_backups")
-BACKUP_DIR.mkdir(exist_ok=True)
+BACKUP_DIR = settings.BACKUP_DIR
 
 # Path to portable PostgreSQL binaries
 PG_BIN_DIR = Path(".postgres_bin/pgsql/bin")

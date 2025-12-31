@@ -645,7 +645,7 @@ export default function ManagementView({ type }: ManagementViewProps) {
                                     {/* Description */}
                                     <div className="text-sm text-slate-600 max-h-20 overflow-hidden">
                                         <div className="pointer-events-none line-clamp-2 list-view-description">
-                                            <MarkdownDisplay content={item.description || '-'} />
+                                            <MarkdownDisplay content={item.description || '-'} compact />
                                         </div>
                                     </div>
 

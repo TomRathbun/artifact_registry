@@ -168,8 +168,8 @@ async def upgrade_dependency(request: UpgradeRequest):
     try:
         if request.source == "pypi":
             # Use uv to check compatibility first (dry-run)
-            # uv add <package> --dry-run
-            check_cmd = ["uv", "add", f"{request.name}", "--dry-run"]
+            # uv sync --upgrade-package <package> --dry-run
+            check_cmd = ["uv", "sync", "--upgrade-package", f"{request.name}", "--dry-run"]
             check_process = subprocess.run(check_cmd, cwd=registry_root, capture_output=True, text=True, shell=True)
             
             if check_process.returncode != 0:
@@ -179,7 +179,7 @@ async def upgrade_dependency(request: UpgradeRequest):
                 }
             
             # If check passes, perform the actual upgrade
-            upgrade_cmd = ["uv", "add", f"{request.name}"]
+            upgrade_cmd = ["uv", "sync", "--upgrade-package", f"{request.name}"]
             upgrade_process = subprocess.run(upgrade_cmd, cwd=registry_root, capture_output=True, text=True, shell=True)
             
             if upgrade_process.returncode == 0:

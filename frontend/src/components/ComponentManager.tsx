@@ -959,7 +959,7 @@ export default function ComponentManager() {
                                     {/* Description */}
                                     <div className="text-sm text-slate-600 max-h-20 overflow-hidden" title={comp.description}>
                                         <div className="pointer-events-none line-clamp-2 list-view-description">
-                                            <MarkdownDisplay content={comp.description || ''} />
+                                            <MarkdownDisplay content={comp.description || ''} compact />
                                         </div>
                                     </div>
 

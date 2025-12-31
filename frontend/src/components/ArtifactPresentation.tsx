@@ -222,6 +222,19 @@ export default function ArtifactPresentation() {
         queryFn: () => MetadataService.listAreasApiV1MetadataMetadataAreasGet(),
     });
 
+    const fetchSuggestedAid = async (targetArea: string) => {
+        try {
+            const idToUse = project?.id || projectId;
+            const response = await fetch(`/api/v1/utility/suggest-aid?artifact_type=${artifactType}&area=${targetArea}&project_id=${idToUse}`);
+            if (response.ok) {
+                const data = await response.json();
+                setNewAidValue(data.suggested_aid);
+            }
+        } catch (e) {
+            console.error("Failed to suggest AID", e);
+        }
+    };
+
     const handleRenameAid = async () => {
         if (!newAidValue || newAidValue === artifactId) {
             setShowRenameDialog(false);
@@ -1039,7 +1052,7 @@ export default function ArtifactPresentation() {
                         style={{ zoom: zoomLevel / 100 }}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="prose max-w-none">
+                        <div className="space-y-6">
                             {artifactType === 'need' && (
                                 <NeedPresentation
                                     artifact={artifact}
@@ -1167,7 +1180,10 @@ export default function ArtifactPresentation() {
 
                         <div className="flex border-b border-slate-200 mb-6">
                             <button
-                                onClick={() => setRenameMode('AID')}
+                                onClick={() => {
+                                    setRenameMode('AID');
+                                    setNewAidValue(artifactId!);
+                                }}
                                 className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${renameMode === 'AID' ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                             >
                                 Change Number/Full AID
@@ -1189,15 +1205,24 @@ export default function ArtifactPresentation() {
                         {renameMode === 'AID' ? (
                             <div className="mb-4">
                                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">New AID</label>
-                                <input
-                                    type="text"
-                                    value={newAidValue}
-                                    onChange={(e) => setNewAidValue(e.target.value.toUpperCase())}
-                                    className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm"
-                                    placeholder="e.g. TR2-AIC2-NEED-001"
-                                    autoFocus
-                                />
-                                <p className="text-[10px] text-slate-400 mt-1 italic">Type the full new ID, including number changes.</p>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={newAidValue}
+                                        onChange={(e) => setNewAidValue(e.target.value.toUpperCase())}
+                                        className="flex-1 px-3 py-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm"
+                                        placeholder="e.g. TR2-AIC2-NEED-001"
+                                        autoFocus
+                                    />
+                                    <button
+                                        onClick={() => fetchSuggestedAid(artifact.area)}
+                                        className="px-3 py-2 bg-slate-100 text-slate-600 rounded text-xs font-medium hover:bg-slate-200 transition-colors whitespace-nowrap"
+                                        title="Get next available ID for current area"
+                                    >
+                                        Suggest Next
+                                    </button>
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-1 italic">Type the full new ID, or use "Suggest Next" for current area.</p>
                             </div>
                         ) : (
                             <div className="mb-4 space-y-4">
@@ -1208,18 +1233,8 @@ export default function ArtifactPresentation() {
                                         onChange={(e) => {
                                             const newArea = e.target.value;
                                             setSelectedArea(newArea);
-                                            // Auto-construct new AID by replacing the area part
-                                            // Assuming format: PROJ-AREA-TYPE-NUM
-                                            const parts = artifactId!.split('-');
-                                            if (parts.length >= 4) {
-                                                // Standard format: [PROJ, AREA, TYPE, NUM]
-                                                // We replace index 1 (Area)
-                                                parts[1] = newArea;
-                                                setNewAidValue(parts.join('-'));
-                                            } else if (parts.length === 3) {
-                                                // Format: [AREA, TYPE, NUM] - maybe?
-                                                parts[0] = newArea;
-                                                setNewAidValue(parts.join('-'));
+                                            if (newArea) {
+                                                fetchSuggestedAid(newArea);
                                             }
                                         }}
                                         className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm"

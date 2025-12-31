@@ -4,22 +4,16 @@ import os
 from pathlib import Path
 from typing import List
 from pydantic import BaseModel
+from app.core.config import settings
 
 router = APIRouter()
 
-# Use absolute path relative to project root (assuming this file is in app/api/v1/endpoints)
-# Project root is ../../../../
-BASE_DIR = Path(__file__).resolve().parents[4]
-UPLOAD_DIR = BASE_DIR / "uploads"
-UPLOAD_DIR.mkdir(exist_ok=True) # Ensure it exists
+UPLOAD_DIR = settings.UPLOAD_DIR
 
 @router.post("/upload")
 async def upload_image(file: UploadFile = File(...)):
     try:
-        # Basic sanitization could be added here
         file_path = UPLOAD_DIR / file.filename
-        
-        # If file exists, overwrite or rename? Overwrite for now as per simple req.
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
             
@@ -43,9 +37,7 @@ def delete_image(filename: str):
 def list_images():
     images = []
     if UPLOAD_DIR.exists():
-        # Get all files, sorted by modified time (newest first)
         files = sorted(UPLOAD_DIR.glob("*"), key=os.path.getmtime, reverse=True)
-        
         for f in files:
             if f.suffix.lower() in ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp']:
                 images.append({
@@ -65,7 +57,6 @@ def rename_image(filename: str, request: RenameRequest):
     if not old_path.exists():
         raise HTTPException(status_code=404, detail="Image not found")
     
-    # Sanitize new filename lightly (prevent directory traversal)
     new_filename = Path(request.new_filename).name
     new_path = UPLOAD_DIR / new_filename
     

@@ -8,6 +8,7 @@ import PlantUMLBlock from './PlantUMLBlock';
 
 interface MarkdownDisplayProps {
     content: string;
+    compact?: boolean;
 }
 
 const extractText = (c: any): string => {
@@ -17,9 +18,31 @@ const extractText = (c: any): string => {
     return String(c || '');
 };
 
-const MarkdownDisplay: React.FC<MarkdownDisplayProps> = ({ content }) => {
+const MarkdownDisplay: React.FC<MarkdownDisplayProps> = ({ content, compact = false }) => {
+    if (compact) {
+        return (
+            <div className="markdown-content prose prose-slate max-w-none prose-sm leading-tight
+                prose-p:my-0 prose-headings:text-sm prose-headings:font-bold prose-headings:my-0 
+                prose-headings:inline prose-headings:after:content-[': ']
+                prose-ol:my-0 prose-ul:my-0 prose-li:my-0">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {content || ''}
+                </ReactMarkdown>
+            </div>
+        );
+    }
+
     return (
-        <div className="markdown-content prose prose-slate max-w-none prose-img:rounded-xl prose-headings:border-b prose-headings:pb-2 prose-a:text-blue-600 prose-blockquote:border-l-4 prose-blockquote:border-slate-300 prose-blockquote:bg-slate-50 prose-blockquote:py-1 prose-blockquote:px-4">
+        <div className="markdown-content prose prose-slate max-w-none 
+            prose-headings:text-slate-900 prose-headings:font-bold prose-headings:mt-8 prose-headings:mb-4
+            prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl
+            prose-p:text-slate-700 prose-p:leading-relaxed prose-p:mb-4
+            prose-ol:list-decimal prose-ol:pl-8 prose-ol:mb-4
+            prose-ul:list-disc prose-ul:pl-8 prose-ul:mb-4
+            prose-li:text-slate-700 prose-li:mb-2
+            prose-img:rounded-xl prose-headings:border-b prose-headings:pb-2 
+            prose-a:text-blue-600 prose-blockquote:border-l-4 prose-blockquote:border-slate-300 
+            prose-blockquote:bg-slate-50 prose-blockquote:py-2 prose-blockquote:px-6 prose-blockquote:not-italic">
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{

@@ -84,6 +84,7 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
     const [hasLoadedInitial, setHasLoadedInitial] = React.useState(false);
     const [isCapturing, setIsCapturing] = React.useState(false);
     const [captureStatus, setCaptureStatus] = React.useState<'idle' | 'success' | 'error'>('idle');
+    const [pngStatus, setPngStatus] = React.useState<'idle' | 'success' | 'error'>('idle');
 
     const { data: diagram } = useQuery({
         queryKey: ['diagram', diagramId],
@@ -188,6 +189,7 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
                 id,
                 type: 'custom',
                 data: {
+                    color: color,
                     label: (
                         <div className="flex flex-col items-center text-center w-full h-full">
                             {shortId === 'DIAGRAM' ? (
@@ -208,15 +210,12 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
                 },
                 position: savedPos || { x: 0, y: 0 },
                 style: {
-                    background: '#fff',
-                    border: `1px solid ${color}`,
-                    borderRadius: '8px',
-                    padding: 0, // Removed to allow handles to be on the true edge
+                    background: 'transparent', // Will be handled by inner component
+                    border: 'none',
+                    padding: 0,
                     width: nodeWidth,
                     minHeight: nodeHeight,
                     fontSize: '12px',
-                    borderLeft: `6px solid ${color}`,
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center'
@@ -284,7 +283,8 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
                     markerEnd: { type: MarkerType.ArrowClosed, color: '#94a3b8' },
                     animated: true,
                     style: { stroke: '#94a3b8' },
-                    reconnectable: true
+                    reconnectable: true,
+                    zIndex: 1
                 });
             }
         });
@@ -302,6 +302,16 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
         }
 
     }, [visions, needs, useCases, requirements, documents, diagrams, linkages, setNodes, setEdges, selectedArea, edgeType, selectedAids, diagram, hasLoadedInitial]);
+
+    useEffect(() => {
+        const needsUpdate = edges.some(e => (e.selected && (e.zIndex || 0) < 1000) || (!e.selected && e.zIndex === 1000));
+        if (needsUpdate) {
+            setEdges(eds => eds.map(e => ({
+                ...e,
+                zIndex: e.selected ? 1000 : 1
+            })));
+        }
+    }, [edges, setEdges]);
 
     const onConnect = useCallback(
         (params: Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -407,6 +417,37 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
         }
     };
 
+    const handleClipboardPNG = async () => {
+        const flowElement = document.querySelector('.react-flow') as HTMLElement;
+        if (!flowElement) return;
+
+        setPngStatus('idle');
+        try {
+            const dataUrl = await toPng(flowElement, {
+                backgroundColor: '#fff',
+                filter: (node: HTMLElement) => {
+                    if (node.classList && (node.classList.contains('react-flow__minimap') || node.classList.contains('react-flow__controls'))) return false;
+                    return true;
+                }
+            });
+
+            const res = await fetch(dataUrl);
+            const blob = await res.blob();
+
+            await navigator.clipboard.write([
+                new ClipboardItem({
+                    [blob.type]: blob
+                })
+            ]);
+
+            setPngStatus('success');
+            setTimeout(() => setPngStatus('idle'), 3000);
+        } catch (err) {
+            console.error("Clipboard PNG failed:", err);
+            setPngStatus('error');
+        }
+    };
+
     // Calculate linkage context for the modal
     const linkedToSelection = React.useMemo(() => {
         const linked = new Set<string>();
@@ -491,11 +532,21 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
                 >
                     <Camera className={`w-4 h-4 ${isCapturing ? 'animate-pulse' : ''}`} />
                     <span className="text-sm font-medium">
-                        {isCapturing ? 'Capturing...' : captureStatus === 'success' ? 'Link Copied!' : 'Capture to Markdown'}
+                        {isCapturing ? 'MD...' : captureStatus === 'success' ? 'Copied!' : 'MD'}
                     </span>
                 </button>
-                <button onClick={() => downloadImage('png')} className="bg-white p-2 rounded shadow border border-slate-200 hover:bg-slate-50 text-slate-600 flex items-center gap-1 text-sm font-medium"><Download className="w-4 h-4" /> PNG</button>
-                <button onClick={() => downloadImage('svg')} className="bg-white p-2 rounded shadow border border-slate-200 hover:bg-slate-50 text-slate-600 flex items-center gap-1 text-sm font-medium"><Download className="w-4 h-4" /> SVG</button>
+                <button
+                    onClick={handleClipboardPNG}
+                    className={`p-2 rounded shadow border text-white transition-all flex items-center gap-2 ${pngStatus === 'success' ? 'bg-green-500 border-green-600' : pngStatus === 'error' ? 'bg-red-500 border-red-600' : 'bg-slate-800 border-slate-900 hover:bg-slate-700'}`}
+                    title="Capture to Clipboard as PNG"
+                >
+                    <Camera className="w-4 h-4" />
+                    <span className="text-sm font-medium">
+                        {pngStatus === 'success' ? 'Copied!' : 'PNG'}
+                    </span>
+                </button>
+                <button onClick={() => downloadImage('png')} className="bg-white p-2 rounded shadow border border-slate-200 hover:bg-slate-50 text-slate-600 flex items-center gap-1 text-sm font-medium" title="Download as PNG"><Download className="w-4 h-4" /> File</button>
+                <button onClick={() => downloadImage('svg')} className="bg-white p-2 rounded shadow border border-slate-200 hover:bg-slate-50 text-slate-600 flex items-center gap-1 text-sm font-medium" title="Download as SVG"><Download className="w-4 h-4" /> SVG</button>
             </div>
 
             {/* Selection Modal */}
@@ -594,6 +645,7 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
                 edgeUpdaterRadius={20}
                 nodeTypes={nodeTypes}
                 fitView
+                elevateEdgesOnSelect={true}
                 attributionPosition="bottom-right"
             >
                 <Controls />

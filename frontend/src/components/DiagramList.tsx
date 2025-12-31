@@ -521,7 +521,7 @@ export default function DiagramList() {
                                     </td>
                                     <td className="p-4 text-slate-500 max-w-xs overflow-hidden">
                                         <div className="pointer-events-none line-clamp-2 list-view-description">
-                                            <MarkdownDisplay content={diagram.description || '-'} />
+                                            <MarkdownDisplay content={diagram.description || '-'} compact />
                                         </div>
                                     </td>
                                     <td className="p-4 not-italic">

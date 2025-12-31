@@ -26,9 +26,22 @@ def generate_artifact_id(db: Session, model, area: str, project_id: str) -> str:
     Format: {PROJECT}-{area}-{TYPE}-{NNN} (e.g., TR2-MCK-NEED-001)
     """
     # Get Project Name
-    project = db.query(Project).filter(Project.id == project_id).first()
+    # Support both UUID and project name
+    from uuid import UUID
+    is_uuid = False
+    try:
+        UUID(str(project_id))
+        is_uuid = True
+    except ValueError:
+        is_uuid = False
+
+    if is_uuid:
+        project = db.query(Project).filter(Project.id == project_id).first()
+    else:
+        project = db.query(Project).filter(Project.name == project_id).first()
+
     if not project:
-        # Fallback if project not found (shouldn't happen due to prior validation)
+        # Fallback if project not found
         project_name = "UNK"
     else:
         project_name = project.name.upper().replace(" ", "_")
