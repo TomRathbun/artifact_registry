@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { VisionService, NeedsService, UseCaseService, RequirementService, MetadataService, ProjectsService, LinkagesService, SiteService, ComponentService } from '../client';
 import VisionHeader from './VisionHeader';
 import ImportConflictModal from './ImportConflictModal';
 import axios from 'axios';
-import { Download, Upload, Trash2, Edit, FileDown, Copy, Clipboard, Files, ArrowUp, ArrowDown, Filter, RotateCcw } from 'lucide-react';
+import { Download, Upload, Trash2, Edit, FileDown, Copy, Clipboard, Files, ArrowUp, ArrowDown, Filter, FilterX, RotateCcw, Search } from 'lucide-react';
 import { marked } from 'marked';
 import mermaid from 'mermaid';
 import * as htmlToImage from 'html-to-image';
@@ -24,6 +24,31 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Check user permissions
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const userRoles = user?.roles || [];
+
+    // Map artifact type to role prefix
+    const getRolePrefix = (type: string): string => {
+        const mapping: Record<string, string> = {
+            'vision': 'vision',
+            'need': 'need',
+            'use_case': 'uc',
+            'requirement': 'req',
+            'document': 'doc',
+            'actor': 'actor',
+            'stakeholder': 'stakeholder',
+            'area': 'area'
+        };
+        return mapping[type] || type;
+    };
+
+    const rolePrefix = getRolePrefix(artifactType);
+    const canEdit = userRoles.includes('admin') || userRoles.includes(`${rolePrefix}_edit`);
+    const canDelete = userRoles.includes('admin') || userRoles.includes(`${rolePrefix}_delete`);
+    const canCreate = userRoles.includes('admin') || userRoles.includes(`${rolePrefix}_create`);
 
     // --- Resizable Columns State & Logic ---
     const getDefaultColumnWidths = (type: string): Record<string, number> => {
@@ -357,7 +382,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
         setSortConfig({ key: direction ? key : null, direction });
     };
 
-    const getFilteredAndSortedArtifacts = () => {
+    const filteredResults = useMemo(() => {
         if (!artifacts) return [];
 
         // Apply column filters first
@@ -400,7 +425,9 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
             }
             return 0;
         });
-    };
+    }, [artifacts, columnFilters, sortConfig]);
+
+    const filteredAids = useMemo(() => filteredResults.map((a: any) => a.aid), [filteredResults]);
 
     const getUniqueValuesForColumn = (key: string): string[] => {
         if (!artifacts) return [];
@@ -468,10 +495,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
     }, [activeFilterDropdown, pendingFilters]);
 
     // Get filtered AIDs for presentation mode navigation
-    const getFilteredAIDs = () => {
-        const filtered = getFilteredAndSortedArtifacts();
-        return filtered?.map((a: any) => a.aid) || [];
-    };
+    const getFilteredAIDs = () => filteredAids;
 
     // Fetch metadata for export mapping
     const { data: owners } = useQuery({
@@ -658,14 +682,13 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
         return cleanNulls(exportItem);
     };
 
-    // Export to JSON
     const handleExport = () => {
-        const filteredArtifacts = getFilteredAndSortedArtifacts();
-        if (!filteredArtifacts || filteredArtifacts.length === 0) {
+        const artifactsToExport = filteredResults;
+        if (!artifactsToExport || artifactsToExport.length === 0) {
             alert('No artifacts to export matching current filters');
             return;
         }
-        const exportArtifacts = filteredArtifacts.map(prepareArtifactForExport);
+        const exportArtifacts = artifactsToExport.map(prepareArtifactForExport);
 
         // Collect relevant linkages
         const relevantLinkages: string[][] = [];
@@ -1373,7 +1396,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
     };
 
     const handleExportMarkdown = () => {
-        const filteredArtifacts = getFilteredAndSortedArtifacts();
+        const filteredArtifacts = filteredResults;
         if (!filteredArtifacts || filteredArtifacts.length === 0) return;
 
         let content = `# ${artifactType.charAt(0).toUpperCase() + artifactType.slice(1)} Export\n\n`;
@@ -1570,7 +1593,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
     };
 
     const handleExportWord = async () => {
-        const filteredArtifacts = getFilteredAndSortedArtifacts();
+        const filteredArtifacts = filteredResults;
         if (!filteredArtifacts || filteredArtifacts.length === 0) return;
 
         // Custom renderer to ensure images are resized in Word
@@ -2125,14 +2148,57 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
 
             {/* Actions */}
             <div className="flex justify-between items-center">
-                <div className="flex gap-4 items-center">
-                    <input
-                        type="text"
-                        placeholder="Search..."
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        className="px-3 py-2 border rounded w-64"
-                    />
+                <div className="flex gap-3 items-center">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Search..."
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            className="pl-9 pr-3 py-2 border rounded w-64 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                        />
+                    </div>
+
+                    {/* Active Actions (Clear Filters / Delete) */}
+                    <div className="flex items-center gap-2 border-l pl-3 border-slate-200 min-h-[40px]">
+                        {/* Clear All Filters */}
+                        {(search || sortConfig.key || Object.keys(columnFilters).length > 0) && (
+                            <button
+                                onClick={clearAllFilters}
+                                className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors flex items-center gap-2 ring-1 ring-slate-200"
+                                title="Clear all filters and sorting"
+                            >
+                                <FilterX className="w-4 h-4" />
+                                <span className="text-xs font-medium">Clear</span>
+                            </button>
+                        )}
+
+                        {/* Bulk Delete */}
+                        {selectedItems.length > 0 && (
+                            <button
+                                onClick={() => {
+                                    setConfirmation({
+                                        isOpen: true,
+                                        title: 'Delete Selected Artifacts',
+                                        message: `Are you sure you want to delete ${selectedItems.length} selected item(s)? This action cannot be undone.`,
+                                        isDestructive: true,
+                                        onConfirm: async () => {
+                                            for (const aid of selectedItems) {
+                                                await deleteMutation.mutateAsync(aid);
+                                            }
+                                            setSelectedItems([]);
+                                        }
+                                    });
+                                }}
+                                className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-2 ring-1 ring-red-200"
+                                title={`Delete ${selectedItems.length} selected item(s)`}
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                <span className="text-xs font-bold">{selectedItems.length}</span>
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 <div className="flex gap-2">
@@ -2193,42 +2259,9 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                         className="hidden"
                     />
 
-                    {/* Clear All Filters Button - show when any filters are active */}
-                    {(search || sortConfig.key || Object.keys(columnFilters).length > 0) && (
-                        <button
-                            onClick={clearAllFilters}
-                            className="px-3 py-2 bg-slate-600 text-white rounded hover:bg-slate-700 transition-colors flex items-center gap-2"
-                            title="Clear all filters and sorting"
-                        >
-                            <Filter className="w-4 h-4" />
-                            Clear Filters
-                        </button>
-                    )}
 
-                    {/* Bulk Delete Button - only show when items are selected */}
-                    {selectedItems.length > 0 && (
-                        <button
-                            onClick={() => {
-                                setConfirmation({
-                                    isOpen: true,
-                                    title: 'Delete Selected Artifacts',
-                                    message: `Are you sure you want to delete ${selectedItems.length} selected item(s)? This action cannot be undone.`,
-                                    isDestructive: true,
-                                    onConfirm: async () => {
-                                        for (const aid of selectedItems) {
-                                            await deleteMutation.mutateAsync(aid);
-                                        }
-                                        setSelectedItems([]);
-                                    }
-                                });
-                            }}
-                            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors flex items-center gap-2"
-                            title={`Delete ${selectedItems.length} selected item(s)`}
-                        >
-                            <Trash2 className="w-4 h-4" />
-                            Delete Selected ({selectedItems.length})
-                        </button>
-                    )}
+
+
 
                     {/* Reset Columns Button */}
                     <button
@@ -2241,12 +2274,16 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
 
                     {/* Create New Button */}
                     <Link
-                        to={`/project/${projectId}/${artifactType}/create`}
-                        className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center gap-2"
-                        title={`Create new ${artifactType.replace('_', ' ')}`}
+                        to={canCreate ? `/project/${projectId}/${artifactType}/create` : '#'}
+                        onClick={(e) => !canCreate && e.preventDefault()}
+                        className={`px-3 py-2 rounded transition-colors flex items-center gap-2 ${canCreate
+                            ? 'bg-blue-600 text-white hover:bg-blue-700'
+                            : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                            }`}
+                        title={canCreate ? `Create new ${artifactType.replace('_', ' ')}` : "You don't have permission to create this artifact type"}
                     >
-                        <div className="bg-white rounded-full p-0.5">
-                            <Edit className="w-3 h-3 text-blue-600" />
+                        <div className={`rounded-full p-0.5 ${canCreate ? 'bg-white' : 'bg-slate-200'}`}>
+                            <Edit className={`w-3 h-3 ${canCreate ? 'text-blue-600' : 'text-slate-400'}`} />
                         </div>
                         {artifactType === 'use_case' ? 'Use Case' : artifactType.charAt(0).toUpperCase() + artifactType.slice(1).replace('_', ' ')}
                     </Link>
@@ -2261,12 +2298,14 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                         <div className="flex items-center">
                             <input
                                 type="checkbox"
-                                checked={selectedItems.length === artifacts?.length && artifacts?.length > 0}
+                                checked={filteredResults.length > 0 && filteredResults.every((a: any) => selectedItems.includes(a.aid))}
                                 onChange={(e) => {
                                     if (e.target.checked) {
-                                        setSelectedItems(artifacts?.map((a: any) => a.aid) || []);
+                                        // Add all filtered items to selection (avoiding duplicates)
+                                        setSelectedItems(Array.from(new Set([...selectedItems, ...filteredAids])));
                                     } else {
-                                        setSelectedItems([]);
+                                        // Remove all filtered items from selection
+                                        setSelectedItems(selectedItems.filter(id => !filteredAids.includes(id)));
                                     }
                                 }}
                                 className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
@@ -2363,7 +2402,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                     </div>
 
                     <ul className="divide-y divide-slate-100">
-                        {getFilteredAndSortedArtifacts()?.map((a: any) => (
+                        {filteredResults.map((a: any) => (
                             <li key={a.aid} className="hover:bg-slate-50 transition-colors">
                                 <div className="grid gap-2 p-3 items-center" style={{ gridTemplateColumns: getGridTemplate() }}>
                                     {/* Checkbox */}
@@ -2393,7 +2432,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                                     {/* Artifact ID */}
                                     <Link
                                         to={`/project/${projectId}/${artifactType}/${a.aid}`}
-                                        state={{ filteredAIDs: getFilteredAIDs() }}
+                                        state={{ filteredAIDs: filteredAids }}
                                         className="font-mono text-sm text-slate-600 truncate hover:text-blue-600"
                                         title={a.aid}
                                     >
@@ -2514,14 +2553,19 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                                             <FileDown className="w-4 h-4" />
                                         </button>
                                         <Link
-                                            to={`/project/${projectId}/${artifactType}/${a.aid}/edit`}
-                                            className="p-1 text-slate-400 hover:text-blue-600 transition-colors rounded hover:bg-blue-50"
-                                            title="Edit"
+                                            to={canEdit ? `/project/${projectId}/${artifactType}/${a.aid}/edit` : '#'}
+                                            onClick={(e) => !canEdit && e.preventDefault()}
+                                            className={`p-1 transition-colors rounded ${canEdit
+                                                ? 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'
+                                                : 'text-slate-300 cursor-not-allowed opacity-50'
+                                                }`}
+                                            title={canEdit ? "Edit" : "You don't have permission to edit"}
                                         >
                                             <Edit className="w-4 h-4" />
                                         </Link>
                                         <button
                                             onClick={(e) => {
+                                                if (!canCreate) return;
                                                 e.stopPropagation();
                                                 e.preventDefault();
                                                 // Duplicate: Navigate to create page with data
@@ -2538,8 +2582,12 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                                                     state: { duplicateData }
                                                 });
                                             }}
-                                            className="p-1 text-slate-400 hover:text-cyan-600 transition-colors rounded hover:bg-cyan-50"
-                                            title="Duplicate"
+                                            disabled={!canCreate}
+                                            className={`p-1 transition-colors rounded ${canCreate
+                                                ? 'text-slate-400 hover:text-cyan-600 hover:bg-cyan-50'
+                                                : 'text-slate-300 cursor-not-allowed opacity-50'
+                                                }`}
+                                            title={canCreate ? "Duplicate" : "You don't have permission to create"}
                                         >
                                             <Files className="w-4 h-4" />
                                         </button>
@@ -2556,6 +2604,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                                         </button>
                                         <button
                                             onClick={(e) => {
+                                                if (!canDelete) return;
                                                 e.stopPropagation();
                                                 e.preventDefault();
                                                 e.preventDefault();
@@ -2567,8 +2616,12 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                                                     onConfirm: () => deleteMutation.mutate(a.aid)
                                                 });
                                             }}
-                                            className="p-1 text-slate-400 hover:text-red-600 transition-colors rounded hover:bg-red-50"
-                                            title="Delete"
+                                            disabled={!canDelete}
+                                            className={`p-1 transition-colors rounded ${canDelete
+                                                ? 'text-slate-400 hover:text-red-600 hover:bg-red-50'
+                                                : 'text-slate-300 cursor-not-allowed opacity-50'
+                                                }`}
+                                            title={canDelete ? "Delete" : "You don't have permission to delete"}
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>

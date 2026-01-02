@@ -1,9 +1,9 @@
-$token = (irm http://127.0.0.1:8000/token -Method Post -Body "username=rathbun&password=seclpass" -ContentType "application/x-www-form-urlencoded").access_token
+$token = (irm http://127.0.0.1:8000/token -Method Post -Body "username=admin&password=seclpass" -ContentType "application/x-www-form-urlencoded").access_token
 
 # 1. CREATE a Need (PROPOSED, MCK area)
-$body = @{title="Login Flow"; description="User must log in"; area="MCK"; status="proposed"; owner="rathbun"} | ConvertTo-Json
+$body = @{title="Login Flow"; description="User must log in"; area="MCK"; status="proposed"; owner="admin"} | ConvertTo-Json
 $create_res = irm "http://127.0.0.1:8000/needs" -Method Post -Headers @{Authorization="Bearer $token"; "Content-Type"="application/json"} -Body $body
-$create_res  # Expected: 201, {"aid": "TR2-MCK-NEED-001", "title": "Login Flow", ...}
+$create_res  # Expected: 201, {"aid": "PROJECT-MCK-NEED-001", "title": "Login Flow", ...}
 
 # 2. LIST all (no filters)
 irm "http://127.0.0.1:8000/needs" -Headers @{Authorization="Bearer $token"}  # Expected: 200, array with 1+ needs
@@ -14,15 +14,14 @@ irm "http://127.0.0.1:8000/needs?area=MCK" -Headers @{Authorization="Bearer $tok
 # 4. FILTER by status (proposed)
 irm "http://127.0.0.1:8000/needs?status=proposed" -Headers @{Authorization="Bearer $token"}  # Expected: 200, array with Login Flow
 
-# 5. FILTER by owner (rathbun)
-irm "http://127.0.0.1:8000/needs?owner=rathbun" -Headers @{Authorization="Bearer $token"}  # Expected: 200, array with Login Flow
+irm "http://127.0.0.1:8000/needs?owner=admin" -Headers @{Authorization="Bearer $token"}  # Expected: 200, array with Login Flow
 
 # 6. FILTER by area + status + owner
-irm "http://127.0.0.1:8000/needs?area=MCK&status=proposed&owner=rathbun" -Headers @{Authorization="Bearer $token"}  # Expected: 200, array with Login Flow
+irm "http://127.0.0.1:8000/needs?area=MCK&status=proposed&owner=admin" -Headers @{Authorization="Bearer $token"}  # Expected: 200, array with Login Flow
 
 # 7. GET single by aid
 $aid = $create_res.aid
-irm "http://127.0.0.1:8000/needs/$aid" -Headers @{Authorization="Bearer $token"}  # Expected: 200, {"aid": "TR2-MCK-NEED-001", ...}
+irm "http://127.0.0.1:8000/needs/$aid" -Headers @{Authorization="Bearer $token"}  # Expected: 200, {"aid": "PROJECT-MCK-NEED-001", ...}
 
 # 8. UPDATE (change status to verified post-workshop)
 $update_body = @{status="verified"} | ConvertTo-Json

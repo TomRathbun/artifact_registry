@@ -23,7 +23,7 @@ class Component(Base):
     y = Column(Integer, nullable=True)
     
     # New fields for Option 4
-    tags = Column(String, nullable=True)  # JSON array stored as string: ["TR2", "networking", "critical"]
+    tags = Column(String, nullable=True)  # JSON array stored as string: ["SYSTEM", "networking", "critical"]
     lifecycle = Column(String, nullable=True, default='Active')  # Active, Legacy, Planned, Deprecated
     project_id = Column(String, ForeignKey('projects.id'), nullable=True)  # Optional project association
 

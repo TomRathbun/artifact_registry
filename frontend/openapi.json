@@ -1,1 +1,3182 @@
-{"openapi":"3.1.0","info":{"title":"TR2 Registry Backend","version":"0.1.0"},"paths":{"/api/v1/users/":{"post":{"tags":["users"],"summary":"Create User","operationId":"create_user_api_v1_users__post","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/UserCreate"}}},"required":true},"responses":{"201":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/UserOut"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/v1/linkage/linkages/":{"get":{"tags":["linkage","Linkages"],"summary":"List Linkages","operationId":"list_linkages_api_v1_linkage_linkages__get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"items":{"$ref":"#/components/schemas/LinkageOut"},"type":"array","title":"Response List Linkages Api V1 Linkage Linkages  Get"}}}}}},"post":{"tags":["linkage","Linkages"],"summary":"Create Linkage","operationId":"create_linkage_api_v1_linkage_linkages__post","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/LinkageCreate"}}},"required":true},"responses":{"201":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/LinkageOut"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/v1/linkage/linkages/{aid}":{"get":{"tags":["linkage","Linkages"],"summary":"Get Linkage","operationId":"get_linkage_api_v1_linkage_linkages__aid__get","parameters":[{"name":"aid","in":"path","required":true,"schema":{"type":"string","title":"Aid"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/LinkageOut"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"put":{"tags":["linkage","Linkages"],"summary":"Update Linkage","operationId":"update_linkage_api_v1_linkage_linkages__aid__put","parameters":[{"name":"aid","in":"path","required":true,"schema":{"type":"string","title":"Aid"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/LinkageCreate"}}}},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/LinkageOut"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"delete":{"tags":["linkage","Linkages"],"summary":"Delete Linkage","operationId":"delete_linkage_api_v1_linkage_linkages__aid__delete","parameters":[{"name":"aid","in":"path","required":true,"schema":{"type":"string","title":"Aid"}}],"responses":{"204":{"description":"Successful Response"},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/v1/linkage/linkages/from/{source_aid}":{"get":{"tags":["linkage","Linkages"],"summary":"Get Outgoing Linkages","operationId":"get_outgoing_linkages_api_v1_linkage_linkages_from__source_aid__get","parameters":[{"name":"source_aid","in":"path","required":true,"schema":{"type":"string","title":"Source Aid"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/LinkageOut"},"title":"Response Get Outgoing Linkages Api V1 Linkage Linkages From  Source Aid  Get"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/v1/need/needs/":{"get":{"tags":["need","Needs"],"summary":"List Needs","operationId":"list_needs_api_v1_need_needs__get","parameters":[{"name":"area","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"description":"Filter by area (e.g., MCK)","title":"Area"},"description":"Filter by area (e.g., MCK)"},{"name":"status","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"description":"Filter by status (e.g., proposed)","title":"Status"},"description":"Filter by status (e.g., proposed)"},{"name":"owner","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"description":"Filter by owner","title":"Owner"},"description":"Filter by owner"},{"name":"select_all","in":"query","required":false,"schema":{"type":"boolean","description":"Ignore filters and return all","default":false,"title":"Select All"},"description":"Ignore filters and return all"}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/NeedOut"},"title":"Response List Needs Api V1 Need Needs  Get"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"post":{"tags":["need","Needs"],"summary":"Create Need","operationId":"create_need_api_v1_need_needs__post","requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/NeedCreate"}}}},"responses":{"201":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/NeedOut"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/v1/need/needs/{aid}":{"get":{"tags":["need","Needs"],"summary":"Get Need","operationId":"get_need_api_v1_need_needs__aid__get","parameters":[{"name":"aid","in":"path","required":true,"schema":{"type":"string","title":"Aid"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/NeedOut"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"put":{"tags":["need","Needs"],"summary":"Update Need","operationId":"update_need_api_v1_need_needs__aid__put","parameters":[{"name":"aid","in":"path","required":true,"schema":{"type":"string","title":"Aid"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/NeedCreate"}}}},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/NeedOut"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"delete":{"tags":["need","Needs"],"summary":"Delete Need","operationId":"delete_need_api_v1_need_needs__aid__delete","parameters":[{"name":"aid","in":"path","required":true,"schema":{"type":"string","title":"Aid"}}],"responses":{"204":{"description":"Successful Response"},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/v1/requirement/requirements/":{"get":{"tags":["requirement","Requirements"],"summary":"List Requirements","operationId":"list_requirements_api_v1_requirement_requirements__get","parameters":[{"name":"area","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"description":"Filter by area (e.g., MCK)","title":"Area"},"description":"Filter by area (e.g., MCK)"},{"name":"status","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"description":"Filter by status (e.g., proposed)","title":"Status"},"description":"Filter by status (e.g., proposed)"},{"name":"owner","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"description":"Filter by owner","title":"Owner"},"description":"Filter by owner"},{"name":"level","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"description":"Filter by level (e.g., STK)","title":"Level"},"description":"Filter by level (e.g., STK)"},{"name":"ears_type","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"description":"Filter by EARS type (e.g., SYS)","title":"Ears Type"},"description":"Filter by EARS type (e.g., SYS)"},{"name":"select_all","in":"query","required":false,"schema":{"type":"boolean","description":"Ignore all filters and return everything","default":false,"title":"Select All"},"description":"Ignore all filters and return everything"}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/RequirementOut"},"title":"Response List Requirements Api V1 Requirement Requirements  Get"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"post":{"tags":["requirement","Requirements"],"summary":"Create Requirement","operationId":"create_requirement_api_v1_requirement_requirements__post","requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/RequirementCreate"}}}},"responses":{"201":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/RequirementOut"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/v1/requirement/requirements/{aid}":{"get":{"tags":["requirement","Requirements"],"summary":"Get Requirement","description":"Retrieve a single requirement by its artifact identifier (aid).","operationId":"get_requirement_api_v1_requirement_requirements__aid__get","parameters":[{"name":"aid","in":"path","required":true,"schema":{"type":"string","title":"Aid"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/RequirementOut"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"put":{"tags":["requirement","Requirements"],"summary":"Update Requirement","description":"Partial update of an existing requirement. Only fields present in the payload\nare changed; `last_updated` is refreshed automatically.","operationId":"update_requirement_api_v1_requirement_requirements__aid__put","parameters":[{"name":"aid","in":"path","required":true,"schema":{"type":"string","title":"Aid"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/RequirementCreate"}}}},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/RequirementOut"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"delete":{"tags":["requirement","Requirements"],"summary":"Delete Requirement","description":"Permanently delete a requirement. All linkages that reference this\nrequirement should be cleaned up by the client or a cascade rule.","operationId":"delete_requirement_api_v1_requirement_requirements__aid__delete","parameters":[{"name":"aid","in":"path","required":true,"schema":{"type":"string","title":"Aid"}}],"responses":{"204":{"description":"Successful Response"},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/v1/use_case/use-cases/preconditions":{"get":{"tags":["use_case","Use Cases"],"summary":"List Preconditions","operationId":"list_preconditions_api_v1_use_case_use_cases_preconditions_get","parameters":[{"name":"project_id","in":"query","required":true,"schema":{"type":"string","description":"Project ID","title":"Project Id"},"description":"Project ID"}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/PreconditionOut"},"title":"Response List Preconditions Api V1 Use Case Use Cases Preconditions Get"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"post":{"tags":["use_case","Use Cases"],"summary":"Create Precondition","operationId":"create_precondition_api_v1_use_case_use_cases_preconditions_post","requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/PreconditionCreate"}}}},"responses":{"201":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/PreconditionOut"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/v1/use_case/use-cases/":{"get":{"tags":["use_case","Use Cases"],"summary":"List Use Cases","operationId":"list_use_cases_api_v1_use_case_use_cases__get","parameters":[{"name":"area","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"description":"Filter by area (e.g., MCK)","title":"Area"},"description":"Filter by area (e.g., MCK)"},{"name":"status","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"description":"Filter by status (e.g., proposed)","title":"Status"},"description":"Filter by status (e.g., proposed)"},{"name":"primary_actor","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"description":"Filter by primary_actor","title":"Primary Actor"},"description":"Filter by primary_actor"},{"name":"select_all","in":"query","required":false,"schema":{"type":"boolean","description":"Select all requirements (ignore filters)","default":false,"title":"Select All"},"description":"Select all requirements (ignore filters)"}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/UseCaseOut"},"title":"Response List Use Cases Api V1 Use Case Use Cases  Get"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"post":{"tags":["use_case","Use Cases"],"summary":"Create Use Case","operationId":"create_use_case_api_v1_use_case_use_cases__post","requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/UseCaseCreate"}}}},"responses":{"201":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/UseCaseOut"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/v1/use_case/use-cases/{aid}":{"get":{"tags":["use_case","Use Cases"],"summary":"Get Use Case","operationId":"get_use_case_api_v1_use_case_use_cases__aid__get","parameters":[{"name":"aid","in":"path","required":true,"schema":{"type":"string","title":"Aid"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/UseCaseOut"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"put":{"tags":["use_case","Use Cases"],"summary":"Update Use Case","operationId":"update_use_case_api_v1_use_case_use_cases__aid__put","parameters":[{"name":"aid","in":"path","required":true,"schema":{"type":"string","title":"Aid"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/UseCaseCreate"}}}},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/UseCaseOut"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"delete":{"tags":["use_case","Use Cases"],"summary":"Delete Use Case","operationId":"delete_use_case_api_v1_use_case_use_cases__aid__delete","parameters":[{"name":"aid","in":"path","required":true,"schema":{"type":"string","title":"Aid"}}],"responses":{"204":{"description":"Successful Response"},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/v1/vision/vision-statements/":{"get":{"tags":["vision","Vision Statements"],"summary":"List Vision Statements","operationId":"list_vision_statements_api_v1_vision_vision_statements__get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"items":{"$ref":"#/components/schemas/VisionOut"},"type":"array","title":"Response List Vision Statements Api V1 Vision Vision Statements  Get"}}}}}},"post":{"tags":["vision","Vision Statements"],"summary":"Create Vision Statement","operationId":"create_vision_statement_api_v1_vision_vision_statements__post","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/VisionCreate"}}},"required":true},"responses":{"201":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/VisionOut"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/v1/vision/vision-statements/{aid}":{"get":{"tags":["vision","Vision Statements"],"summary":"Get Vision Statement","operationId":"get_vision_statement_api_v1_vision_vision_statements__aid__get","parameters":[{"name":"aid","in":"path","required":true,"schema":{"type":"string","title":"Aid"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/VisionOut"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"put":{"tags":["vision","Vision Statements"],"summary":"Update Vision Statement","operationId":"update_vision_statement_api_v1_vision_vision_statements__aid__put","parameters":[{"name":"aid","in":"path","required":true,"schema":{"type":"string","title":"Aid"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/VisionCreate"}}}},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/VisionOut"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"delete":{"tags":["vision","Vision Statements"],"summary":"Delete Vision Statement","operationId":"delete_vision_statement_api_v1_vision_vision_statements__aid__delete","parameters":[{"name":"aid","in":"path","required":true,"schema":{"type":"string","title":"Aid"}}],"responses":{"204":{"description":"Successful Response"},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/v1/metadata/metadata/areas":{"get":{"tags":["metadata","Metadata"],"summary":"List Areas","operationId":"list_areas_api_v1_metadata_metadata_areas_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"items":{"$ref":"#/components/schemas/AreaOut"},"type":"array","title":"Response List Areas Api V1 Metadata Metadata Areas Get"}}}}}},"post":{"tags":["metadata","Metadata"],"summary":"Create Area","operationId":"create_area_api_v1_metadata_metadata_areas_post","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/AreaCreate"}}},"required":true},"responses":{"201":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AreaOut"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/v1/metadata/metadata/people":{"get":{"tags":["metadata","Metadata"],"summary":"List People","operationId":"list_people_api_v1_metadata_metadata_people_get","parameters":[{"name":"person_type","in":"query","required":false,"schema":{"type":"string","title":"Person Type"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/PersonOut"},"title":"Response List People Api V1 Metadata Metadata People Get"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"post":{"tags":["metadata","Metadata"],"summary":"Create Person","operationId":"create_person_api_v1_metadata_metadata_people_post","requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/PersonCreate"}}}},"responses":{"201":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/PersonOut"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/v1/projects/projects/":{"get":{"tags":["projects","projects"],"summary":"List Projects","operationId":"list_projects_api_v1_projects_projects__get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"items":{"$ref":"#/components/schemas/ProjectOut"},"type":"array","title":"Response List Projects Api V1 Projects Projects  Get"}}}}}},"post":{"tags":["projects","projects"],"summary":"Create Project","operationId":"create_project_api_v1_projects_projects__post","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ProjectCreate"}}},"required":true},"responses":{"201":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ProjectOut"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/v1/projects/projects/{project_id}":{"get":{"tags":["projects","projects"],"summary":"Get Project","operationId":"get_project_api_v1_projects_projects__project_id__get","parameters":[{"name":"project_id","in":"path","required":true,"schema":{"type":"string","title":"Project Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ProjectOut"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"put":{"tags":["projects","projects"],"summary":"Update Project","operationId":"update_project_api_v1_projects_projects__project_id__put","parameters":[{"name":"project_id","in":"path","required":true,"schema":{"type":"string","title":"Project Id"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ProjectUpdate"}}}},"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ProjectOut"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}},"delete":{"tags":["projects","projects"],"summary":"Delete Project","operationId":"delete_project_api_v1_projects_projects__project_id__delete","parameters":[{"name":"project_id","in":"path","required":true,"schema":{"type":"string","title":"Project Id"}}],"responses":{"204":{"description":"Successful Response"},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}}},"components":{"schemas":{"AreaCreate":{"properties":{"code":{"type":"string","title":"Code"},"name":{"type":"string","title":"Name"},"description":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Description"}},"type":"object","required":["code","name"],"title":"AreaCreate"},"AreaOut":{"properties":{"code":{"type":"string","title":"Code"},"name":{"type":"string","title":"Name"},"description":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Description"}},"type":"object","required":["code","name"],"title":"AreaOut"},"EarsType":{"type":"string","enum":["ubiquitous","event-driven","unwanted","state-driven","optional","complex"],"title":"EarsType"},"Extension":{"properties":{"trigger_step":{"type":"integer","exclusiveMinimum":0.0,"title":"Trigger Step"},"variant":{"type":"string","minLength":1,"title":"Variant"},"outcome":{"type":"string","minLength":1,"title":"Outcome"}},"type":"object","required":["trigger_step","variant","outcome"],"title":"Extension"},"HTTPValidationError":{"properties":{"detail":{"items":{"$ref":"#/components/schemas/ValidationError"},"type":"array","title":"Detail"}},"type":"object","title":"HTTPValidationError"},"LinkageCreate":{"properties":{"source_artifact_type":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Source Artifact Type"},"source_id":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Source Id"},"target_artifact_type":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Target Artifact Type"},"target_id":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Target Id"},"relationship_type":{"type":"string","title":"Relationship Type"},"project_id":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Project Id"}},"type":"object","required":["relationship_type"],"title":"LinkageCreate"},"LinkageOut":{"properties":{"source_artifact_type":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Source Artifact Type"},"source_id":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Source Id"},"target_artifact_type":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Target Artifact Type"},"target_id":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Target Id"},"relationship_type":{"type":"string","title":"Relationship Type"},"project_id":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Project Id"},"aid":{"type":"string","title":"Aid"}},"type":"object","required":["relationship_type","aid"],"title":"LinkageOut"},"MssStep":{"properties":{"step_num":{"type":"integer","exclusiveMinimum":0.0,"title":"Step Num"},"description":{"type":"string","minLength":1,"title":"Description"},"actor":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Actor"}},"type":"object","required":["step_num","description"],"title":"MssStep"},"NeedCreate":{"properties":{"title":{"type":"string","title":"Title"},"description":{"type":"string","title":"Description"},"area":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Area"},"status":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Status"},"owner":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Owner"},"rationale":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Rationale"},"stakeholder":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Stakeholder"},"owner_id":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Owner Id"},"stakeholder_id":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Stakeholder Id"},"project_id":{"type":"string","title":"Project Id"},"source_vision_id":{"type":"string","title":"Source Vision Id"}},"type":"object","required":["title","description","project_id","source_vision_id"],"title":"NeedCreate"},"NeedOut":{"properties":{"aid":{"type":"string","title":"Aid"},"title":{"type":"string","title":"Title"},"description":{"type":"string","title":"Description"},"area":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Area"},"status":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Status"},"owner":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Owner"},"rationale":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Rationale"},"stakeholder":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Stakeholder"},"owner_id":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Owner Id"},"stakeholder_id":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Stakeholder Id"},"project_id":{"type":"string","title":"Project Id"},"created_date":{"anyOf":[{"type":"string","format":"date-time"},{"type":"null"}],"title":"Created Date"},"last_updated":{"anyOf":[{"type":"string","format":"date-time"},{"type":"null"}],"title":"Last Updated"}},"type":"object","required":["aid","title","description","project_id"],"title":"NeedOut"},"PersonCreate":{"properties":{"name":{"type":"string","title":"Name"},"role":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Role"},"email":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Email"},"person_type":{"type":"string","title":"Person Type","default":"both"}},"type":"object","required":["name"],"title":"PersonCreate"},"PersonOut":{"properties":{"name":{"type":"string","title":"Name"},"role":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Role"},"email":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Email"},"person_type":{"type":"string","title":"Person Type","default":"both"},"id":{"type":"string","title":"Id"}},"type":"object","required":["name","id"],"title":"PersonOut"},"PreconditionCreate":{"properties":{"text":{"type":"string","minLength":1,"title":"Text"},"project_id":{"type":"string","title":"Project Id"}},"type":"object","required":["text","project_id"],"title":"PreconditionCreate"},"PreconditionOut":{"properties":{"text":{"type":"string","minLength":1,"title":"Text"},"id":{"type":"string","title":"Id"},"project_id":{"type":"string","title":"Project Id"}},"type":"object","required":["text","id","project_id"],"title":"PreconditionOut"},"ProjectCreate":{"properties":{"name":{"type":"string","title":"Name"},"description":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Description"}},"type":"object","required":["name"],"title":"ProjectCreate"},"ProjectOut":{"properties":{"name":{"type":"string","title":"Name"},"description":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Description"},"id":{"type":"string","title":"Id"}},"type":"object","required":["name","id"],"title":"ProjectOut"},"ProjectUpdate":{"properties":{"name":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Name"},"description":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Description"}},"type":"object","title":"ProjectUpdate"},"ReqLevel":{"type":"string","enum":["stk","sys","sub"],"title":"ReqLevel"},"RequirementCreate":{"properties":{"short_name":{"type":"string","title":"Short Name"},"text":{"type":"string","title":"Text"},"area":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Area"},"level":{"anyOf":[{"$ref":"#/components/schemas/ReqLevel"},{"type":"null"}]},"ears_type":{"anyOf":[{"$ref":"#/components/schemas/EarsType"},{"type":"null"}]},"status":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Status"},"rationale":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Rationale"},"owner":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Owner"},"project_id":{"type":"string","title":"Project Id"},"source_use_case_id":{"type":"string","title":"Source Use Case Id"}},"type":"object","required":["short_name","text","project_id","source_use_case_id"],"title":"RequirementCreate"},"RequirementOut":{"properties":{"aid":{"type":"string","title":"Aid"},"short_name":{"type":"string","title":"Short Name"},"text":{"type":"string","title":"Text"},"area":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Area"},"level":{"anyOf":[{"$ref":"#/components/schemas/ReqLevel"},{"type":"null"}]},"ears_type":{"anyOf":[{"$ref":"#/components/schemas/EarsType"},{"type":"null"}]},"status":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Status"},"rationale":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Rationale"},"owner":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Owner"},"project_id":{"type":"string","title":"Project Id"},"created_date":{"anyOf":[{"type":"string","format":"date-time"},{"type":"null"}],"title":"Created Date"},"last_updated":{"anyOf":[{"type":"string","format":"date-time"},{"type":"null"}],"title":"Last Updated"}},"type":"object","required":["aid","short_name","text","project_id"],"title":"RequirementOut"},"UseCaseCreate":{"properties":{"title":{"type":"string","title":"Title"},"primary_actor":{"type":"string","title":"Primary Actor"},"area":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Area"},"status":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Status"},"scope":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Scope"},"level":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Level","default":"User Goal"},"stakeholders":{"items":{"type":"string"},"type":"array","title":"Stakeholders"},"precondition_ids":{"items":{"type":"string"},"type":"array","title":"Precondition Ids"},"postconditions":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Postconditions"},"mss":{"items":{"$ref":"#/components/schemas/MssStep"},"type":"array","title":"Mss"},"extensions":{"additionalProperties":{"items":{"$ref":"#/components/schemas/Extension"},"type":"array"},"type":"object","title":"Extensions"},"exceptions":{"items":{"type":"string"},"type":"array","title":"Exceptions"},"description":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Description"},"req_references":{"items":{"type":"string"},"type":"array","title":"Req References"},"project_id":{"type":"string","title":"Project Id"},"source_need_id":{"type":"string","title":"Source Need Id"}},"type":"object","required":["title","primary_actor","project_id","source_need_id"],"title":"UseCaseCreate"},"UseCaseOut":{"properties":{"aid":{"type":"string","title":"Aid"},"title":{"type":"string","title":"Title"},"primary_actor":{"type":"string","title":"Primary Actor"},"area":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Area"},"status":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Status"},"scope":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Scope"},"level":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Level","default":"User Goal"},"stakeholders":{"items":{"type":"string"},"type":"array","title":"Stakeholders"},"preconditions":{"items":{"$ref":"#/components/schemas/PreconditionOut"},"type":"array","title":"Preconditions"},"postconditions":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Postconditions"},"mss":{"items":{"$ref":"#/components/schemas/MssStep"},"type":"array","title":"Mss"},"extensions":{"additionalProperties":{"items":{"$ref":"#/components/schemas/Extension"},"type":"array"},"type":"object","title":"Extensions"},"exceptions":{"items":{"type":"string"},"type":"array","title":"Exceptions"},"description":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Description"},"req_references":{"items":{"type":"string"},"type":"array","title":"Req References"},"project_id":{"type":"string","title":"Project Id"},"created_date":{"anyOf":[{"type":"string","format":"date-time"},{"type":"null"}],"title":"Created Date"},"last_updated":{"anyOf":[{"type":"string","format":"date-time"},{"type":"null"}],"title":"Last Updated"}},"type":"object","required":["aid","title","primary_actor","project_id"],"title":"UseCaseOut"},"UserCreate":{"properties":{"email":{"type":"string","title":"Email"},"password":{"type":"string","title":"Password"}},"type":"object","required":["email","password"],"title":"UserCreate"},"UserOut":{"properties":{"email":{"type":"string","title":"Email"},"aid":{"type":"integer","title":"Aid"},"is_active":{"type":"boolean","title":"Is Active","default":true},"created_date":{"type":"string","format":"date-time","title":"Created Date"}},"type":"object","required":["email","aid","created_date"],"title":"UserOut"},"ValidationError":{"properties":{"loc":{"items":{"anyOf":[{"type":"string"},{"type":"integer"}]},"type":"array","title":"Location"},"msg":{"type":"string","title":"Message"},"type":{"type":"string","title":"Error Type"}},"type":"object","required":["loc","msg","type"],"title":"ValidationError"},"VisionCreate":{"properties":{"title":{"type":"string","title":"Title"},"description":{"type":"string","title":"Description","description":"Supports Markdown formatting"},"project_id":{"type":"string","title":"Project Id"}},"type":"object","required":["title","description","project_id"],"title":"VisionCreate"},"VisionOut":{"properties":{"title":{"type":"string","title":"Title"},"description":{"type":"string","title":"Description","description":"Supports Markdown formatting"},"project_id":{"type":"string","title":"Project Id"},"aid":{"type":"string","title":"Aid"},"created_date":{"anyOf":[{"type":"string","format":"date-time"},{"type":"null"}],"title":"Created Date"},"last_updated":{"anyOf":[{"type":"string","format":"date-time"},{"type":"null"}],"title":"Last Updated"}},"type":"object","required":["title","description","project_id","aid"],"title":"VisionOut"}}}}
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Artifact Registry Backend",
+        "version": "0.1.0"
+    },
+    "paths": {
+        "/api/v1/users/": {
+            "post": {
+                "tags": [
+                    "users"
+                ],
+                "summary": "Create User",
+                "operationId": "create_user_api_v1_users__post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UserCreate"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserOut"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/linkage/linkages/": {
+            "get": {
+                "tags": [
+                    "linkage",
+                    "Linkages"
+                ],
+                "summary": "List Linkages",
+                "operationId": "list_linkages_api_v1_linkage_linkages__get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "items": {
+                                        "$ref": "#/components/schemas/LinkageOut"
+                                    },
+                                    "type": "array",
+                                    "title": "Response List Linkages Api V1 Linkage Linkages  Get"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "linkage",
+                    "Linkages"
+                ],
+                "summary": "Create Linkage",
+                "operationId": "create_linkage_api_v1_linkage_linkages__post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LinkageCreate"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LinkageOut"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/linkage/linkages/{aid}": {
+            "get": {
+                "tags": [
+                    "linkage",
+                    "Linkages"
+                ],
+                "summary": "Get Linkage",
+                "operationId": "get_linkage_api_v1_linkage_linkages__aid__get",
+                "parameters": [
+                    {
+                        "name": "aid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Aid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LinkageOut"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "linkage",
+                    "Linkages"
+                ],
+                "summary": "Update Linkage",
+                "operationId": "update_linkage_api_v1_linkage_linkages__aid__put",
+                "parameters": [
+                    {
+                        "name": "aid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Aid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LinkageCreate"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LinkageOut"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "linkage",
+                    "Linkages"
+                ],
+                "summary": "Delete Linkage",
+                "operationId": "delete_linkage_api_v1_linkage_linkages__aid__delete",
+                "parameters": [
+                    {
+                        "name": "aid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Aid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Successful Response"
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/linkage/linkages/from/{source_aid}": {
+            "get": {
+                "tags": [
+                    "linkage",
+                    "Linkages"
+                ],
+                "summary": "Get Outgoing Linkages",
+                "operationId": "get_outgoing_linkages_api_v1_linkage_linkages_from__source_aid__get",
+                "parameters": [
+                    {
+                        "name": "source_aid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Source Aid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/LinkageOut"
+                                    },
+                                    "title": "Response Get Outgoing Linkages Api V1 Linkage Linkages From  Source Aid  Get"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/need/needs/": {
+            "get": {
+                "tags": [
+                    "need",
+                    "Needs"
+                ],
+                "summary": "List Needs",
+                "operationId": "list_needs_api_v1_need_needs__get",
+                "parameters": [
+                    {
+                        "name": "area",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "description": "Filter by area (e.g., MCK)",
+                            "title": "Area"
+                        },
+                        "description": "Filter by area (e.g., MCK)"
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "description": "Filter by status (e.g., proposed)",
+                            "title": "Status"
+                        },
+                        "description": "Filter by status (e.g., proposed)"
+                    },
+                    {
+                        "name": "owner",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "description": "Filter by owner",
+                            "title": "Owner"
+                        },
+                        "description": "Filter by owner"
+                    },
+                    {
+                        "name": "select_all",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean",
+                            "description": "Ignore filters and return all",
+                            "default": false,
+                            "title": "Select All"
+                        },
+                        "description": "Ignore filters and return all"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/NeedOut"
+                                    },
+                                    "title": "Response List Needs Api V1 Need Needs  Get"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "need",
+                    "Needs"
+                ],
+                "summary": "Create Need",
+                "operationId": "create_need_api_v1_need_needs__post",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/NeedCreate"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NeedOut"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/need/needs/{aid}": {
+            "get": {
+                "tags": [
+                    "need",
+                    "Needs"
+                ],
+                "summary": "Get Need",
+                "operationId": "get_need_api_v1_need_needs__aid__get",
+                "parameters": [
+                    {
+                        "name": "aid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Aid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NeedOut"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "need",
+                    "Needs"
+                ],
+                "summary": "Update Need",
+                "operationId": "update_need_api_v1_need_needs__aid__put",
+                "parameters": [
+                    {
+                        "name": "aid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Aid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/NeedCreate"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NeedOut"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "need",
+                    "Needs"
+                ],
+                "summary": "Delete Need",
+                "operationId": "delete_need_api_v1_need_needs__aid__delete",
+                "parameters": [
+                    {
+                        "name": "aid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Aid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Successful Response"
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/requirement/requirements/": {
+            "get": {
+                "tags": [
+                    "requirement",
+                    "Requirements"
+                ],
+                "summary": "List Requirements",
+                "operationId": "list_requirements_api_v1_requirement_requirements__get",
+                "parameters": [
+                    {
+                        "name": "area",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "description": "Filter by area (e.g., MCK)",
+                            "title": "Area"
+                        },
+                        "description": "Filter by area (e.g., MCK)"
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "description": "Filter by status (e.g., proposed)",
+                            "title": "Status"
+                        },
+                        "description": "Filter by status (e.g., proposed)"
+                    },
+                    {
+                        "name": "owner",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "description": "Filter by owner",
+                            "title": "Owner"
+                        },
+                        "description": "Filter by owner"
+                    },
+                    {
+                        "name": "level",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "description": "Filter by level (e.g., STK)",
+                            "title": "Level"
+                        },
+                        "description": "Filter by level (e.g., STK)"
+                    },
+                    {
+                        "name": "ears_type",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "description": "Filter by EARS type (e.g., SYS)",
+                            "title": "Ears Type"
+                        },
+                        "description": "Filter by EARS type (e.g., SYS)"
+                    },
+                    {
+                        "name": "select_all",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean",
+                            "description": "Ignore all filters and return everything",
+                            "default": false,
+                            "title": "Select All"
+                        },
+                        "description": "Ignore all filters and return everything"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/RequirementOut"
+                                    },
+                                    "title": "Response List Requirements Api V1 Requirement Requirements  Get"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "requirement",
+                    "Requirements"
+                ],
+                "summary": "Create Requirement",
+                "operationId": "create_requirement_api_v1_requirement_requirements__post",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RequirementCreate"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RequirementOut"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/requirement/requirements/{aid}": {
+            "get": {
+                "tags": [
+                    "requirement",
+                    "Requirements"
+                ],
+                "summary": "Get Requirement",
+                "description": "Retrieve a single requirement by its artifact identifier (aid).",
+                "operationId": "get_requirement_api_v1_requirement_requirements__aid__get",
+                "parameters": [
+                    {
+                        "name": "aid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Aid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RequirementOut"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "requirement",
+                    "Requirements"
+                ],
+                "summary": "Update Requirement",
+                "description": "Partial update of an existing requirement. Only fields present in the payload\nare changed; `last_updated` is refreshed automatically.",
+                "operationId": "update_requirement_api_v1_requirement_requirements__aid__put",
+                "parameters": [
+                    {
+                        "name": "aid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Aid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RequirementCreate"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RequirementOut"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "requirement",
+                    "Requirements"
+                ],
+                "summary": "Delete Requirement",
+                "description": "Permanently delete a requirement. All linkages that reference this\nrequirement should be cleaned up by the client or a cascade rule.",
+                "operationId": "delete_requirement_api_v1_requirement_requirements__aid__delete",
+                "parameters": [
+                    {
+                        "name": "aid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Aid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Successful Response"
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/use_case/use-cases/preconditions": {
+            "get": {
+                "tags": [
+                    "use_case",
+                    "Use Cases"
+                ],
+                "summary": "List Preconditions",
+                "operationId": "list_preconditions_api_v1_use_case_use_cases_preconditions_get",
+                "parameters": [
+                    {
+                        "name": "project_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "description": "Project ID",
+                            "title": "Project Id"
+                        },
+                        "description": "Project ID"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/PreconditionOut"
+                                    },
+                                    "title": "Response List Preconditions Api V1 Use Case Use Cases Preconditions Get"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "use_case",
+                    "Use Cases"
+                ],
+                "summary": "Create Precondition",
+                "operationId": "create_precondition_api_v1_use_case_use_cases_preconditions_post",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PreconditionCreate"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PreconditionOut"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/use_case/use-cases/": {
+            "get": {
+                "tags": [
+                    "use_case",
+                    "Use Cases"
+                ],
+                "summary": "List Use Cases",
+                "operationId": "list_use_cases_api_v1_use_case_use_cases__get",
+                "parameters": [
+                    {
+                        "name": "area",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "description": "Filter by area (e.g., MCK)",
+                            "title": "Area"
+                        },
+                        "description": "Filter by area (e.g., MCK)"
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "description": "Filter by status (e.g., proposed)",
+                            "title": "Status"
+                        },
+                        "description": "Filter by status (e.g., proposed)"
+                    },
+                    {
+                        "name": "primary_actor",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ],
+                            "description": "Filter by primary_actor",
+                            "title": "Primary Actor"
+                        },
+                        "description": "Filter by primary_actor"
+                    },
+                    {
+                        "name": "select_all",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean",
+                            "description": "Select all requirements (ignore filters)",
+                            "default": false,
+                            "title": "Select All"
+                        },
+                        "description": "Select all requirements (ignore filters)"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/UseCaseOut"
+                                    },
+                                    "title": "Response List Use Cases Api V1 Use Case Use Cases  Get"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "use_case",
+                    "Use Cases"
+                ],
+                "summary": "Create Use Case",
+                "operationId": "create_use_case_api_v1_use_case_use_cases__post",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UseCaseCreate"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UseCaseOut"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/use_case/use-cases/{aid}": {
+            "get": {
+                "tags": [
+                    "use_case",
+                    "Use Cases"
+                ],
+                "summary": "Get Use Case",
+                "operationId": "get_use_case_api_v1_use_case_use_cases__aid__get",
+                "parameters": [
+                    {
+                        "name": "aid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Aid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UseCaseOut"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "use_case",
+                    "Use Cases"
+                ],
+                "summary": "Update Use Case",
+                "operationId": "update_use_case_api_v1_use_case_use_cases__aid__put",
+                "parameters": [
+                    {
+                        "name": "aid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Aid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UseCaseCreate"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UseCaseOut"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "use_case",
+                    "Use Cases"
+                ],
+                "summary": "Delete Use Case",
+                "operationId": "delete_use_case_api_v1_use_case_use_cases__aid__delete",
+                "parameters": [
+                    {
+                        "name": "aid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Aid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Successful Response"
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/vision/vision-statements/": {
+            "get": {
+                "tags": [
+                    "vision",
+                    "Vision Statements"
+                ],
+                "summary": "List Vision Statements",
+                "operationId": "list_vision_statements_api_v1_vision_vision_statements__get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "items": {
+                                        "$ref": "#/components/schemas/VisionOut"
+                                    },
+                                    "type": "array",
+                                    "title": "Response List Vision Statements Api V1 Vision Vision Statements  Get"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "vision",
+                    "Vision Statements"
+                ],
+                "summary": "Create Vision Statement",
+                "operationId": "create_vision_statement_api_v1_vision_vision_statements__post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/VisionCreate"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/VisionOut"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/vision/vision-statements/{aid}": {
+            "get": {
+                "tags": [
+                    "vision",
+                    "Vision Statements"
+                ],
+                "summary": "Get Vision Statement",
+                "operationId": "get_vision_statement_api_v1_vision_vision_statements__aid__get",
+                "parameters": [
+                    {
+                        "name": "aid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Aid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/VisionOut"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "vision",
+                    "Vision Statements"
+                ],
+                "summary": "Update Vision Statement",
+                "operationId": "update_vision_statement_api_v1_vision_vision_statements__aid__put",
+                "parameters": [
+                    {
+                        "name": "aid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Aid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/VisionCreate"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/VisionOut"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "vision",
+                    "Vision Statements"
+                ],
+                "summary": "Delete Vision Statement",
+                "operationId": "delete_vision_statement_api_v1_vision_vision_statements__aid__delete",
+                "parameters": [
+                    {
+                        "name": "aid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Aid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Successful Response"
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/metadata/metadata/areas": {
+            "get": {
+                "tags": [
+                    "metadata",
+                    "Metadata"
+                ],
+                "summary": "List Areas",
+                "operationId": "list_areas_api_v1_metadata_metadata_areas_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "items": {
+                                        "$ref": "#/components/schemas/AreaOut"
+                                    },
+                                    "type": "array",
+                                    "title": "Response List Areas Api V1 Metadata Metadata Areas Get"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "metadata",
+                    "Metadata"
+                ],
+                "summary": "Create Area",
+                "operationId": "create_area_api_v1_metadata_metadata_areas_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AreaCreate"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AreaOut"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/metadata/metadata/people": {
+            "get": {
+                "tags": [
+                    "metadata",
+                    "Metadata"
+                ],
+                "summary": "List People",
+                "operationId": "list_people_api_v1_metadata_metadata_people_get",
+                "parameters": [
+                    {
+                        "name": "person_type",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "title": "Person Type"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/PersonOut"
+                                    },
+                                    "title": "Response List People Api V1 Metadata Metadata People Get"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "metadata",
+                    "Metadata"
+                ],
+                "summary": "Create Person",
+                "operationId": "create_person_api_v1_metadata_metadata_people_post",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PersonCreate"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PersonOut"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/projects/projects/": {
+            "get": {
+                "tags": [
+                    "projects",
+                    "projects"
+                ],
+                "summary": "List Projects",
+                "operationId": "list_projects_api_v1_projects_projects__get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "items": {
+                                        "$ref": "#/components/schemas/ProjectOut"
+                                    },
+                                    "type": "array",
+                                    "title": "Response List Projects Api V1 Projects Projects  Get"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "projects",
+                    "projects"
+                ],
+                "summary": "Create Project",
+                "operationId": "create_project_api_v1_projects_projects__post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProjectCreate"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectOut"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/projects/projects/{project_id}": {
+            "get": {
+                "tags": [
+                    "projects",
+                    "projects"
+                ],
+                "summary": "Get Project",
+                "operationId": "get_project_api_v1_projects_projects__project_id__get",
+                "parameters": [
+                    {
+                        "name": "project_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Project Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectOut"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "projects",
+                    "projects"
+                ],
+                "summary": "Update Project",
+                "operationId": "update_project_api_v1_projects_projects__project_id__put",
+                "parameters": [
+                    {
+                        "name": "project_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Project Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ProjectUpdate"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectOut"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "projects",
+                    "projects"
+                ],
+                "summary": "Delete Project",
+                "operationId": "delete_project_api_v1_projects_projects__project_id__delete",
+                "parameters": [
+                    {
+                        "name": "project_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Project Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Successful Response"
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "AreaCreate": {
+                "properties": {
+                    "code": {
+                        "type": "string",
+                        "title": "Code"
+                    },
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
+                    "description": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Description"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "code",
+                    "name"
+                ],
+                "title": "AreaCreate"
+            },
+            "AreaOut": {
+                "properties": {
+                    "code": {
+                        "type": "string",
+                        "title": "Code"
+                    },
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
+                    "description": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Description"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "code",
+                    "name"
+                ],
+                "title": "AreaOut"
+            },
+            "EarsType": {
+                "type": "string",
+                "enum": [
+                    "ubiquitous",
+                    "event-driven",
+                    "unwanted",
+                    "state-driven",
+                    "optional",
+                    "complex"
+                ],
+                "title": "EarsType"
+            },
+            "Extension": {
+                "properties": {
+                    "trigger_step": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0.0,
+                        "title": "Trigger Step"
+                    },
+                    "variant": {
+                        "type": "string",
+                        "minLength": 1,
+                        "title": "Variant"
+                    },
+                    "outcome": {
+                        "type": "string",
+                        "minLength": 1,
+                        "title": "Outcome"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "trigger_step",
+                    "variant",
+                    "outcome"
+                ],
+                "title": "Extension"
+            },
+            "HTTPValidationError": {
+                "properties": {
+                    "detail": {
+                        "items": {
+                            "$ref": "#/components/schemas/ValidationError"
+                        },
+                        "type": "array",
+                        "title": "Detail"
+                    }
+                },
+                "type": "object",
+                "title": "HTTPValidationError"
+            },
+            "LinkageCreate": {
+                "properties": {
+                    "source_artifact_type": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Source Artifact Type"
+                    },
+                    "source_id": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Source Id"
+                    },
+                    "target_artifact_type": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Target Artifact Type"
+                    },
+                    "target_id": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Target Id"
+                    },
+                    "relationship_type": {
+                        "type": "string",
+                        "title": "Relationship Type"
+                    },
+                    "project_id": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Project Id"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "relationship_type"
+                ],
+                "title": "LinkageCreate"
+            },
+            "LinkageOut": {
+                "properties": {
+                    "source_artifact_type": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Source Artifact Type"
+                    },
+                    "source_id": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Source Id"
+                    },
+                    "target_artifact_type": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Target Artifact Type"
+                    },
+                    "target_id": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Target Id"
+                    },
+                    "relationship_type": {
+                        "type": "string",
+                        "title": "Relationship Type"
+                    },
+                    "project_id": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Project Id"
+                    },
+                    "aid": {
+                        "type": "string",
+                        "title": "Aid"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "relationship_type",
+                    "aid"
+                ],
+                "title": "LinkageOut"
+            },
+            "MssStep": {
+                "properties": {
+                    "step_num": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0.0,
+                        "title": "Step Num"
+                    },
+                    "description": {
+                        "type": "string",
+                        "minLength": 1,
+                        "title": "Description"
+                    },
+                    "actor": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Actor"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "step_num",
+                    "description"
+                ],
+                "title": "MssStep"
+            },
+            "NeedCreate": {
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "title": "Title"
+                    },
+                    "description": {
+                        "type": "string",
+                        "title": "Description"
+                    },
+                    "area": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Area"
+                    },
+                    "status": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Status"
+                    },
+                    "owner": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Owner"
+                    },
+                    "rationale": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Rationale"
+                    },
+                    "stakeholder": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Stakeholder"
+                    },
+                    "owner_id": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Owner Id"
+                    },
+                    "stakeholder_id": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Stakeholder Id"
+                    },
+                    "project_id": {
+                        "type": "string",
+                        "title": "Project Id"
+                    },
+                    "source_vision_id": {
+                        "type": "string",
+                        "title": "Source Vision Id"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "title",
+                    "description",
+                    "project_id",
+                    "source_vision_id"
+                ],
+                "title": "NeedCreate"
+            },
+            "NeedOut": {
+                "properties": {
+                    "aid": {
+                        "type": "string",
+                        "title": "Aid"
+                    },
+                    "title": {
+                        "type": "string",
+                        "title": "Title"
+                    },
+                    "description": {
+                        "type": "string",
+                        "title": "Description"
+                    },
+                    "area": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Area"
+                    },
+                    "status": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Status"
+                    },
+                    "owner": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Owner"
+                    },
+                    "rationale": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Rationale"
+                    },
+                    "stakeholder": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Stakeholder"
+                    },
+                    "owner_id": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Owner Id"
+                    },
+                    "stakeholder_id": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Stakeholder Id"
+                    },
+                    "project_id": {
+                        "type": "string",
+                        "title": "Project Id"
+                    },
+                    "created_date": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Created Date"
+                    },
+                    "last_updated": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Last Updated"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "aid",
+                    "title",
+                    "description",
+                    "project_id"
+                ],
+                "title": "NeedOut"
+            },
+            "PersonCreate": {
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
+                    "role": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Role"
+                    },
+                    "email": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Email"
+                    },
+                    "person_type": {
+                        "type": "string",
+                        "title": "Person Type",
+                        "default": "both"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "name"
+                ],
+                "title": "PersonCreate"
+            },
+            "PersonOut": {
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
+                    "role": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Role"
+                    },
+                    "email": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Email"
+                    },
+                    "person_type": {
+                        "type": "string",
+                        "title": "Person Type",
+                        "default": "both"
+                    },
+                    "id": {
+                        "type": "string",
+                        "title": "Id"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "name",
+                    "id"
+                ],
+                "title": "PersonOut"
+            },
+            "PreconditionCreate": {
+                "properties": {
+                    "text": {
+                        "type": "string",
+                        "minLength": 1,
+                        "title": "Text"
+                    },
+                    "project_id": {
+                        "type": "string",
+                        "title": "Project Id"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "text",
+                    "project_id"
+                ],
+                "title": "PreconditionCreate"
+            },
+            "PreconditionOut": {
+                "properties": {
+                    "text": {
+                        "type": "string",
+                        "minLength": 1,
+                        "title": "Text"
+                    },
+                    "id": {
+                        "type": "string",
+                        "title": "Id"
+                    },
+                    "project_id": {
+                        "type": "string",
+                        "title": "Project Id"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "text",
+                    "id",
+                    "project_id"
+                ],
+                "title": "PreconditionOut"
+            },
+            "ProjectCreate": {
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
+                    "description": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Description"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "name"
+                ],
+                "title": "ProjectCreate"
+            },
+            "ProjectOut": {
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
+                    "description": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Description"
+                    },
+                    "id": {
+                        "type": "string",
+                        "title": "Id"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "name",
+                    "id"
+                ],
+                "title": "ProjectOut"
+            },
+            "ProjectUpdate": {
+                "properties": {
+                    "name": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Name"
+                    },
+                    "description": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Description"
+                    }
+                },
+                "type": "object",
+                "title": "ProjectUpdate"
+            },
+            "ReqLevel": {
+                "type": "string",
+                "enum": [
+                    "stk",
+                    "sys",
+                    "sub"
+                ],
+                "title": "ReqLevel"
+            },
+            "RequirementCreate": {
+                "properties": {
+                    "short_name": {
+                        "type": "string",
+                        "title": "Short Name"
+                    },
+                    "text": {
+                        "type": "string",
+                        "title": "Text"
+                    },
+                    "area": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Area"
+                    },
+                    "level": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/ReqLevel"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "ears_type": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/EarsType"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "status": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Status"
+                    },
+                    "rationale": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Rationale"
+                    },
+                    "owner": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Owner"
+                    },
+                    "project_id": {
+                        "type": "string",
+                        "title": "Project Id"
+                    },
+                    "source_use_case_id": {
+                        "type": "string",
+                        "title": "Source Use Case Id"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "short_name",
+                    "text",
+                    "project_id",
+                    "source_use_case_id"
+                ],
+                "title": "RequirementCreate"
+            },
+            "RequirementOut": {
+                "properties": {
+                    "aid": {
+                        "type": "string",
+                        "title": "Aid"
+                    },
+                    "short_name": {
+                        "type": "string",
+                        "title": "Short Name"
+                    },
+                    "text": {
+                        "type": "string",
+                        "title": "Text"
+                    },
+                    "area": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Area"
+                    },
+                    "level": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/ReqLevel"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "ears_type": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/EarsType"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "status": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Status"
+                    },
+                    "rationale": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Rationale"
+                    },
+                    "owner": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Owner"
+                    },
+                    "project_id": {
+                        "type": "string",
+                        "title": "Project Id"
+                    },
+                    "created_date": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Created Date"
+                    },
+                    "last_updated": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Last Updated"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "aid",
+                    "short_name",
+                    "text",
+                    "project_id"
+                ],
+                "title": "RequirementOut"
+            },
+            "UseCaseCreate": {
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "title": "Title"
+                    },
+                    "primary_actor": {
+                        "type": "string",
+                        "title": "Primary Actor"
+                    },
+                    "area": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Area"
+                    },
+                    "status": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Status"
+                    },
+                    "scope": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Scope"
+                    },
+                    "level": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Level",
+                        "default": "User Goal"
+                    },
+                    "stakeholders": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Stakeholders"
+                    },
+                    "precondition_ids": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Precondition Ids"
+                    },
+                    "postconditions": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Postconditions"
+                    },
+                    "mss": {
+                        "items": {
+                            "$ref": "#/components/schemas/MssStep"
+                        },
+                        "type": "array",
+                        "title": "Mss"
+                    },
+                    "extensions": {
+                        "additionalProperties": {
+                            "items": {
+                                "$ref": "#/components/schemas/Extension"
+                            },
+                            "type": "array"
+                        },
+                        "type": "object",
+                        "title": "Extensions"
+                    },
+                    "exceptions": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Exceptions"
+                    },
+                    "description": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Description"
+                    },
+                    "req_references": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Req References"
+                    },
+                    "project_id": {
+                        "type": "string",
+                        "title": "Project Id"
+                    },
+                    "source_need_id": {
+                        "type": "string",
+                        "title": "Source Need Id"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "title",
+                    "primary_actor",
+                    "project_id",
+                    "source_need_id"
+                ],
+                "title": "UseCaseCreate"
+            },
+            "UseCaseOut": {
+                "properties": {
+                    "aid": {
+                        "type": "string",
+                        "title": "Aid"
+                    },
+                    "title": {
+                        "type": "string",
+                        "title": "Title"
+                    },
+                    "primary_actor": {
+                        "type": "string",
+                        "title": "Primary Actor"
+                    },
+                    "area": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Area"
+                    },
+                    "status": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Status"
+                    },
+                    "scope": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Scope"
+                    },
+                    "level": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Level",
+                        "default": "User Goal"
+                    },
+                    "stakeholders": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Stakeholders"
+                    },
+                    "preconditions": {
+                        "items": {
+                            "$ref": "#/components/schemas/PreconditionOut"
+                        },
+                        "type": "array",
+                        "title": "Preconditions"
+                    },
+                    "postconditions": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Postconditions"
+                    },
+                    "mss": {
+                        "items": {
+                            "$ref": "#/components/schemas/MssStep"
+                        },
+                        "type": "array",
+                        "title": "Mss"
+                    },
+                    "extensions": {
+                        "additionalProperties": {
+                            "items": {
+                                "$ref": "#/components/schemas/Extension"
+                            },
+                            "type": "array"
+                        },
+                        "type": "object",
+                        "title": "Extensions"
+                    },
+                    "exceptions": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Exceptions"
+                    },
+                    "description": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Description"
+                    },
+                    "req_references": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Req References"
+                    },
+                    "project_id": {
+                        "type": "string",
+                        "title": "Project Id"
+                    },
+                    "created_date": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Created Date"
+                    },
+                    "last_updated": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Last Updated"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "aid",
+                    "title",
+                    "primary_actor",
+                    "project_id"
+                ],
+                "title": "UseCaseOut"
+            },
+            "UserCreate": {
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "title": "Email"
+                    },
+                    "password": {
+                        "type": "string",
+                        "title": "Password"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "email",
+                    "password"
+                ],
+                "title": "UserCreate"
+            },
+            "UserOut": {
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "title": "Email"
+                    },
+                    "aid": {
+                        "type": "integer",
+                        "title": "Aid"
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "title": "Is Active",
+                        "default": true
+                    },
+                    "created_date": {
+                        "type": "string",
+                        "format": "date-time",
+                        "title": "Created Date"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "email",
+                    "aid",
+                    "created_date"
+                ],
+                "title": "UserOut"
+            },
+            "ValidationError": {
+                "properties": {
+                    "loc": {
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "integer"
+                                }
+                            ]
+                        },
+                        "type": "array",
+                        "title": "Location"
+                    },
+                    "msg": {
+                        "type": "string",
+                        "title": "Message"
+                    },
+                    "type": {
+                        "type": "string",
+                        "title": "Error Type"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "loc",
+                    "msg",
+                    "type"
+                ],
+                "title": "ValidationError"
+            },
+            "VisionCreate": {
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "title": "Title"
+                    },
+                    "description": {
+                        "type": "string",
+                        "title": "Description",
+                        "description": "Supports Markdown formatting"
+                    },
+                    "project_id": {
+                        "type": "string",
+                        "title": "Project Id"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "title",
+                    "description",
+                    "project_id"
+                ],
+                "title": "VisionCreate"
+            },
+            "VisionOut": {
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "title": "Title"
+                    },
+                    "description": {
+                        "type": "string",
+                        "title": "Description",
+                        "description": "Supports Markdown formatting"
+                    },
+                    "project_id": {
+                        "type": "string",
+                        "title": "Project Id"
+                    },
+                    "aid": {
+                        "type": "string",
+                        "title": "Aid"
+                    },
+                    "created_date": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Created Date"
+                    },
+                    "last_updated": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Last Updated"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "title",
+                    "description",
+                    "project_id",
+                    "aid"
+                ],
+                "title": "VisionOut"
+            }
+        }
+    }
+}

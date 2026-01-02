@@ -152,6 +152,58 @@ export default function ArtifactWizard() {
     // Derive artifact type from route params (edit mode) or search params (create mode)
     const artifactType = (routeType as ArtifactType) || (searchParams.get('type') as ArtifactType) || 'vision';
 
+    // Check user permissions
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const userRoles = user?.roles || [];
+
+    // Map artifact type to role prefix
+    const getRolePrefix = (type: string): string => {
+        const mapping: Record<string, string> = {
+            'vision': 'vision',
+            'need': 'need',
+            'use_case': 'uc',
+            'requirement': 'req',
+            'document': 'doc',
+            'actor': 'actor',
+            'stakeholder': 'stakeholder',
+            'area': 'area'
+        };
+        return mapping[type] || type;
+    };
+
+    const rolePrefix = getRolePrefix(artifactType);
+
+    // Determine required permission based on mode and artifact type
+    const requiredPermission = isEditMode
+        ? `${rolePrefix}_edit`
+        : `${rolePrefix}_create`;
+
+    const hasPermission = userRoles.includes('admin') ||
+        userRoles.includes(requiredPermission);
+
+    // Show access denied if no permission
+    if (!hasPermission) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-4 p-8">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+                    <X className="w-8 h-8 text-red-600" />
+                </div>
+                <h1 className="text-2xl font-bold text-slate-800">Access Denied</h1>
+                <p className="text-slate-500 max-w-md">
+                    You don't have permission to {isEditMode ? 'edit' : 'create'} {artifactType.replace('_', ' ')} artifacts.
+                    Please contact your administrator if you need access.
+                </p>
+                <button
+                    onClick={() => navigate(`/projects/${projectId}`)}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-bold"
+                >
+                    Return to Project
+                </button>
+            </div>
+        );
+    }
+
     const [showAreaModal, setShowAreaModal] = useState(false);
     const [showPersonModal, setShowPersonModal] = useState(false);
     const [showPreconditionModal, setShowPreconditionModal] = useState(false);

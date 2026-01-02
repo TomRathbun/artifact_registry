@@ -8,6 +8,7 @@ from app.db.models.vision import Vision
 from app.db.session import get_db
 from app.schemas.vision import VisionCreate, VisionOut
 from app.utils.id_generator import generate_artifact_id
+from app.api import deps
 
 router = APIRouter(prefix="/vision-statements", tags=["Vision Statements"])
 
@@ -32,7 +33,11 @@ def list_vision_statements(
 # POST – create
 # -------------------------------------------------
 @router.post("/", response_model=VisionOut, status_code=status.HTTP_201_CREATED)
-def create_vision_statement(payload: VisionCreate, db: Session = Depends(get_db)):
+def create_vision_statement(
+    payload: VisionCreate, 
+    db: Session = Depends(get_db),
+    _perm = Depends(deps.check_permissions(["vision:create"]))
+):
     # Use provided area or default to GLOBAL
     area_code = payload.area if payload.area else "GLOBAL"
     
@@ -63,6 +68,7 @@ def update_vision_statement(
     aid: str,
     payload: VisionCreate,
     db: Session = Depends(get_db),
+    _perm = Depends(deps.check_permissions(["vision:edit"]))
 ):
     db_obj = db.query(Vision).filter(Vision.aid == aid).first()
     if not db_obj:
@@ -79,7 +85,11 @@ def update_vision_statement(
 # DELETE
 # -------------------------------------------------
 @router.delete("/{aid}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_vision_statement(aid: str, db: Session = Depends(get_db)):
+def delete_vision_statement(
+    aid: str, 
+    db: Session = Depends(get_db),
+    _perm = Depends(deps.check_permissions(["vision:delete"]))
+):
     from app.db.models.linkage import Linkage
     
     db_obj = db.query(Vision).filter(Vision.aid == aid).first()

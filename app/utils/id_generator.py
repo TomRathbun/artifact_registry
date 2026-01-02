@@ -23,7 +23,7 @@ TYPE_CODE: Dict[Type, str] = {
 def generate_artifact_id(db: Session, model, area: str, project_id: str) -> str:
     """
     Generate unique AID for the artifact type and area within a project.
-    Format: {PROJECT}-{area}-{TYPE}-{NNN} (e.g., TR2-MCK-NEED-001)
+    Format: {PROJECT}-{area}-{TYPE}-{NNN} (e.g., PROJECT-MCK-NEED-001)
     """
     # Get Project Name
     # Support both UUID and project name

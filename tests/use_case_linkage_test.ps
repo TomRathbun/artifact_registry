@@ -1,8 +1,8 @@
 # 1. Token
-$token = (irm http://127.0.0.1:8000/token -Method Post -Body "username=rathbun&password=seclpass" -ContentType "application/x-www-form-urlencoded").access_token
+$token = (irm http://127.0.0.1:8000/token -Method Post -Body "username=admin&password=seclpass" -ContentType "application/x-www-form-urlencoded").access_token
 
 # 2. CREATE Need (if not already)
-$need_body = @{title="Login Flow"; description="User must log in"; area="MCK"; status="proposed"; owner="rathbun"} | ConvertTo-Json
+$need_body = @{title="Login Flow"; description="User must log in"; area="MCK"; status="proposed"; owner="admin"} | ConvertTo-Json
 $need_res = irm "http://127.0.0.1:8000/needs" -Method Post -Headers @{Authorization="Bearer $token"; "Content-Type"="application/json"} -Body $need_body
 $need_aid = $need_res.aid
 Write-Host "Need AID: $need_aid"

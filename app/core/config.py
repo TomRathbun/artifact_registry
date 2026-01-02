@@ -11,7 +11,7 @@ if env_path.exists():
     load_dotenv(env_path, override=True)
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "TR2 Registry Backend"
+    PROJECT_NAME: str = "Artifact Registry Backend"
     SECRET_KEY: str = "change-me-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30

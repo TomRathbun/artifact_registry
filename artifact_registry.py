@@ -1,24 +1,25 @@
 # artifact_registry.py
-# TR2 Registry Backend – FastAPI entry point
-# Dr Thomas Rathbun / SECL MBSE Team – Phase 2
+# Artifact Registry Backend – FastAPI entry point
+# SECL MBSE Team – Phase 2
 
-from datetime import datetime, timedelta, UTC
-from argon2 import PasswordHasher
-from argon2.exceptions import VerifyMismatchError
-from fastapi import FastAPI, APIRouter, Form
-from fastapi import HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from jose import jwt
-from pydantic import BaseModel
 import os
 import time
 from contextlib import asynccontextmanager
+from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.security import OAuth2PasswordRequestForm
 
 from app.core.config import settings
 from app.api.v1.router import api_router
 from app.db.session import SessionLocal
 from app.db.base import Base, engine
+from app.core import security
+from app.api import deps
+from app.core.roles import Role
+
+# Real hash for 'seclpass' using argon2
+SECL_PASS_HASH = "$argon2id$v=19$m=65536,t=3,p=4$FSh3SKDmtXDxHTXC93snCA$5LaMcoAwxs4G5YFdT+/qbkI1sZaKLAzTLEr0iF4SWYM"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -33,11 +34,14 @@ async def lifespan(app: FastAPI):
             # Seed initial user
             with SessionLocal() as db:
                 from app.db.models.user import User
-                if not db.query(User).filter(User.username == "rathbun").first():
+                if not db.query(User).filter(User.username == "admin").first():
                     db.add(User(
-                        aid="rathbun",
-                        username="rathbun",
-                        email="rathbunt@gmail.com",
+                        aid="admin",
+                        username="admin",
+                        email="admin@example.com",
+                        full_name="Administrator",
+                        roles=[Role.ADMIN.value],
+                        password_expired=True,
                         hashed_password=SECL_PASS_HASH),
                     )
                     db.commit()
@@ -51,18 +55,28 @@ async def lifespan(app: FastAPI):
                 print(f"Database connection failed after {max_retries} attempts: {e}")
     yield
 
-# TODO: Replace with actual hash or load from env
-SECL_PASS_HASH = "$argon2id$v=19$m=65536,t=3,p=4$..." 
-
 app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
-# MOUNT UPLOADS USING CENTRAL SETTINGS
-UPLOAD_DIR = str(settings.UPLOAD_DIR.resolve())
-print(f"!!! ENTRY POINT MOUNTING !!!")
-print(f"Mounting /uploads to: {UPLOAD_DIR}")
-print(f"Path Exists: {os.path.exists(UPLOAD_DIR)}")
-print(f"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+@app.post("/token")
+async def login(db: SessionLocal = Depends(deps.get_db), form_data: OAuth2PasswordRequestForm = Depends()):
+    from app.db.models.user import User
+    user = db.query(User).filter(User.username == form_data.username).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="Incorrect username or password")
+    
+    # Verify password
+    if not security.verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(status_code=400, detail="Incorrect username or password")
+        
+    access_token = security.create_access_token(data={"sub": user.username})
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer",
+        "password_expired": user.password_expired
+    }
 
+# MOUNT UPLOADS
+UPLOAD_DIR = str(settings.UPLOAD_DIR.resolve())
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 app.add_middleware(

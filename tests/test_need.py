@@ -38,7 +38,7 @@ def test_list_needs(client, db_session, auth_token):
 #         description="Test",
 #         area="MCK",
 #         status="PROPOSED",
-#         owner="rathbun"
+#         owner="admin"
 #     )
 #     db_session.add(need)
 #     db_session.commit()

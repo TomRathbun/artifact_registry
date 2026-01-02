@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { MetadataService, ProjectsService } from '../client';
-import { Plus, Edit, Trash2, Save, ArrowUp, ArrowDown, Filter } from 'lucide-react';
+import { Plus, Edit, Trash2, Save, ArrowUp, ArrowDown, Filter, FilterX, Search } from 'lucide-react';
 import { ConfirmationModal } from './ConfirmationModal';
 import MarkdownDisplay from './MarkdownDisplay';
 
@@ -351,42 +351,50 @@ export default function ManagementView({ type }: ManagementViewProps) {
                 isDestructive={confirmation.isDestructive}
             />
 
-            <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold capitalize">{type}s</h2>
+            <div className="flex justify-between items-center bg-slate-50 p-3 rounded-t-lg border-x border-t border-slate-200">
+                <div className="flex gap-4 items-center">
+                    <h2 className="text-xl font-bold capitalize text-slate-800">{type}s</h2>
+
+                    <div className="flex items-center gap-2 border-l pl-3 border-slate-300 min-h-[32px]">
+                        {/* Clear Filters */}
+                        {(sortConfig.key || Object.keys(columnFilters).length > 0) && (
+                            <button
+                                onClick={clearAllFilters}
+                                className="p-1.5 bg-white text-slate-600 rounded border border-slate-200 hover:bg-slate-50 transition-colors flex items-center gap-2 shadow-sm"
+                                title="Clear all filters and sorting"
+                            >
+                                <FilterX className="w-4 h-4" />
+                                <span className="text-xs font-medium">Clear</span>
+                            </button>
+                        )}
+
+                        {/* Bulk Delete */}
+                        {selectedItems.length > 0 && (
+                            <button
+                                onClick={() => {
+                                    setConfirmation({
+                                        isOpen: true,
+                                        title: `Delete Selected ${type}s`,
+                                        message: `Are you sure you want to delete ${selectedItems.length} selected item(s)? This action cannot be undone.`,
+                                        isDestructive: true,
+                                        onConfirm: handleBulkDelete
+                                    });
+                                }}
+                                className="p-1.5 bg-red-50 text-red-600 rounded border border-red-100 hover:bg-red-100 transition-colors flex items-center gap-2 shadow-sm"
+                                title={`Delete ${selectedItems.length} selected item(s)`}
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                <span className="text-xs font-bold">{selectedItems.length}</span>
+                            </button>
+                        )}
+                    </div>
+                </div>
+
                 <div className="flex gap-2">
-                    {/* Clear All Filters Button */}
-                    {(sortConfig.key || Object.keys(columnFilters).length > 0) && (
-                        <button
-                            onClick={clearAllFilters}
-                            className="px-3 py-2 bg-slate-600 text-white rounded hover:bg-slate-700 transition-colors flex items-center gap-2"
-                            title="Clear all filters and sorting"
-                        >
-                            <Filter className="w-4 h-4" />
-                            Clear Filters
-                        </button>
-                    )}
-                    {selectedItems.length > 0 && (
-                        <button
-                            onClick={() => {
-                                setConfirmation({
-                                    isOpen: true,
-                                    title: `Delete Selected ${type}s`,
-                                    message: `Are you sure you want to delete ${selectedItems.length} selected item(s)? This action cannot be undone.`,
-                                    isDestructive: true,
-                                    onConfirm: handleBulkDelete
-                                });
-                            }}
-                            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors flex items-center gap-2"
-                            title={`Delete ${selectedItems.length} selected item(s)`}
-                        >
-                            <Trash2 className="w-4 h-4" />
-                            Delete Selected ({selectedItems.length})
-                        </button>
-                    )}
                     {!isCreating && !isEditing && (
                         <button
                             onClick={() => { setIsCreating(true); setFormData({}); }}
-                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2"
+                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2 shadow-sm transition-all active:scale-95"
                         >
                             <Plus size={16} /> Add {type}
                         </button>

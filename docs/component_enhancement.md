@@ -8,9 +8,9 @@ Implemented Option 4 (Hybrid Approach) for component management, adding flexible
 ### 1. **Tags** (List of strings)
 - **Purpose**: Flexible categorization using multiple tags
 - **Storage**: JSON array stored as string in database
-- **Examples**: `["TR2", "networking", "critical"]`, `["ADGE-T", "legacy", "hardware"]`
+- **Examples**: `["SYSTEM", "networking", "critical"]`, `["ADGE-T", "legacy", "hardware"]`
 - **Use Cases**:
-  - Project association: `TR2`, `ADGE-T`, `TR1`
+  - Project association: `SYSTEM`, `ADGE-T`, `TR1`
   - Categories: `networking`, `storage`, `compute`
   - Priority: `critical`, `important`, `optional`
   - Technology: `cloud-ready`, `on-prem`, `hybrid`
@@ -66,7 +66,7 @@ project_id = Column(String, ForeignKey('projects.id'), nullable=True)
   "name": "CRC",
   "type": "Hardware",
   "description": "Central Router Component",
-  "tags": ["TR2", "networking", "critical"],
+  "tags": ["SYSTEM", "networking", "critical"],
   "lifecycle": "Active",
   "project_id": "project-uuid-here"
 }
@@ -76,14 +76,14 @@ project_id = Column(String, ForeignKey('projects.id'), nullable=True)
 Instead of creating:
 - `CRC - ADGE-T`
 - `CRC - TR1`
-- `CRC - TR2`
+- `CRC - SYSTEM`
 
 Now create one component:
 ```json
 {
   "name": "CRC",
   "type": "Hardware",
-  "tags": ["TR2", "current"],
+  "tags": ["SYSTEM", "current"],
   "lifecycle": "Active"
 }
 ```

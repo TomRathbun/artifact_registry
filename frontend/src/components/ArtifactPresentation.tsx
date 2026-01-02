@@ -1211,7 +1211,7 @@ export default function ArtifactPresentation() {
                                         value={newAidValue}
                                         onChange={(e) => setNewAidValue(e.target.value.toUpperCase())}
                                         className="flex-1 px-3 py-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm"
-                                        placeholder="e.g. TR2-AIC2-NEED-001"
+                                        placeholder="e.g. PROJECT-AIC2-NEED-001"
                                         autoFocus
                                     />
                                     <button

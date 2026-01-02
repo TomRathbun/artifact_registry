@@ -18,6 +18,7 @@ from app.schemas.use_case import (
     ExceptionCreate, ExceptionOut
 )
 from app.utils.id_generator import generate_artifact_id
+from app.api import deps
 
 router = APIRouter(prefix="/use-cases", tags=["Use Cases"])
 
@@ -154,7 +155,11 @@ def get_use_case(aid: str, db: Session = Depends(get_db)):
     return obj
 
 @router.post("/", response_model=UseCaseOut, status_code=status_code.HTTP_201_CREATED)
-def create_use_case(payload: UseCaseCreate, db: Session = Depends(get_db)):
+def create_use_case(
+    payload: UseCaseCreate, 
+    db: Session = Depends(get_db),
+    _perm = Depends(deps.check_permissions(["use_case:create"]))
+):
     # 1. Validate Project
     project = db.query(Project).filter(Project.id == payload.project_id).first()
     if not project:
@@ -210,7 +215,12 @@ def create_use_case(payload: UseCaseCreate, db: Session = Depends(get_db)):
     return db_obj
 
 @router.put("/{aid}", response_model=UseCaseOut)
-def update_use_case(aid: str, payload: UseCaseCreate, db: Session = Depends(get_db)):
+def update_use_case(
+    aid: str, 
+    payload: UseCaseCreate, 
+    db: Session = Depends(get_db),
+    _perm = Depends(deps.check_permissions(["use_case:edit"]))
+):
     db_obj = db.query(UseCase).filter(UseCase.aid == aid).first()
     if not db_obj:
         raise HTTPException(404, "Use Case not found")
@@ -248,7 +258,11 @@ def update_use_case(aid: str, payload: UseCaseCreate, db: Session = Depends(get_
 
 
 @router.delete("/{aid}", status_code=status_code.HTTP_204_NO_CONTENT)
-def delete_use_case(aid: str, db: Session = Depends(get_db)):
+def delete_use_case(
+    aid: str, 
+    db: Session = Depends(get_db),
+    _perm = Depends(deps.check_permissions(["use_case:delete"]))
+):
     db_obj = db.query(UseCase).filter(UseCase.aid == aid).first()
     if not db_obj:
         raise HTTPException(404, "Use Case not found")

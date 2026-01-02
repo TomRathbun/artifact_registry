@@ -12,6 +12,17 @@ export default function ProjectDetails() {
     const [editingNeed, setEditingNeed] = useState<any>(null)
     const { register, handleSubmit, reset, setValue } = useForm()
 
+    // Check user permissions
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const userRoles = user?.roles || [];
+
+    // Check if user can create any artifact type
+    const canCreate = userRoles.includes('admin') ||
+        userRoles.some((role: string) =>
+            role.includes('_create') || role === 'operator'
+        );
+
     // Fetch project details to get the real UUID if projectId is a name
     const { data: project } = useQuery({
         queryKey: ['project', projectId],
@@ -132,13 +143,24 @@ export default function ProjectDetails() {
                         <FileDown className="w-4 h-4" />
                         Export All
                     </button>
-                    <Link
-                        to={`/project/${projectId}/create`}
-                        className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Create Artifact
-                    </Link>
+                    {canCreate ? (
+                        <Link
+                            to={`/project/${projectId}/create`}
+                            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Create Artifact
+                        </Link>
+                    ) : (
+                        <button
+                            disabled
+                            className="flex items-center gap-2 bg-slate-300 text-slate-500 px-4 py-2 rounded-md cursor-not-allowed opacity-60"
+                            title="You don't have permission to create artifacts"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Create Artifact
+                        </button>
+                    )}
                 </div>
             </div>
 

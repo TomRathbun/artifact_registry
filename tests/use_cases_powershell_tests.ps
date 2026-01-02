@@ -1,4 +1,4 @@
-$token = (irm http://127.0.0.1:8000/token -Method Post -Body "username=rathbun&password=seclpass" -ContentType "application/x-www-form-urlencoded").access_token
+$token = (irm http://127.0.0.1:8000/token -Method Post -Body "username=admin&password=seclpass" -ContentType "application/x-www-form-urlencoded").access_token
 
 # CREATE Use Case
 $uc_body = @{area="MCK"; description="User Authentication"; status="proposed"; primary_actor=@("User")} | ConvertTo-Json

@@ -1,25 +1,25 @@
 # 1. Token (if expired)
-$token = (irm http://127.0.0.1:8000/token -Method Post -Body "username=rathbun&password=seclpass" -ContentType "application/x-www-form-urlencoded").access_token
+$token = (irm http://127.0.0.1:8000/token -Method Post -Body "username=admin&password=seclpass" -ContentType "application/x-www-form-urlencoded").access_token
 Write-Host "Token ready"
 
 # 2. CREATE Vision (global, hardcoded AID)
 $vision_body = @{
-description="TR2 Phase 2 will modernize the system for secure, scalable operations across MCK areas.";
-title="TR2 Phase 2";
+description="Modernization will ensure secure, scalable operations across MCK areas.";
+title="System Modernization";
 area="GLOBAL"
 } | ConvertTo-Json
 $vision_res = irm "http://127.0.0.1:8000/vision-statements" -Method Post -Headers @{Authorization="Bearer $token"; "Content-Type"="application/json"} -Body $vision_body
 $vision_aid = $vision_res.aid
-Write-Host "Created Vision AID: $vision_aid"  # Expected: "TR2-GLOBAL-VISION-001"
+Write-Host "Created Vision AID: $vision_aid"  # Expected: "PROJECT-GLOBAL-VISION-001"
 
 # 3. LIST all visions
 irm "http://127.0.0.1:8000/vision-statements" -Headers @{Authorization="Bearer $token"}  # Expected: 200, array with 1 vision
 
 # 4. GET single by AID
-irm "http://127.0.0.1:8000/vision-statements/$vision_aid" -Headers @{Authorization="Bearer $token"}  # Expected: 200, {"aid": "TR2-GLOBAL-VISION-001", "statement": "...", ...}
+irm "http://127.0.0.1:8000/vision-statements/$vision_aid" -Headers @{Authorization="Bearer $token"}  # Expected: 200, {"aid": "PROJECT-GLOBAL-VISION-001", "statement": "...", ...}
 
 # 5. UPDATE (partial: refine statement post-stakeholder review)
-$update_body = @{description="TR2 Phase 2 will modernize the system for secure, scalable operations, with emphasis on MCK area traceability."} | ConvertTo-Json
+$update_body = @{description="Modernization will ensure secure, scalable operations, with emphasis on MCK area traceability."} | ConvertTo-Json
 $update_res = irm "http://127.0.0.1:8000/vision-statements/$vision_aid" -Method Put -Headers @{Authorization="Bearer $token"; "Content-Type"="application/json"} -Body $update_body
 $update_res  # Expected: 200, updated vision with new statement
 

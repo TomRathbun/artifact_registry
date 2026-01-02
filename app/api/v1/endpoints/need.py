@@ -17,6 +17,7 @@ from app.db.models.component import Component
 from app.enums import Status, LinkType
 from app.schemas.need import NeedCreate, NeedOut
 from app.utils.id_generator import generate_artifact_id
+from app.api import deps
 
 router = APIRouter(prefix="/needs", tags=["Needs"])
 
@@ -84,7 +85,11 @@ def get_need(aid: str, db: Session = Depends(get_db)):
 # POST – create
 # -------------------------------------------------
 @router.post("/", response_model=NeedOut, status_code=status_code.HTTP_201_CREATED)
-def create_need(payload: NeedCreate, db: Session = Depends(get_db)):
+def create_need(
+    payload: NeedCreate, 
+    db: Session = Depends(get_db),
+    _perm = Depends(deps.check_permissions(["need:create"]))
+):
     # Validate Project
     if not db.query(Project).filter(Project.id == payload.project_id).first():
         raise HTTPException(status_code=400, detail="Project not found")
@@ -129,7 +134,12 @@ def create_need(payload: NeedCreate, db: Session = Depends(get_db)):
 # PUT – update (partial)
 # -------------------------------------------------
 @router.put("/{aid}", response_model=NeedOut)
-def update_need(aid: str, payload: NeedCreate, db: Session = Depends(get_db)):
+def update_need(
+    aid: str, 
+    payload: NeedCreate, 
+    db: Session = Depends(get_db),
+    _perm = Depends(deps.check_permissions(["need:edit"]))
+):
     db_obj = db.query(Need).filter(Need.aid == aid).first()
     if not db_obj:
         raise HTTPException(404, "Need not found")
@@ -205,7 +215,11 @@ def update_need(aid: str, payload: NeedCreate, db: Session = Depends(get_db)):
 # DELETE
 # -------------------------------------------------
 @router.delete("/{aid}", status_code=status_code.HTTP_204_NO_CONTENT)
-def delete_need(aid: str, db: Session = Depends(get_db)):
+def delete_need(
+    aid: str, 
+    db: Session = Depends(get_db),
+    _perm = Depends(deps.check_permissions(["need:delete"]))
+):
     db_obj = db.query(Need).filter(Need.aid == aid).first()
     if not db_obj:
         raise HTTPException(404, "Need not found")

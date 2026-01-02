@@ -63,7 +63,7 @@ import requests
 from concurrent.futures import ThreadPoolExecutor
 
 @router.get("/dependencies")
-def get_dependencies():
+def get_dependencies(_auth = Depends(deps.check_permissions(["admin"]))):
     """
     Get dependency information for frontend and backend.
     """
@@ -150,6 +150,20 @@ def get_dependencies():
         "backend": [r for r in results if r['source'] == "pypi"]
     }
 
+@router.get("/changelog")
+def get_changelog():
+    """
+    Get the content of CHANGELOG.md
+    """
+    registry_root = "c:\\Users\\USER\\registry"
+    changelog_path = os.path.join(registry_root, "CHANGELOG.md")
+    
+    if os.path.exists(changelog_path):
+        with open(changelog_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return {"content": content}
+    return {"content": "# Changelog\n\nNot found."}
+
 from pydantic import BaseModel
 import subprocess
 
@@ -159,7 +173,7 @@ class UpgradeRequest(BaseModel):
     source: str # "npm" or "pypi"
 
 @router.post("/dependencies/upgrade")
-async def upgrade_dependency(request: UpgradeRequest):
+async def upgrade_dependency(request: UpgradeRequest, _auth = Depends(deps.check_permissions(["admin"]))):
     """
     Perform a dry-run compatibility check and then upgrade if safe.
     """

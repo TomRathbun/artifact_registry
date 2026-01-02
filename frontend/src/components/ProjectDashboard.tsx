@@ -1,14 +1,25 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ProjectsService, type ProjectCreate } from '../client'
 import { useForm } from 'react-hook-form'
-import { Plus, FolderOpen, Trash2, Download, Upload, Info, History } from 'lucide-react'
+import { Plus, FolderOpen, Trash2, Download, Upload, Info, History, Settings, Shield } from 'lucide-react'
 import clsx from 'clsx'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { ConfirmationModal } from './ConfirmationModal'
 import { InfoModal } from './InfoModal'
 
 export default function ProjectDashboard() {
+    const navigate = useNavigate();
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const isAdmin = user?.roles?.includes('admin') || user?.role === 'admin'; // Support both old and new format
+
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/login');
+    };
+
     const queryClient = useQueryClient()
     const { data: projects, isLoading } = useQuery({
         queryKey: ['projects'],
@@ -285,49 +296,70 @@ export default function ProjectDashboard() {
                     <Link to="/about" className="px-3 py-2 bg-slate-100 text-slate-600 rounded-md hover:bg-slate-200 transition-colors flex items-center gap-2">
                         <Info className="w-4 h-4" /> About
                     </Link>
-                    <Link to="/changelog" className="px-3 py-2 bg-slate-100 text-slate-600 rounded-md hover:bg-slate-200 transition-colors flex items-center gap-2">
+                    <Link to="/changelog" className="px-3 py-2 bg-slate-100 text-slate-600 rounded-md hover:bg-slate-200 transition-colors flex items-center gap-2 font-medium">
                         <History className="w-4 h-4" /> Changelog
                     </Link>
+                    {isAdmin && (
+                        <Link to="/admin" className="px-3 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors flex items-center gap-2 font-bold border border-blue-200">
+                            <Shield className="w-4 h-4" /> Admin
+                        </Link>
+                    )}
+                    <button
+                        onClick={handleLogout}
+                        className="px-3 py-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors flex items-center gap-2 font-medium border border-red-100"
+                    >
+                        Log Out
+                    </button>
                 </div>
             </div>
 
-            {/* Database Backup Section */}
-            <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg border border-purple-200 mb-8">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-                            <Download className="w-4 h-4" />
-                            Full Database Backup
-                        </h3>
-                        <p className="text-sm text-slate-600">Backup or restore the entire PostgreSQL database</p>
-                    </div>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={handleDatabaseBackup}
-                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm"
-                            title="Download full database backup"
-                        >
-                            <Download className="w-4 h-4" />
-                            Backup Database
-                        </button>
-                        <button
-                            onClick={handleDatabaseRestore}
-                            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors flex items-center gap-2 text-sm"
-                            title="Restore database from backup file"
-                        >
-                            <Upload className="w-4 h-4" />
-                            Restore Database
-                        </button>
-                        <input
-                            id="database-restore-file"
-                            type="file"
-                            accept=".sql"
-                            className="hidden"
-                            onChange={handleDatabaseRestoreFile}
-                        />
+            {/* Admin Section */}
+            {isAdmin && (
+                <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg border border-purple-200 mb-8 overflow-hidden">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+                                <Download className="w-4 h-4" />
+                                Full Database Backup
+                            </h3>
+                            <p className="text-sm text-slate-600">Backup or restore the entire PostgreSQL database</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <Link
+                                to="/admin"
+                                className="px-4 py-2 bg-slate-600 text-white rounded hover:bg-slate-700 transition-colors flex items-center gap-2 text-sm font-bold"
+                                title="Go to System Administration"
+                            >
+                                <Settings className="w-4 h-4" />
+                                Admin Console
+                            </Link>
+                            <button
+                                onClick={handleDatabaseBackup}
+                                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm font-bold"
+                                title="Download full database backup"
+                            >
+                                <Download className="w-4 h-4" />
+                                Backup Database
+                            </button>
+                            <button
+                                onClick={handleDatabaseRestore}
+                                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors flex items-center gap-2 text-sm font-bold"
+                                title="Restore database from backup file"
+                            >
+                                <Upload className="w-4 h-4" />
+                                Restore Database
+                            </button>
+                            <input
+                                id="database-restore-file"
+                                type="file"
+                                accept=".sql"
+                                className="hidden"
+                                onChange={handleDatabaseRestoreFile}
+                            />
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Project List */}
@@ -447,6 +479,6 @@ export default function ProjectDashboard() {
                 title={infoModal.title}
                 message={infoModal.message}
             />
-        </div>
+        </div >
     )
 }

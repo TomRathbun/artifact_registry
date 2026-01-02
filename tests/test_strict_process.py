@@ -38,7 +38,7 @@ def setup_db():
 
 def test_strict_process_flow():
     # 1. Create Project
-    response = client.post("/projects/", json={"name": "TR2", "description": "Tech Refresh 2"})
+    response = client.post("/projects/", json={"name": "TEST_PROJECT", "description": "Tech Refresh Test"})
     assert response.status_code == 201
     project_id = response.json()["id"]
 
@@ -95,7 +95,7 @@ def test_strict_process_flow():
 
 def test_validation_failures():
     # Create Project
-    response = client.post("/projects/", json={"name": "TR2"})
+    response = client.post("/projects/", json={"name": "TEST_PROJECT"})
     project_id = response.json()["id"]
 
     # Fail: Create Need without Vision

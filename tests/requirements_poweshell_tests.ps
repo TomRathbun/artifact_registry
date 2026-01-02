@@ -1,9 +1,9 @@
 # 1. Token (if expired)
-$token = (irm http://127.0.0.1:8000/token -Method Post -Body "username=rathbun&password=seclpass" -ContentType "application/x-www-form-urlencoded").access_token
+$token = (irm http://127.0.0.1:8000/token -Method Post -Body "username=admin&password=seclpass" -ContentType "application/x-www-form-urlencoded").access_token
 Write-Host "Token ready"
 
 # 2. CREATE Requirement (PROPOSED, MCK area, SYS level, EARS ubiquitous)
-$req_body = @{short_name="SYS-REQ-001"; text="system shall authenticate users securely"; area="MCK"; status="proposed"; owner="rathbun"; level="SYS"; ears_type="ubiquitous"} | ConvertTo-Json
+$req_body = @{short_name="SYS-REQ-001"; text="system shall authenticate users securely"; area="MCK"; status="proposed"; owner="admin"; level="SYS"; ears_type="ubiquitous"} | ConvertTo-Json
 $req_res = irm "http://127.0.0.1:8000/requirements" -Method Post -Headers @{Authorization="Bearer $token"; "Content-Type"="application/json"} -Body $req_body
 $req_aid = $req_res.aid
 Write-Host "Created Requirement AID: $req_aid"
@@ -17,8 +17,7 @@ irm "http://127.0.0.1:8000/requirements?area=MCK" -Headers @{Authorization="Bear
 # 5. FILTER by status (proposed)
 irm "http://127.0.0.1:8000/requirements?status=proposed" -Headers @{Authorization="Bearer $token"}  # Expected: 200, array with SYS-REQ-001
 
-# 6. FILTER by owner (rathbun)
-irm "http://127.0.0.1:8000/requirements?owner=rathbun" -Headers @{Authorization="Bearer $token"}  # Expected: 200, array with SYS-REQ-001
+irm "http://127.0.0.1:8000/requirements?owner=admin" -Headers @{Authorization="Bearer $token"}  # Expected: 200, array with SYS-REQ-001
 
 # 7. FILTER by level (SYS)
 irm "http://127.0.0.1:8000/requirements?level=SYS" -Headers @{Authorization="Bearer $token"}  # Expected: 200, array with SYS-REQ-001
@@ -27,10 +26,10 @@ irm "http://127.0.0.1:8000/requirements?level=SYS" -Headers @{Authorization="Bea
 irm "http://127.0.0.1:8000/requirements?ears_type=ubiquitous" -Headers @{Authorization="Bearer $token"}  # Expected: 200, array with SYS-REQ-001
 
 # 9. FILTER by area + status + owner + level
-irm "http://127.0.0.1:8000/requirements?area=MCK&status=proposed&owner=rathbun&level=SYS" -Headers @{Authorization="Bearer $token"}  # Expected: 200, array with SYS-REQ-001
+irm "http://127.0.0.1:8000/requirements?area=MCK&status=proposed&owner=admin&level=SYS" -Headers @{Authorization="Bearer $token"}  # Expected: 200, array with SYS-REQ-001
 
 # 10. GET single by aid
-irm "http://127.0.0.1:8000/requirements/$req_aid" -Headers @{Authorization="Bearer $token"}  # Expected: 200, {"aid": "TR2-MCK-SYS-REQ-001", "text": "system shall authenticate users securely", ...}
+irm "http://127.0.0.1:8000/requirements/$req_aid" -Headers @{Authorization="Bearer $token"}  # Expected: 200, {"aid": "PROJECT-MCK-SYS-REQ-001", "text": "system shall authenticate users securely", ...}
 
 # 11. UPDATE (partial: change status to verified post-workshop)
 $update_body = @{status="verified"} | ConvertTo-Json

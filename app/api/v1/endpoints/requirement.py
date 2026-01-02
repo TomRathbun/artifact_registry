@@ -14,6 +14,7 @@ from app.db.models.metadata import Area
 from app.enums import ReqLevel, EarsType, Status, LinkType
 from app.schemas.requirement import RequirementCreate, RequirementOut
 from app.utils.id_generator import generate_artifact_id
+from app.api import deps
 from app.utils import ears_validator
 from app.schemas.requirement import (
     RequirementCreate, 
@@ -164,7 +165,11 @@ def get_requirement(aid: str, db: Session = Depends(get_db)):
 #  POST – create requirement
 # -------------------------------------------------
 @router.post("/", response_model=RequirementOut, status_code=201)
-def create_requirement(payload: RequirementCreate, db: Session = Depends(get_db)):
+def create_requirement(
+    payload: RequirementCreate, 
+    db: Session = Depends(get_db),
+    _perm = Depends(deps.check_permissions(["requirement:create"]))
+):
     print(db)
     print(payload.model_dump())
     # 1. Validate Project
@@ -210,6 +215,7 @@ def update_requirement(
     aid: str,
     payload: RequirementCreate,
     db: Session = Depends(get_db),
+    _perm = Depends(deps.check_permissions(["requirement:edit"]))
 ):
     """
     Partial update of an existing requirement. Only fields present in the payload
@@ -234,7 +240,11 @@ def update_requirement(
 #  DELETE – remove requirement
 # -------------------------------------------------
 @router.delete("/{aid}", status_code=status_code.HTTP_204_NO_CONTENT)
-def delete_requirement(aid: str, db: Session = Depends(get_db)):
+def delete_requirement(
+    aid: str, 
+    db: Session = Depends(get_db),
+    _perm = Depends(deps.check_permissions(["requirement:delete"]))
+):
     """
     Permanently delete a requirement and all associated linkages.
     """

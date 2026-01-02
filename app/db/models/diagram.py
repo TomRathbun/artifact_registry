@@ -27,8 +27,8 @@ class Diagram(Base):
 class DiagramComponent(Base):
     __tablename__ = "diagram_components"
 
-    diagram_id = Column(String, ForeignKey("diagrams.id"), primary_key=True)
-    component_id = Column(String, ForeignKey("components.id"), primary_key=True)
+    diagram_id = Column(String, ForeignKey("diagrams.id", ondelete="CASCADE"), primary_key=True)
+    component_id = Column(String, ForeignKey("components.id", ondelete="CASCADE"), primary_key=True)
     x = Column(Integer, default=0)
     y = Column(Integer, default=0)
 
@@ -39,9 +39,9 @@ class DiagramComponent(Base):
 class DiagramEdge(Base):
     __tablename__ = "diagram_edges"
 
-    diagram_id = Column(String, ForeignKey("diagrams.id"), primary_key=True)
-    source_id = Column(String, ForeignKey("components.id"), primary_key=True)
-    target_id = Column(String, ForeignKey("components.id"), primary_key=True)
+    diagram_id = Column(String, ForeignKey("diagrams.id", ondelete="CASCADE"), primary_key=True)
+    source_id = Column(String, ForeignKey("components.id", ondelete="CASCADE"), primary_key=True)
+    target_id = Column(String, ForeignKey("components.id", ondelete="CASCADE"), primary_key=True)
     source_handle = Column(String, nullable=True)
     target_handle = Column(String, nullable=True)
 

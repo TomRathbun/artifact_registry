@@ -5,7 +5,7 @@ from app.utils.id_generator import generate_artifact_id
 
 
 # NEW: create_need using db_session directly
-def create_need(db_session, title, description, area, status, owner="rathbun"):
+def create_need(db_session, title, description, area, status, owner="admin"):
     aid = generate_artifact_id(db_session, Need, area)
     need = Need(
         aid=aid,

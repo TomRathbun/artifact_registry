@@ -1,6 +1,6 @@
-# TR2 Registry Frontend - Installation Guide (Windows)
+# Artifact Registry Frontend - Installation Guide (Windows)
 
-This guide provides step-by-step instructions for installing and running the TR2 Registry frontend on a Windows machine **without requiring administrator/elevated privileges**.
+This guide provides step-by-step instructions for installing and running the Artifact Registry frontend on a Windows machine **without requiring administrator/elevated privileges**.
 
 ## Prerequisites
 
@@ -95,7 +95,7 @@ VITE v5.x.x  ready in XXX ms
 
 1. **Open your web browser**
 2. **Navigate to:** `http://localhost:5173`
-3. **The TR2 Registry application should load**
+3. **The Artifact Registry application should load**
 
 ## Building for Production (Optional)
 

@@ -7,15 +7,15 @@ from app.enums import NeedLevel
 need_sites = Table(
     'need_sites',
     Base.metadata,
-    Column('need_id', String, ForeignKey('needs.aid'), primary_key=True),
-    Column('site_id', String, ForeignKey('sites.id'), primary_key=True)
+    Column('need_id', String, ForeignKey('needs.aid', ondelete='CASCADE'), primary_key=True),
+    Column('site_id', String, ForeignKey('sites.id', ondelete='CASCADE'), primary_key=True)
 )
 
 need_components = Table(
     'need_components',
     Base.metadata,
-    Column('need_id', String, ForeignKey('needs.aid'), primary_key=True),
-    Column('component_id', String, ForeignKey('components.id'), primary_key=True)
+    Column('need_id', String, ForeignKey('needs.aid', ondelete='CASCADE'), primary_key=True),
+    Column('component_id', String, ForeignKey('components.id', ondelete='CASCADE'), primary_key=True)
 )
 
 class Need(BaseArtifact):

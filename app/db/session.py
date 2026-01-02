@@ -1,6 +1,6 @@
 # app/db/session.py
 # SQLAlchemy session factory for the FastAPI dependency system
-# Dr Thomas Rathbun / SECL MBSE Team – Phase 2
+# SECL MBSE Team – Phase 2
 
 from sqlalchemy.orm import Session
 from app.db.base import SessionLocal  # <-- creates the engine in base.py

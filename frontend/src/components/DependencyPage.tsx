@@ -25,16 +25,23 @@ const DependencyPage: React.FC = () => {
     const fetchDeps = async () => {
         setLoading(true);
         try {
+            const token = localStorage.getItem('token');
+            const headers = { 'Authorization': `Bearer ${token}` };
+
             const [depsRes, infoRes] = await Promise.all([
-                axios.get('/api/v1/system/dependencies'),
-                axios.get('/api/v1/system/info')
+                axios.get('/api/v1/system/dependencies', { headers }),
+                axios.get('/api/v1/system/info', { headers })
             ]);
             setDependencies(depsRes.data);
             setSystemInfo(infoRes.data);
             setError(null);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error fetching dependencies:', err);
-            setError('Failed to fetch dependency information.');
+            if (err.response?.status === 401 || err.response?.status === 403) {
+                setError('Unauthorized: You do not have permission to view dependencies.');
+            } else {
+                setError('Failed to fetch dependency information.');
+            }
         } finally {
             setLoading(false);
         }
@@ -51,10 +58,13 @@ const DependencyPage: React.FC = () => {
         setMessage(null);
 
         try {
+            const token = localStorage.getItem('token');
             const response = await axios.post('/api/v1/system/dependencies/upgrade', {
                 name: pkg.name,
                 version: pkg.latest,
                 source: pkg.source
+            }, {
+                headers: { 'Authorization': `Bearer ${token}` }
             });
 
             if (response.data.success) {
@@ -65,7 +75,11 @@ const DependencyPage: React.FC = () => {
                 setMessage({ text: response.data.message, type: 'error' });
             }
         } catch (err: any) {
-            setMessage({ text: err.response?.data?.message || 'Upgrade failed due to a server error.', type: 'error' });
+            if (err.response?.status === 401 || err.response?.status === 403) {
+                setMessage({ text: 'Unauthorized: You do not have permission to upgrade packages.', type: 'error' });
+            } else {
+                setMessage({ text: err.response?.data?.message || 'Upgrade failed due to a server error.', type: 'error' });
+            }
         } finally {
             setUpgrading(null);
         }

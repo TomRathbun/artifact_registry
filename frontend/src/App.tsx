@@ -21,16 +21,25 @@ import ChangelogPage from './components/ChangelogPage';
 import ImageGallery from './components/ImageGallery';
 import StatisticsView from './components/StatisticsView';
 import DependencyPage from './components/DependencyPage';
+import DatabaseManager from './components/DatabaseManager';
+import AdminPage from './components/AdminPage';
+import LoginPage from './components/LoginPage';
+import PasswordChangePage from './components/PasswordChangePage';
 
 const queryClient = new QueryClient();
 
 function App() {
+  const token = localStorage.getItem('token');
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <div className="min-h-screen bg-transparent text-slate-900">
           <Routes>
-            <Route path="/" element={<ProjectDashboard />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/change-password" element={<PasswordChangePage />} />
+            <Route path="/admin" element={<AdminPage />} />
+            <Route path="/" element={token ? <ProjectDashboard /> : <LoginPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/changelog" element={<ChangelogPage />} />
             <Route path="/images" element={<ImageGallery />} />
@@ -60,6 +69,7 @@ function App() {
               <Route path="linkages" element={<LinkageListView />} />
               <Route path="graph" element={<ArtifactGraphView />} />
               <Route path="statistics" element={<StatisticsView />} />
+              <Route path="database" element={<DatabaseManager />} />
               {/* Create new artifact */}
               <Route path=":artifactType/create" element={<ArtifactWizard />} />
               {/* View artifact in presentation mode (new default) */}
@@ -67,10 +77,11 @@ function App() {
               {/* Edit existing artifact */}
               <Route path=":artifactType/:artifactId/edit" element={<ArtifactWizard />} />
             </Route>
+            <Route path="/database" element={<DatabaseManager />} />
           </Routes>
         </div>
       </BrowserRouter>
-    </QueryClientProvider>
+    </QueryClientProvider >
   );
 }
 

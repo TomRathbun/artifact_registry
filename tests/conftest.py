@@ -57,7 +57,7 @@ def client(db_session):
 def auth_token(client):
     resp = client.post(
         "/token",
-        data={"username": "rathbun", "password": "seclpass"},
+        data={"username": "admin", "password": "seclpass"},
         headers={"Content-Type": "application/x-www-form-urlencoded"}
     )
     assert resp.status_code == 200, f"Token failed: {resp.text}"

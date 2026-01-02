@@ -35,7 +35,8 @@ def list_comments(
 @router.post("/", response_model=schemas.Comment)
 def create_comment(
     comment_in: schemas.CommentCreate,
-    db: Session = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db),
+    current_user: deps.User = Depends(deps.get_current_user)
 ):
     """
     Create a new comment on an artifact field.
@@ -44,7 +45,7 @@ def create_comment(
         artifact_aid=comment_in.artifact_aid,
         field_name=comment_in.field_name,
         comment_text=comment_in.comment_text,
-        author=comment_in.author,
+        author=current_user.full_name or current_user.username,
         selected_text=comment_in.selected_text
     )
     db.add(comment)
