@@ -89,9 +89,17 @@ The application will be accessible at `http://localhost:5173`.
 ---
 
 ## 🐳 Initial Login
-By default, a seed user is created during the first database initialization:
-- **Username**: `admin`
-- **Password**: (Contact administrator for initial provisioning)
+By default, a seed user is created during the first database initialization. 
+
+To manually create an administrative user, you can use the provided script:
+
+```powershell
+# Add a new admin user interactively
+python scripts/add_admin.py
+
+# Or via command line arguments
+python scripts/add_admin.py --username your_name --email your@email.com --password your_password
+```
 
 ## 🛠 Common Maintenance Tasks
 
