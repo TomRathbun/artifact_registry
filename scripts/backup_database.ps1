@@ -1,20 +1,21 @@
 # Backup PostgreSQL database to SQL file
 # This creates a dump that can be committed to git and restored on another machine
 
-$timestamp = Get-Date -Format "yyyy-MM-dd_HHmmss"
-$backupFile = "$PSScriptRoot\..\db_backups\registry_backup_$timestamp.sql"
+$timestamp = Get-Date -Format "yyyy_MM_dd_HHmmss"
+$backupDir = "$PSScriptRoot\..\..\registry-data\db_backups"
+$backupFile = "$backupDir\registry_backup_$timestamp.sql"
 
 Write-Host "Creating database backup..." -ForegroundColor Cyan
 
 # Create backup directory if it doesn't exist
-if (-not (Test-Path "$PSScriptRoot\..\db_backups")) {
-    New-Item -ItemType Directory -Path "$PSScriptRoot\..\db_backups" | Out-Null
+if (-not (Test-Path $backupDir)) {
+    New-Item -ItemType Directory -Path $backupDir | Out-Null
 }
 
 # Run pg_dump using the portable PostgreSQL
 & "$PSScriptRoot\..\.postgres_bin\pgsql\bin\pg_dump.exe" `
     -h localhost `
-    -p 5432 `
+    -p 5433 `
     -U admin `
     -d registry `
     -f $backupFile `

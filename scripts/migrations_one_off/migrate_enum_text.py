@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import database configuration
 # Using admin user as discovered previously
-DATABASE_URL = "postgresql://admin@localhost:5432/registry"
+DATABASE_URL = "postgresql://admin@localhost:5433/registry"
 
 def migrate():
     print(f"Connecting to database...")

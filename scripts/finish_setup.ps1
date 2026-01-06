@@ -11,7 +11,7 @@ $CreateDb = "$BinDir\createdb.exe"
 
 Write-Host "Creating 'registry' database..."
 try {
-    & $CreateDb -U admin -h localhost -p 5432 registry
+    & $CreateDb -U admin -h localhost -p 5433 registry
 }
 catch {
     Write-Host "Database 'registry' might already exist or failed to create. Continuing..."

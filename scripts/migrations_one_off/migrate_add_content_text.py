@@ -9,8 +9,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Import database configuration
 # Assuming app.core.config or similar exists, but for safety in this script we can try to connect directly
 # or use the pattern from other scripts if checked.
-# DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/registry")
-DATABASE_URL = "postgresql://admin@localhost:5432/registry"
+# DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5433/registry")
+DATABASE_URL = "postgresql://admin@localhost:5433/registry"
 
 def migrate():
     print(f"Connecting to database...")

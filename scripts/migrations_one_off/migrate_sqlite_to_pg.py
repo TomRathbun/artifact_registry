@@ -13,7 +13,7 @@ from app.api.v1.endpoints import need, use_case, requirement, vision, linkage, d
 # SQLite (Source)
 SQLITE_URL = "sqlite:///./registry.db"
 # Postgres (Destination) - adjust if you changed setup credentials
-PG_URL = "postgresql://admin@localhost:5432/registry"
+PG_URL = "postgresql://admin@localhost:5433/registry"
 
 def migrate():
     print("--- Starting Migration ---")

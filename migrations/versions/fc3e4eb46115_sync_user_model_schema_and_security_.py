@@ -42,6 +42,7 @@ def upgrade() -> None:
     op.drop_constraint(op.f('use_case_stakeholders_person_id_fkey'), 'use_case_stakeholders', type_='foreignkey')
     op.create_foreign_key(None, 'use_case_stakeholders', 'people', ['person_id'], ['id'], ondelete='CASCADE')
     # User Table Schema Fixes
+    op.add_column('users', sa.Column('full_name', sa.String(), nullable=True))
     op.add_column('users', sa.Column('role', sa.String(), nullable=True))
     op.add_column('users', sa.Column('roles', sa.JSON(), nullable=True))
     op.add_column('users', sa.Column('password_expired', sa.Boolean(), nullable=True, server_default='false'))
@@ -82,6 +83,7 @@ def downgrade() -> None:
     op.drop_column('users', 'password_expired')
     op.drop_column('users', 'roles')
     op.drop_column('users', 'role')
+    op.drop_column('users', 'full_name')
     op.drop_constraint(None, 'use_case_stakeholders', type_='foreignkey')
     op.create_foreign_key(op.f('use_case_stakeholders_person_id_fkey'), 'use_case_stakeholders', 'people', ['person_id'], ['id'])
     op.drop_constraint(None, 'use_case_preconditions', type_='foreignkey')
