@@ -110,6 +110,7 @@ def get_dependencies(_auth = Depends(deps.check_permissions(["admin"]))):
                 data = r.json()
                 pkg['latest'] = data.get('version')
                 pkg['description'] = data.get('description')
+                pkg['homepage'] = data.get('homepage')
         except:
             pass
         return pkg
@@ -121,34 +122,91 @@ def get_dependencies(_auth = Depends(deps.check_permissions(["admin"]))):
                 data = r.json()
                 pkg['latest'] = data.get('info', {}).get('version')
                 pkg['description'] = data.get('info', {}).get('summary')
+                pkg['homepage'] = data.get('info', {}).get('home_page')
         except:
             pass
         return pkg
 
-    # For safety/speed, let's only fetch for a subset or just return current info
-    # The user wants "latest version and description".
-    # We'll use a ThreadPool to make it faster.
+    # Use a ThreadPool to make it faster.
     all_deps = frontend_deps + backend_deps
-    
-    # Actually, let's just return the raw list first and let the frontend fetch or 
-    # just do it for the most important ones.
-    # To be helpful, I'll do it for all but with a strict timeout.
     
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = []
         for pkg in all_deps:
             if pkg['source'] == "npm":
-                futures.append(executor.submit(fetch_npm_info, pkg))
+                futures.append(executor.submit(fetch_npm_info, pkg.copy()))
             else:
-                futures.append(executor.submit(fetch_pypi_info, pkg))
+                futures.append(executor.submit(fetch_pypi_info, pkg.copy()))
         
-        # Wait for all to complete (up to 10s)
         results = [f.result() for f in futures]
 
     return {
         "frontend": [r for r in results if r['source'] == "npm"],
         "backend": [r for r in results if r['source'] == "pypi"]
     }
+
+from pydantic import BaseModel
+import subprocess
+
+class UpgradeRequest(BaseModel):
+    name: str
+    version: str
+    source: str # "npm" or "pypi"
+
+@router.post("/dependencies/analyze")
+async def analyze_dependency(request: UpgradeRequest, _auth = Depends(deps.check_permissions(["admin"]))):
+    """
+    Perform a detailed dry-run check to identify potential compatibility issues.
+    """
+    registry_root = "c:\\Users\\USER\\registry"
+    
+    try:
+        if request.source == "pypi":
+            # uv sync --upgrade-package <package> --dry-run --verbose
+            cmd = ["uv", "sync", "--upgrade-package", f"{request.name}", "--dry-run"]
+            process = subprocess.run(cmd, cwd=registry_root, capture_output=True, text=True, shell=True)
+            
+            output = process.stderr if process.stderr else process.stdout
+            is_safe = process.returncode == 0
+            
+            # Simple heuristic for compatibility issues
+            issues = []
+            if not is_safe:
+                issues = [line.strip() for line in output.split('\n') if 'error' in line.lower() or 'conflict' in line.lower()]
+            
+            return {
+                "safe": is_safe,
+                "analysis": output,
+                "issues": issues[:5], # Return first few issues
+                "summary": "No major conflicts detected in dependency tree." if is_safe else "Found resolution conflicts with other packages."
+            }
+
+        elif request.source == "npm":
+            frontend_dir = os.path.join(registry_root, "frontend")
+            # npm install <package>@latest --dry-run
+            cmd = ["npm", "install", f"{request.name}@latest", "--dry-run", "--json"]
+            process = subprocess.run(cmd, cwd=frontend_dir, capture_output=True, text=True, shell=True)
+            
+            try:
+                data = json.loads(process.stdout)
+                is_safe = process.returncode == 0
+                return {
+                    "safe": is_safe,
+                    "analysis": "Analyzed via npm dry-run",
+                    "issues": data.get('error', {}).get('detail', []) if not is_safe else [],
+                    "summary": f"Targeting {request.version}. Dry-run completed successfully." if is_safe else "NPM detected peer dependency or resolution conflicts."
+                }
+            except:
+                return {
+                    "safe": process.returncode == 0,
+                    "analysis": process.stderr or process.stdout,
+                    "issues": [],
+                    "summary": "Dry-run check completed."
+                }
+
+        return {"safe": False, "summary": "Invalid source."}
+    except Exception as e:
+        return {"safe": False, "summary": f"Analysis failed: {str(e)}"}
 
 @router.get("/changelog")
 def get_changelog():
@@ -164,13 +222,6 @@ def get_changelog():
         return {"content": content}
     return {"content": "# Changelog\n\nNot found."}
 
-from pydantic import BaseModel
-import subprocess
-
-class UpgradeRequest(BaseModel):
-    name: str
-    version: str
-    source: str # "npm" or "pypi"
 
 @router.post("/dependencies/upgrade")
 async def upgrade_dependency(request: UpgradeRequest, _auth = Depends(deps.check_permissions(["admin"]))):

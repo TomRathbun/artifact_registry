@@ -2,6 +2,24 @@
 
 All notable changes to the Artifact Registry project will be documented in this file.
 
+## [0.1.8] - 2026-01-09
+
+### Admin & Infrastructure
+- **Centralized Database Management**: Moved backup and restore tools from the main dashboard to the dedicated Admin Console for better security and organization.
+- **Robust Backup/Restore Scripts**: Rewrote PowerShell scripts with absolute path resolution and explicit IPv4 targeting for maximum reliability across different work environments.
+- **Unified Port Standards**: Standardized all services and utility scripts to use Port 5433 for the portable PostgreSQL instance.
+- **External Data Integration**: Hardcoded backup routines to automatically target and synchronize with the external `registry-data` repository.
+- **Admin User Utility**: Added `scripts/add_admin.py` to simplify the creation of administrative accounts with secure Argon2 password hashing.
+
+### Dependency Management
+- **Expandable Package Insights**: Added detailed descriptions and direct documentation links for all Frontend (NPM) and Backend (PyPI) dependencies.
+- **Compatibility Analysis**: Implemented a real-time "Dry-Run" checker that analyzes dependency trees to identify potential conflicts before performing an upgrade.
+- **Upgrade Safety**: Added visual status indicators (Safe/Conflict) powered by automated resolution auditing.
+
+### Bug Fixes
+- **User Schema Migration**: Fixed a critical issue where the `users` table was missing columns (`full_name`, `roles`, `password_expired`) during database setup.
+- **API Stability**: Resolved `NameError` and import order issues in system management endpoints.
+
 ## [0.1.7] - 2026-01-02
 
 ### Security & Permissions
