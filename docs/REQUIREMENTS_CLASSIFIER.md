@@ -54,12 +54,19 @@ The classifier evaluates requirements across 5 quality dimensions:
   ```
 
 ### Model Integration
-The classifier attempts to load the LSTM model from the `requirements_classifier` project. If the model file is not found, it will operate in "mock mode" and return sample data for demonstration purposes.
+The classifier attempts to load a trained LSTM model. If no model is found, or if PyTorch is not installed, it will operate in **Heuristic Mode** and return rule-based analysis for demonstration purposes.
 
-**Model Location**: The system looks for the model in these locations:
-- `C:\Users\USER\requirements_classifier\lstm_model.pth`
-- `C:\Users\USER\requirements_classifier\model\lstm_model.pth`
-- `..\requirements_classifier\lstm_model.pth`
+**Configuration**:
+You can configure the model location in your `.env` file:
+- `CLASSIFIER_PROJECT_DIR`: Path to the sibling `requirements_classifier` project (default: `../requirements_classifier`).
+- `CLASSIFIER_MODEL_PATH`: Explicit path to a `.pth` model file. If set, this takes precedence.
+
+**Model Search Strategy**:
+If no explicit path is provided, the system searches for these filenames (in order) within the `CLASSIFIER_PROJECT_DIR`:
+1. `best_model.pth` (Recommended for updated results)
+2. `lstm_model.pth`
+3. `model/best_model.pth`
+4. `model/lstm_model.pth`
 
 ### Model Architecture
 - **Type**: LSTM (Long Short-Term Memory) Neural Network

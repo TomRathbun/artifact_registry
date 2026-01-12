@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from dotenv import load_dotenv
 
@@ -25,6 +26,11 @@ class Settings(BaseSettings):
     UPLOAD_DIR: Path = Path(os.getenv("UPLOAD_DIR", str(registry_root / "uploads")))
     BACKUP_DIR: Path = Path(os.getenv("BACKUP_DIR", str(registry_root / "db_backups")))
     DATA_ARCHIVE_DIR: Path = Path(os.getenv("DATA_ARCHIVE_DIR", str(registry_root / "data_archives")))
+
+    # Requirements Classifier Configuration
+    # Default to sibling directory structure
+    CLASSIFIER_PROJECT_DIR: Path = Path(os.getenv("CLASSIFIER_PROJECT_DIR", str(registry_root.parent / "requirements_classifier")))
+    CLASSIFIER_MODEL_PATH: Optional[Path] = Path(os.getenv("CLASSIFIER_MODEL_PATH", "")) if os.getenv("CLASSIFIER_MODEL_PATH") else None
 
     # Secondary Pydantic config just in case
     model_config = SettingsConfigDict(

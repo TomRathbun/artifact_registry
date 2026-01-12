@@ -26,10 +26,15 @@ import AdminPage from './components/AdminPage';
 import LoginPage from './components/LoginPage';
 import PasswordChangePage from './components/PasswordChangePage';
 
+import { OpenAPI } from './client';
+
 const queryClient = new QueryClient();
 
 function App() {
   const token = localStorage.getItem('token');
+  if (token) {
+    OpenAPI.TOKEN = token;
+  }
 
   return (
     <QueryClientProvider client={queryClient}>

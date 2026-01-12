@@ -5,6 +5,7 @@ Uses LSTM model from requirements_classifier project to classify requirement qua
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Dict, List, Optional
+from pathlib import Path
 import re
 
 # Try to import PyTorch - if not available, we'll use mock mode
@@ -69,29 +70,51 @@ def load_model_and_vocab():
         print("PyTorch not available - running in mock mode")
         return
     
+    from app.core.config import settings
+    import os
+    
     try:
-        # Try to load from the requirements_classifier project
-        # Adjust path as needed based on where the model is stored
-        import os
-        
-        # Check multiple possible locations
-        possible_paths = [
-            r"C:\Users\USER\requirements_classifier\lstm_model.pth",
-            r"C:\Users\USER\requirements_classifier\model\lstm_model.pth",
-            r"..\requirements_classifier\lstm_model.pth",
-        ]
-        
-        model_path = None
-        for path in possible_paths:
-            if os.path.exists(path):
-                model_path = path
-                break
+        # 1. Try explicit model path if configured
+        if settings.CLASSIFIER_MODEL_PATH and settings.CLASSIFIER_MODEL_PATH.exists():
+            model_path = settings.CLASSIFIER_MODEL_PATH
+        else:
+            # 2. Search in the classifier project directory
+            project_dir = settings.CLASSIFIER_PROJECT_DIR
+            
+            # Prioritized list of model filenames to search for
+            model_filenames = [
+                "best_model.pth",      # New standard for "updated results"
+                "lstm_model.pth",      # Legacy name
+                "model/best_model.pth",
+                "model/lstm_model.pth"
+            ]
+            
+            model_path = None
+            if project_dir.exists():
+                for filename in model_filenames:
+                    path = project_dir / filename
+                    if path.exists():
+                        model_path = path
+                        break
+            
+            # 3. Last ditch: check current and parent directory
+            if model_path is None:
+                for filename in model_filenames:
+                    path = Path(filename)
+                    if path.exists():
+                        model_path = path
+                        break
         
         if model_path is None:
-            raise FileNotFoundError("LSTM model file not found")
+            raise FileNotFoundError(
+                f"Classifier model file not found in {settings.CLASSIFIER_PROJECT_DIR}. "
+                "Please place 'best_model.pth' in that directory or set CLASSIFIER_MODEL_PATH in .env"
+            )
+        
+        print(f"Loading classifier model from: {model_path}")
         
         # Load checkpoint
-        checkpoint = torch.load(model_path, map_location=torch.device('cpu'))
+        checkpoint = torch.load(str(model_path), map_location=torch.device('cpu'))
         
         # Initialize model with saved parameters
         vocab_size = checkpoint.get('vocab_size', 10000)

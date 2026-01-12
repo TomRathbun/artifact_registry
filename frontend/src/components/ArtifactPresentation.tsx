@@ -732,7 +732,7 @@ export default function ArtifactPresentation() {
 
                             <div>
                                 <h1 className="text-2xl font-bold text-slate-900">
-                                    {'title' in artifact ? artifact.title : 'text' in artifact ? artifact.text : ''}
+                                    {'title' in artifact ? artifact.title : 'short_name' in artifact ? artifact.short_name : 'text' in artifact ? artifact.text : ''}
                                 </h1>
                                 <div className="flex items-center gap-2 group">
                                     <p className="text-sm text-slate-500 font-mono">{artifact.aid}</p>
