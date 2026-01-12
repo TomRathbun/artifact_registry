@@ -1531,6 +1531,67 @@ function UseCasePresentation({ artifact, selectedField, highlightedField, onFiel
 
 function RequirementPresentation({ artifact, selectedField, highlightedField, onFieldClick }: PresentationProps) {
     const isFieldActive = (field: string) => selectedField === field || highlightedField === field;
+    const [classificationResults, setClassificationResults] = useState<any>(null);
+    const [isClassifying, setIsClassifying] = useState(false);
+    const [showClassification, setShowClassification] = useState(false);
+
+    // Automatically classify when component mounts or text changes
+    useEffect(() => {
+        if (artifact.text && showClassification) {
+            classifyRequirement();
+        }
+    }, [artifact.text, showClassification]);
+
+    const classifyRequirement = async () => {
+        setIsClassifying(true);
+        try {
+            const response = await fetch('/api/v1/classifier/classify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: artifact.text })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setClassificationResults(data);
+            } else {
+                console.error('Classification failed');
+            }
+        } catch (error) {
+            console.error('Classification error:', error);
+        } finally {
+            setIsClassifying(false);
+        }
+    };
+
+    const getQualityColor = (probability: number) => {
+        if (probability < 0.3) return 'text-green-600 bg-green-50';
+        if (probability < 0.6) return 'text-yellow-600 bg-yellow-50';
+        return 'text-red-600 bg-red-50';
+    };
+
+    const getQualityLabel = (category: string) => {
+        const labels: Record<string, string> = {
+            'is_vague': 'Vague',
+            'is_compound': 'Compound',
+            'is_untestable': 'Untestable',
+            'is_incomplete': 'Incomplete',
+            'is_poorly_structured': 'Poorly Structured'
+        };
+        return labels[category] || category;
+    };
+
+    const getQualityDescription = (category: string) => {
+        const descriptions: Record<string, string> = {
+            'is_vague': 'Contains ambiguous or unclear language',
+            'is_compound': 'Combines multiple requirements into one',
+            'is_untestable': 'Cannot be verified or tested objectively',
+            'is_incomplete': 'Missing critical information or context',
+            'is_poorly_structured': 'Does not follow standard requirement format'
+        };
+        return descriptions[category] || '';
+    };
+
     return (
         <>
             <div className="grid grid-cols-3 gap-4 mb-3 not-prose">
@@ -1551,6 +1612,93 @@ function RequirementPresentation({ artifact, selectedField, highlightedField, on
                     <MarkdownDisplay content={artifact.text || ''} />
                 </div>
             </SelectableField>
+
+            {/* Quality Classification Section */}
+            <div className="mt-4">
+                <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wider">
+                        Requirement Quality Analysis
+                    </h3>
+                    <button
+                        onClick={() => {
+                            setShowClassification(!showClassification);
+                            if (!showClassification && !classificationResults) {
+                                classifyRequirement();
+                            }
+                        }}
+                        className="px-3 py-1 text-xs font-medium rounded-md bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
+                    >
+                        {showClassification ? 'Hide Analysis' : 'Show Analysis'}
+                    </button>
+                </div>
+
+                {showClassification && (
+                    <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm">
+                        {isClassifying ? (
+                            <div className="flex items-center justify-center py-8">
+                                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                <span className="ml-3 text-slate-600">Analyzing requirement quality...</span>
+                            </div>
+                        ) : classificationResults ? (
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className={`px-3 py-1 rounded-full text-sm font-semibold ${Object.values(classificationResults.predictions).every((v: any) => !v)
+                                        ? 'bg-green-100 text-green-700'
+                                        : 'bg-yellow-100 text-yellow-700'
+                                        }`}>
+                                        {Object.values(classificationResults.predictions).every((v: any) => !v)
+                                            ? '✓ Good Quality'
+                                            : '⚠ Quality Issues Detected'}
+                                    </div>
+                                    {classificationResults.mode === 'mock' && (
+                                        <div className="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded border border-slate-300" title="Using heuristic-based analysis (LSTM model not loaded)">
+                                            Heuristic Mode
+                                        </div>
+                                    )}
+                                </div>
+
+                                {Object.entries(classificationResults.classifications).map(([category, probability]: [string, any]) => (
+                                    <div key={category} className="border-b border-slate-100 pb-3 last:border-0">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-medium text-slate-700">{getQualityLabel(category)}</span>
+                                                {classificationResults.predictions[category] && (
+                                                    <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full font-semibold">
+                                                        Issue Detected
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <span className={`px-2 py-1 rounded text-sm font-semibold ${getQualityColor(probability)}`}>
+                                                {(probability * 100).toFixed(1)}%
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-slate-500">{getQualityDescription(category)}</p>
+                                        <div className="mt-2 w-full bg-slate-200 rounded-full h-2">
+                                            <div
+                                                className={`h-2 rounded-full transition-all ${probability < 0.3 ? 'bg-green-500' :
+                                                    probability < 0.6 ? 'bg-yellow-500' : 'bg-red-500'
+                                                    }`}
+                                                style={{ width: `${probability * 100}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+
+                                <button
+                                    onClick={classifyRequirement}
+                                    className="mt-4 w-full px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+                                >
+                                    Re-analyze
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="text-center py-8 text-slate-500">
+                                <p>Click "Show Analysis" to analyze requirement quality</p>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
 
             <div className="mt-4">
                 <SelectableField fieldId="rationale" label="Rationale" isActive={selectedField === 'rationale'} onClick={onFieldClick}>
