@@ -15,7 +15,11 @@ def get_db() -> Generator:
     try:
         yield db
     finally:
-        db.close()
+        try:
+            db.close()
+        except Exception:
+            # Silence errors during shutdown/reload
+            pass
 
 async def get_current_user(
     db: Session = Depends(get_db),

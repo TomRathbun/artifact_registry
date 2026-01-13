@@ -90,7 +90,7 @@ Write-Host "`n================================================" -ForegroundColor
 Write-Host "        INSTALLATION COMPLETE SUCCESSFULLY" -ForegroundColor Green
 Write-Host "================================================" -ForegroundColor Cyan
 Write-Host "`nTo start the application:"
-Write-Host "  Terminal 1 (Backend):  uv run uvicorn artifact_registry:app --reload" -ForegroundColor Gray
+Write-Host "  Terminal 1 (Backend):  .\scripts\win_backend.ps1" -ForegroundColor Gray
 Write-Host "  Terminal 2 (Frontend): cd frontend; npm run dev" -ForegroundColor Gray
 Write-Host "`nLogs and backups are stored in: $DataRoot"
 Write-Host "================================================`n"
