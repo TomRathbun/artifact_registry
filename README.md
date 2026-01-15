@@ -42,8 +42,17 @@ A comprehensive System Engineering and Enterprise Architecture artifact manageme
 - `migrations/`: Alembic database migration scripts.
 - `scripts/`: Utility scripts for database management and setup.
 - `docs/`: Technical documentation and guides.
+- `win_install.bat`: One-click Windows installer.
 
-## 📄 License
+## 🚀 Getting Started (Windows)
+
+The repository includes a one-click automated installation script for Windows:
+
+1. Clone the repository.
+2. Double-click `win_install.bat` in the root directory.
+3. Follow the on-screen instructions.
+
+For manual installation or non-Windows systems, see the [Installation Guide](INSTALL.md).
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 

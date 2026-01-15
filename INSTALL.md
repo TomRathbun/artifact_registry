@@ -11,13 +11,25 @@ This guide covers the setup of both the Artifact Registry Backend and Frontend.
 
 ---
 
-## 🏗 Initial Setup (Windows)
+## 🏗 Automated Installation (Recommended)
+
+The easiest way to set up the environment is to use the automated installation script. This script handles database initialization, folder creation, environment files, and dependency installation.
+
+### Windows (One-Click)
+1. Open your terminal in the project root.
+2. Run the batch wrapper:
+   ```cmd
+   .\win_install.bat
+   ```
+   *Note: This wrapper automatically bypasses PowerShell execution policies for the installation session.*
+
+### 🔧 Manual Setup (Optional)
+If you prefer manual control, follow these steps:
 
 Before starting the backend or frontend, initialize the portable PostgreSQL environment:
 
 ```powershell
-# 1. Download and extract portable PostgreSQL binaries
-# 2. Initialize the local database data directory
+# Initialize the local database data directory
 .\scripts\setup_db.ps1
 
 # 3. Create the data storage directory (sibling to the registry folder)
