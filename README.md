@@ -46,11 +46,12 @@ A comprehensive System Engineering and Enterprise Architecture artifact manageme
 
 ## 🚀 Getting Started (Windows)
 
-The repository includes a one-click automated installation script for Windows:
+The repository includes automated scripts for Windows:
 
 1. Clone the repository.
-2. Double-click `win_install.bat` in the root directory.
-3. Follow the on-screen instructions.
+2. Double-click `win_install.bat` in the root directory to install.
+3. Once installed, double-click `win_run_backend.bat` to start the backend.
+4. Follow the on-screen instructions for each script.
 
 For manual installation or non-Windows systems, see the [Installation Guide](INSTALL.md).
 

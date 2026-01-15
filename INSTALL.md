@@ -71,7 +71,15 @@ The project includes self-contained PostgreSQL management scripts:
 .\scripts\migrate_db.ps1
 ```
 
-### 4. Start the Backend Server
+### 4. Start the Backend Server (Windows)
+Run the following batch wrapper in the root directory:
+```cmd
+.\win_run_backend.bat
+```
+*Note: This script automatically handles reload optimizations (excluding .venv) and PowerShell execution policy bypass.*
+
+### 5. Manual Start (Non-Windows)
+If not on Windows, run:
 ```bash
 uv run uvicorn artifact_registry:app --reload --port 8000
 ```

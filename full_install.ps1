@@ -99,7 +99,7 @@ Write-Host "        INSTALLATION COMPLETE SUCCESSFULLY" -ForegroundColor Green
 Write-Host "================================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "To start the application:"
-Write-Host "  Terminal 1 (Backend):  .\scripts\win_backend.ps1" -ForegroundColor Gray
+Write-Host "  Terminal 1 (Backend):  .\win_run_backend.bat" -ForegroundColor Gray
 Write-Host "  Terminal 2 (Frontend): cd frontend; npm run dev" -ForegroundColor Gray
 Write-Host ""
 Write-Host "Logs and backups are stored in: $DataRoot"
