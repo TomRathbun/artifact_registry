@@ -60,13 +60,19 @@ BACKUP_DIR=../registry-data/db_backups
 uv sync
 ```
 
-### 3. Database Initialization (Windows)
-The project includes self-contained PostgreSQL management scripts:
+### 3. Database Initialization & Management (Windows)
+The project includes self-contained PostgreSQL management scripts. For a seamless experience on Windows, use the batch wrappers:
 
-```powershell
+```cmd
 # Start the local database
-.\scripts\start_db.ps1
+.\win_start_db.bat
 
+# Stop the local database
+.\win_stop_db.bat
+```
+
+To apply migrations manually:
+```powershell
 # Apply migrations to create the schema
 .\scripts\migrate_db.ps1
 ```

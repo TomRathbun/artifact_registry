@@ -50,7 +50,10 @@ The repository includes automated scripts for Windows:
 
 1. Clone the repository.
 2. Double-click `win_install.bat` in the root directory to install.
-3. Once installed, double-click `win_run_backend.bat` to start the backend.
+3. Once installed, use the following wrappers to manage the application:
+   - `win_run_backend.bat`: Start the API server.
+   - `win_start_db.bat`: Start the local database.
+   - `win_stop_db.bat`: Stop the local database.
 4. Follow the on-screen instructions for each script.
 
 For manual installation or non-Windows systems, see the [Installation Guide](INSTALL.md).
