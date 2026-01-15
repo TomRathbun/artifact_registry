@@ -22,28 +22,31 @@ def upgrade():
     bind = op.get_bind()
     inspector = sa.inspect(bind)
 
-    # Add missing columns (only if not present)
-    needs_cols = [c['name'] for c in inspector.get_columns('needs')]
-    if 'rationale' not in needs_cols:
-        op.add_column('needs', sa.Column('rationale', sa.Text(), nullable=True))
-    if 'owner' not in needs_cols:
-        op.add_column('needs', sa.Column('owner', sa.String(), nullable=True))
-    if 'stakeholder' not in needs_cols:
-        op.add_column('needs', sa.Column('stakeholder', sa.String(), nullable=True))
+    # Add missing columns (only if table exists and column not present)
+    if inspector.has_table('needs'):
+        needs_cols = [c['name'] for c in inspector.get_columns('needs')]
+        if 'rationale' not in needs_cols:
+            op.add_column('needs', sa.Column('rationale', sa.Text(), nullable=True))
+        if 'owner' not in needs_cols:
+            op.add_column('needs', sa.Column('owner', sa.String(), nullable=True))
+        if 'stakeholder' not in needs_cols:
+            op.add_column('needs', sa.Column('stakeholder', sa.String(), nullable=True))
 
-    req_cols = [c['name'] for c in inspector.get_columns('requirements')]
-    if 'rationale' not in req_cols:
-        op.add_column('requirements', sa.Column('rationale', sa.Text(), nullable=True))
-    if 'owner' not in req_cols:
-        op.add_column('requirements', sa.Column('owner', sa.String(), nullable=True))
+    if inspector.has_table('requirements'):
+        req_cols = [c['name'] for c in inspector.get_columns('requirements')]
+        if 'rationale' not in req_cols:
+            op.add_column('requirements', sa.Column('rationale', sa.Text(), nullable=True))
+        if 'owner' not in req_cols:
+            op.add_column('requirements', sa.Column('owner', sa.String(), nullable=True))
 
     # Drop legacy columns from visions and use_cases
     for table in ['visions', 'use_cases']:
-        cols = [c['name'] for c in inspector.get_columns(table)]
-        for col in ['links', 'rationale', 'owner']:
-            if col in cols:
-                with op.batch_alter_table(table) as batch_op:
-                    batch_op.drop_column(col)
+        if inspector.has_table(table):
+            cols = [c['name'] for c in inspector.get_columns(table)]
+            for col in ['links', 'rationale', 'owner']:
+                if col in cols:
+                    with op.batch_alter_table(table) as batch_op:
+                        batch_op.drop_column(col)
 
 
 def downgrade():
