@@ -28,8 +28,12 @@ def create_component(component_in: ComponentCreate, db: Session = Depends(get_db
     return component
 
 @router.get("/", response_model=List[ComponentOut])
-def read_components(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    components = db.query(Component).offset(skip).limit(limit).all()
+def read_components(skip: int = 0, limit: int = 100, project_id: str = None, db: Session = Depends(get_db)):
+    query = db.query(Component)
+    if project_id:
+        query = query.filter(Component.project_id == project_id)
+    components = query.offset(skip).limit(limit).all()
+
     
     # Transform for output
     results = []

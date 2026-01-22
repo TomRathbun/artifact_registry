@@ -44,8 +44,8 @@ export default function ProjectDetails() {
 
     // Metadata for edit form
     const { data: areas } = useQuery({
-        queryKey: ['areas'],
-        queryFn: () => MetadataService.listAreasApiV1MetadataMetadataAreasGet()
+        queryKey: ['areas', realProjectId],
+        queryFn: () => MetadataService.listAreasApiV1MetadataMetadataAreasGet(realProjectId)
     })
     const { data: owners } = useQuery({
         queryKey: ['owners', realProjectId],

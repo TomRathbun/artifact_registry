@@ -20,6 +20,7 @@ export class SiteService {
     public static listSitesApiV1SitesGet(
         skip: number = 0,
         limit: number = 100,
+        projectId?: string,
     ): CancelablePromise<Array<Site>> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -27,12 +28,14 @@ export class SiteService {
             query: {
                 'skip': skip,
                 'limit': limit,
+                'project_id': projectId,
             },
             errors: {
                 422: `Validation Error`,
             },
         });
     }
+
 
     /**
      * Create Site

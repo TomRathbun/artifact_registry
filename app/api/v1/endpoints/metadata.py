@@ -14,15 +14,24 @@ router = APIRouter(prefix="/metadata", tags=["Metadata"])
 # Areas
 # -------------------------------------------------
 @router.get("/areas", response_model=List[AreaOut])
-def list_areas(db: Session = Depends(get_db)):
-    return db.query(Area).all()
+def list_areas(project_id: str = None, db: Session = Depends(get_db)):
+    query = db.query(Area)
+    if project_id:
+        # Strict filtering: Match project_id OR be the special 'GLOBAL' area
+        # We explicitly do NOT match None project_ids generally, only the specific GLOBAL code
+        query = query.filter((Area.project_id == project_id) | (Area.code == "GLOBAL"))
+    return query.all()
+
 
 @router.post("/areas", response_model=AreaOut, status_code=status.HTTP_201_CREATED)
 def create_area(payload: AreaCreate, db: Session = Depends(get_db)):
     if db.query(Area).filter(Area.code == payload.code).first():
         raise HTTPException(status_code=400, detail="Area code already exists")
     
-    area = Area(**payload.dict())
+    area_dict = payload.dict()
+    # Ensure project_id is handled if passed
+    area = Area(**area_dict)
+
     db.add(area)
     db.commit()
     db.refresh(area)
@@ -63,11 +72,8 @@ def list_people(
     query = db.query(Person)
     
     if project_id:
-        # Filter by project_id OR global (null project_id)
-        # For now, let's strict filter if provided, or maybe allow global?
-        # Let's say if project_id is provided, we get project specific people + global people?
-        # Or just simple filter for now.
-        query = query.filter((Person.project_id == project_id) | (Person.project_id == None))
+        # Strict filtering for people
+        query = query.filter(Person.project_id == project_id)
         
     if role:
         # Filter by role in roles JSON list

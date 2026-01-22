@@ -43,9 +43,16 @@ export default function DiagramList() {
         enabled: !!projectId,
     });
 
+    // Fetch Project to get real ID
+    const { data: project } = useQuery({
+        queryKey: ['project', projectId],
+        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectsProjectIdGet(projectId!)
+    });
+    const realProjectId = project?.id || projectId;
+
     const { data: areas } = useQuery({
-        queryKey: ['areas'],
-        queryFn: () => MetadataService.listAreasApiV1MetadataMetadataAreasGet(),
+        queryKey: ['areas', realProjectId],
+        queryFn: () => MetadataService.listAreasApiV1MetadataMetadataAreasGet(realProjectId),
     });
 
     const createMutation = useMutation({

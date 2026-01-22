@@ -308,8 +308,8 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
 
     // Fetch areas for filter
     const { data: areas } = useQuery({
-        queryKey: ['areas'],
-        queryFn: () => MetadataService.listAreasApiV1MetadataMetadataAreasGet(),
+        queryKey: ['areas', project?.id],
+        queryFn: () => MetadataService.listAreasApiV1MetadataMetadataAreasGet(project?.id),
     });
 
 

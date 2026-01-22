@@ -15,12 +15,18 @@ export class MetadataService {
      * @returns AreaOut Successful Response
      * @throws ApiError
      */
-    public static listAreasApiV1MetadataMetadataAreasGet(): CancelablePromise<Array<AreaOut>> {
+    public static listAreasApiV1MetadataMetadataAreasGet(
+        projectId?: string,
+    ): CancelablePromise<Array<AreaOut>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/metadata/metadata/areas',
+            query: {
+                'project_id': projectId,
+            },
         });
     }
+
     /**
      * Create Area
      * @param requestBody

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { MetadataService, ProjectsService } from '../client';
-import { Plus, Edit, Trash2, Save, ArrowUp, ArrowDown, Filter, FilterX, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, Save, ArrowUp, ArrowDown, Filter, FilterX } from 'lucide-react';
 import { ConfirmationModal } from './ConfirmationModal';
 import MarkdownDisplay from './MarkdownDisplay';
 
@@ -63,7 +63,7 @@ export default function ManagementView({ type }: ManagementViewProps) {
         queryFn: async () => {
             switch (type) {
                 case 'area':
-                    return MetadataService.listAreasApiV1MetadataMetadataAreasGet();
+                    return MetadataService.listAreasApiV1MetadataMetadataAreasGet(realProjectId);
                 case 'people':
                     return MetadataService.listPeopleApiV1MetadataMetadataPeopleGet(realProjectId);
                 default:

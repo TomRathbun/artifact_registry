@@ -1,6 +1,10 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
+
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import MermaidBlock from './MermaidBlock';
@@ -25,9 +29,10 @@ const MarkdownDisplay: React.FC<MarkdownDisplayProps> = ({ content, compact = fa
                 prose-p:my-0 prose-headings:text-sm prose-headings:font-bold prose-headings:my-0 
                 prose-headings:inline prose-headings:after:content-[': ']
                 prose-ol:my-0 prose-ul:my-0 prose-li:my-0">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
                     {content || ''}
                 </ReactMarkdown>
+
             </div>
         );
     }
@@ -44,7 +49,9 @@ const MarkdownDisplay: React.FC<MarkdownDisplayProps> = ({ content, compact = fa
             prose-a:text-blue-600 prose-blockquote:border-l-4 prose-blockquote:border-slate-300 
             prose-blockquote:bg-slate-50 prose-blockquote:py-2 prose-blockquote:px-6 prose-blockquote:not-italic">
             <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
+                remarkPlugins={[remarkGfm, remarkMath]}
+                rehypePlugins={[rehypeKatex]}
+
                 components={{
                     code: ({ node, inline, className, children, ...props }: any) => {
                         const match = /language-(\w+)/.exec(className || '');

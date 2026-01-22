@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { SiteService } from '../client';
+import { useParams } from 'react-router-dom';
+import { ProjectsService, SiteService } from '../client';
 import { Plus, Trash2, Edit, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 import { ConfirmationModal } from './ConfirmationModal';
 
 export default function SiteManager() {
+    const { projectId } = useParams<{ projectId: string }>();
     const queryClient = useQueryClient();
     const [isCreating, setIsCreating] = useState(false);
     const [isEditing, setIsEditing] = useState<string | null>(null);
@@ -41,15 +43,25 @@ export default function SiteManager() {
         }
     }, [activeFilterDropdown]);
 
+    // Fetch Project to get real ID
+    const { data: project } = useQuery({
+        queryKey: ['project', projectId],
+        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectsProjectIdGet(projectId!),
+        enabled: !!projectId
+    });
+
+    const realProjectId = project?.id || projectId;
+
     const { data: sites, isLoading } = useQuery({
-        queryKey: ['sites'],
-        queryFn: () => SiteService.listSitesApiV1SitesGet(),
+        queryKey: ['sites', projectId],
+        queryFn: () => SiteService.listSitesApiV1SitesGet(0, 100, realProjectId),
+        enabled: !!realProjectId
     });
 
     const createMutation = useMutation({
-        mutationFn: SiteService.createSiteApiV1SitesPost,
+        mutationFn: (data: any) => SiteService.createSiteApiV1SitesPost({ ...data, project_id: realProjectId }),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['sites'] });
+            queryClient.invalidateQueries({ queryKey: ['sites', projectId] });
             setIsCreating(false);
             setFormData({ name: '', security_domain: '', tags: '' });
         },

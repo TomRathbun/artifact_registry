@@ -12,6 +12,8 @@ class Area(Base):
     code = Column(String, primary_key=True, index=True)  # e.g. "AI", "ZTN"
     name = Column(String, nullable=False)                # e.g. "Artificial Intelligence"
     description = Column(Text, nullable=True)
+    project_id = Column(String, ForeignKey("projects.id"), nullable=True)
+
 
 class Person(Base):
     __tablename__ = "people"

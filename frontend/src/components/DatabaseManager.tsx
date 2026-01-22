@@ -88,17 +88,17 @@ export default function DatabaseManager() {
 
     const { data: schema, isLoading: schemaLoading } = useQuery<TableSchema[]>({
         queryKey: ['schema'],
-        queryFn: () => fetch('/api/v1/database/schema').then(res => res.json()),
+        queryFn: () => fetch('/api/v1/database/schema', { headers: getAuthHeaders() }).then(res => res.json()),
         enabled: activeTab === 'schema'
     });
 
     const restartMutation = useMutation({
-        mutationFn: () => fetch('/api/v1/database/restart', { method: 'POST' }).then(res => res.json()),
+        mutationFn: () => fetch('/api/v1/database/restart', { method: 'POST', headers: getAuthHeaders() }).then(res => res.json()),
         onSuccess: () => alert('Database connections flushed successfully.')
     });
 
     const createBackupMutation = useMutation({
-        mutationFn: (note: string) => fetch(`/api/v1/database/backup/create?note=${encodeURIComponent(note)}`, { method: 'POST' }).then(res => res.json()),
+        mutationFn: (note: string) => fetch(`/api/v1/database/backup/create?note=${encodeURIComponent(note)}`, { method: 'POST', headers: getAuthHeaders() }).then(res => res.json()),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['backups'] });
             alert('Backup created successfully.');
@@ -106,12 +106,12 @@ export default function DatabaseManager() {
     });
 
     const deleteBackupMutation = useMutation({
-        mutationFn: (filename: string) => fetch(`/api/v1/database/backups/${filename}`, { method: 'DELETE' }).then(res => res.json()),
+        mutationFn: (filename: string) => fetch(`/api/v1/database/backups/${filename}`, { method: 'DELETE', headers: getAuthHeaders() }).then(res => res.json()),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['backups'] })
     });
 
     const restoreBackupMutation = useMutation({
-        mutationFn: (filename: string) => fetch(`/api/v1/database/backups/${filename}/restore`, { method: 'POST' }).then(res => res.json()),
+        mutationFn: (filename: string) => fetch(`/api/v1/database/backups/${filename}/restore`, { method: 'POST', headers: getAuthHeaders() }).then(res => res.json()),
         onSuccess: () => {
             alert('Database restored successfully. The page will reload.');
             window.location.reload();
@@ -122,7 +122,7 @@ export default function DatabaseManager() {
         mutationFn: ({ filename, note }: { filename: string, note: string }) =>
             fetch(`/api/v1/database/backups/${filename}/note`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
                 body: JSON.stringify({ note })
             }).then(res => res.json()),
         onSuccess: () => {

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String
+from sqlalchemy import Column, String, ForeignKey
 from app.db.base import Base
 import json
 
@@ -9,5 +9,7 @@ class Site(Base):
     name = Column(String, nullable=False)
     security_domain = Column(String, nullable=True)
     tags = Column(String, nullable=True) # JSON array of strings
+    project_id = Column(String, ForeignKey("projects.id"), nullable=True)
+
 
 

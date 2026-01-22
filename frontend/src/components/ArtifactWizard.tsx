@@ -331,8 +331,8 @@ export default function ArtifactWizard() {
     });
 
     const { data: areas } = useQuery({
-        queryKey: ['areas'],
-        queryFn: () => MetadataService.listAreasApiV1MetadataMetadataAreasGet()
+        queryKey: ['areas', realProjectId],
+        queryFn: () => MetadataService.listAreasApiV1MetadataMetadataAreasGet(realProjectId)
     });
     const { data: actors } = useQuery({
         queryKey: ['actors', realProjectId],

@@ -6,12 +6,14 @@ class AreaBase(BaseModel):
     code: str
     name: str
     description: Optional[str] = None
+    project_id: Optional[str] = None
 
 class AreaCreate(AreaBase):
     pass
 
 class AreaOut(AreaBase):
     model_config = ConfigDict(from_attributes=True)
+
 
 # Person Schemas
 class PersonBase(BaseModel):

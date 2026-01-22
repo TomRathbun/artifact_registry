@@ -20,6 +20,7 @@ export class ComponentService {
     public static listComponentsApiV1ComponentsGet(
         skip: number = 0,
         limit: number = 100,
+        projectId?: string,
     ): CancelablePromise<Array<Component>> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -27,12 +28,14 @@ export class ComponentService {
             query: {
                 'skip': skip,
                 'limit': limit,
+                'project_id': projectId,
             },
             errors: {
                 422: `Validation Error`,
             },
         });
     }
+
 
     /**
      * Create Component

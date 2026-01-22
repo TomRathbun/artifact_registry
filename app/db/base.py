@@ -43,3 +43,4 @@ from app.db.models.site import Site
 from app.db.models.artifact_event import ArtifactEvent
 from app.db.models.document import Document
 from app.db.models.comment import Comment
+from app.db.models.image import Image

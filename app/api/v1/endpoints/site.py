@@ -17,8 +17,10 @@ def create_site(site_in: SiteCreate, db: Session = Depends(get_db)):
         id=str(uuid4()),
         name=site_in.name,
         security_domain=site_in.security_domain,
-        tags=json.dumps(site_in.tags) if site_in.tags else "[]"
+        tags=json.dumps(site_in.tags) if site_in.tags else "[]",
+        project_id=site_in.project_id
     )
+
     db.add(site)
     db.commit()
     db.refresh(site)
@@ -28,8 +30,12 @@ def create_site(site_in: SiteCreate, db: Session = Depends(get_db)):
     return site_dict
 
 @router.get("/", response_model=List[SiteOut])
-def read_sites(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    sites = db.query(Site).offset(skip).limit(limit).all()
+def read_sites(skip: int = 0, limit: int = 100, project_id: str = None, db: Session = Depends(get_db)):
+    query = db.query(Site)
+    if project_id:
+        query = query.filter(Site.project_id == project_id)
+    sites = query.offset(skip).limit(limit).all()
+
     # Deserialize tags for each site
     for site in sites:
         site.tags = json.loads(site.tags) if site.tags else []

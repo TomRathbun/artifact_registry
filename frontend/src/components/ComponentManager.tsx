@@ -19,6 +19,8 @@ export default function ComponentManager() {
         enabled: !!projectId,
     });
 
+    const realProjectId = project?.id || projectId;
+
     // Form State
     const [formData, setFormData] = useState<{
         name: string;
@@ -71,9 +73,11 @@ export default function ComponentManager() {
     });
 
     const { data: components, isLoading } = useQuery({
-        queryKey: ['components'],
-        queryFn: () => ComponentService.listComponentsApiV1ComponentsGet(),
+        queryKey: ['components', projectId],
+        queryFn: () => ComponentService.listComponentsApiV1ComponentsGet(0, 100, realProjectId),
+        enabled: !!realProjectId
     });
+
 
     // Valid lifecycles
     const LIFECYCLES = ['Active', 'Legacy', 'Planned', 'Deprecated'];
@@ -279,7 +283,7 @@ export default function ComponentManager() {
         // Ensure project_id is set if creating new and we have a project loaded
         const dataToSubmit = {
             ...formData,
-            project_id: formData.project_id || project?.id || null
+            project_id: formData.project_id || project?.id || projectId
         };
 
         if (editingId) {

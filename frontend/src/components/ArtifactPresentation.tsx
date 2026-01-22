@@ -218,8 +218,8 @@ export default function ArtifactPresentation() {
 
     // Fetch areas for the rename dialog
     const { data: areas } = useQuery({
-        queryKey: ['areas'],
-        queryFn: () => MetadataService.listAreasApiV1MetadataMetadataAreasGet(),
+        queryKey: ['areas', projectId],
+        queryFn: () => MetadataService.listAreasApiV1MetadataMetadataAreasGet(project?.id || projectId),
     });
 
     const fetchSuggestedAid = async (targetArea: string) => {

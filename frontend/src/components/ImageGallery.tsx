@@ -2,31 +2,50 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Upload, Copy, Image as ImageIcon, Check, Trash2, Edit2, X } from 'lucide-react';
 import axios from 'axios';
+import { useParams } from 'react-router-dom';
+import { ProjectsService } from '../client';
 
 interface ImageFile {
     filename: string;
     url: string;
     size: number;
     created: number;
+    project_id?: string;
 }
 
 const ImageGallery: React.FC = () => {
+    const { projectId } = useParams<{ projectId: string }>();
     const queryClient = useQueryClient();
     const [uploading, setUploading] = useState(false);
     const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
 
+    // Fetch Project to get real ID
+    const { data: project } = useQuery({
+        queryKey: ['project', projectId],
+        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectsProjectIdGet(projectId!),
+        enabled: !!projectId
+    });
+
+    const realProjectId = project?.id || projectId;
+
     const { data: images, isLoading } = useQuery<ImageFile[]>({
-        queryKey: ['images'],
+        queryKey: ['images', projectId],
         queryFn: async () => {
-            const response = await axios.get('/api/v1/images/');
+            const response = await axios.get('/api/v1/images/', {
+                params: { project_id: realProjectId }
+            });
             return response.data;
-        }
+        },
+        enabled: !!realProjectId
     });
 
     const uploadMutation = useMutation({
         mutationFn: async (file: File) => {
             const formData = new FormData();
             formData.append('file', file);
+            if (realProjectId) {
+                formData.append('project_id', realProjectId);
+            }
             await axios.post('/api/v1/images/upload', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });

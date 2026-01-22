@@ -176,8 +176,8 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
     });
 
     const { data: areas } = useQuery({
-        queryKey: ['areas'],
-        queryFn: () => MetadataService.listAreasApiV1MetadataMetadataAreasGet(),
+        queryKey: ['areas', realProjectId],
+        queryFn: () => MetadataService.listAreasApiV1MetadataMetadataAreasGet(realProjectId),
     });
 
     useEffect(() => {
