@@ -1628,18 +1628,40 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
         `;
 
 
+        // Helper to convert any image blob to PNG Base64 via canvas
+        const convertToPngBase64 = async (blob: Blob): Promise<string> => {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        reject(new Error('Canvas context failed'));
+                        return;
+                    }
+                    ctx.drawImage(img, 0, 0);
+                    resolve(canvas.toDataURL('image/png'));
+                    URL.revokeObjectURL(img.src);
+                };
+                img.onerror = () => {
+                    reject(new Error('Image load failed'));
+                    URL.revokeObjectURL(img.src);
+                };
+                img.src = URL.createObjectURL(blob);
+            });
+        };
+
         const processMarkdownImages = async (markdown: string): Promise<string> => {
             if (!markdown) return '';
             const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
             let match;
             const replacements = [];
 
-            while ((match = imageRegex.exec(markdown)) !== null) {
-                const alt = match[1];
-                let src = match[2];
-
-                // Skip if already base64
-                if (src.startsWith('data:')) continue;
+            const processImageUrl = async (src: string, alt: string): Promise<{ original: string, replacement: string } | null> => {
+                // Skip if already base64 (could be from previous step or manual entry)
+                if (src.startsWith('data:')) return null;
 
                 let fetchUrl = src;
                 if (src.startsWith('/')) {
@@ -1647,52 +1669,38 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                 } else if (src.startsWith('http')) {
                     fetchUrl = src;
                 } else {
-                    // Relative path? Assume root if starts with uploads/, otherwise maybe it's just a filename?
                     fetchUrl = `${window.location.origin}/${src}`;
                 }
 
                 try {
-                    const resp = await fetch(fetchUrl);
+                    let resp = await fetch(fetchUrl);
+
+                    // Fallback for simple filenames
+                    if (!resp.ok && !src.includes('/') && !src.startsWith('http')) {
+                        const fallbackUrl = `${window.location.origin}/api/v1/documents/files/${src}`;
+                        resp = await fetch(fallbackUrl);
+                    }
+
                     if (resp.ok) {
                         const blob = await resp.blob();
-                        const base64 = await new Promise<string>((resolve) => {
-                            const reader = new FileReader();
-                            reader.onloadend = () => resolve(reader.result as string);
-                            reader.readAsDataURL(blob);
-                        });
-                        replacements.push({
-                            original: match[0],
+                        const base64 = await convertToPngBase64(blob);
+                        return {
+                            original: `![${alt}](${src})`,
                             replacement: `![${alt}](${base64})`
-                        });
-                    } else {
-                        // Fallback: Try a common pattern if the first fail was a 404 and it looks like a filename
-                        if (!src.includes('/') && !src.startsWith('http')) {
-                            const fallbackUrl = `${window.location.origin}/api/v1/documents/files/${src}`;
-                            try {
-                                const resp2 = await fetch(fallbackUrl);
-                                if (resp2.ok) {
-                                    const blob2 = await resp2.blob();
-                                    const base64_2 = await new Promise<string>((resolve) => {
-                                        const reader2 = new FileReader();
-                                        reader2.onloadend = () => resolve(reader2.result as string);
-                                        reader2.readAsDataURL(blob2);
-                                    });
-                                    replacements.push({
-                                        original: match[0],
-                                        replacement: `![${alt}](${base64_2})`
-                                    });
-                                } else {
-                                    console.warn(`Failed to fetch image (fallback): ${fallbackUrl}`);
-                                }
-                            } catch (e2) {
-                                console.error("Fallback fetch error", e2);
-                            }
-                        } else {
-                            console.warn(`Failed to fetch image: ${fetchUrl}`);
-                        }
+                        };
                     }
                 } catch (e) {
-                    console.error(`Error processing image ${src}:`, e);
+                    console.error(`Error fetching/converting image ${src}:`, e);
+                }
+                return null;
+            };
+
+            while ((match = imageRegex.exec(markdown)) !== null) {
+                const alt = match[1];
+                const src = match[2];
+                const replacement = await processImageUrl(src, alt);
+                if (replacement) {
+                    replacements.push(replacement);
                 }
             }
 
@@ -1884,11 +1892,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                             const resp = await fetch(stateUrl);
                             if (resp.ok) {
                                 const blob = await resp.blob();
-                                const base64 = await new Promise((resolve) => {
-                                    const reader = new FileReader();
-                                    reader.onloadend = () => resolve(reader.result);
-                                    reader.readAsDataURL(blob);
-                                });
+                                const base64 = await convertToPngBase64(blob);
                                 content += `<h3>Hybrid State Diagram</h3><img src="${base64}" width="100%" style="width: 100%; max-width: 100%; border: 1px solid #ddd;" /><br/>`;
                             }
                         }
@@ -1897,11 +1901,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                             const resp = await fetch(seqUrl);
                             if (resp.ok) {
                                 const blob = await resp.blob();
-                                const base64 = await new Promise((resolve) => {
-                                    const reader = new FileReader();
-                                    reader.onloadend = () => resolve(reader.result);
-                                    reader.readAsDataURL(blob);
-                                });
+                                const base64 = await convertToPngBase64(blob);
                                 content += `<h3>Sequence Diagram</h3><img src="${base64}" width="100%" style="width: 100%; max-width: 100%; border: 1px solid #ddd;" /><br/>`;
                             }
                         }
