@@ -5,13 +5,15 @@ import { VisionService, NeedsService, UseCaseService, RequirementService, Metada
 import VisionHeader from './VisionHeader';
 import ImportConflictModal from './ImportConflictModal';
 import axios from 'axios';
-import { Download, Upload, Trash2, Edit, FileDown, Copy, Clipboard, Files, ArrowUp, ArrowDown, Filter, FilterX, RotateCcw, Search } from 'lucide-react';
+import { Download, Upload, Trash2, Edit, FileDown, Copy, Clipboard, Files, ArrowUp, ArrowDown, Filter, FilterX, RotateCcw, Search, X, Table } from 'lucide-react';
 import { marked } from 'marked';
 import mermaid from 'mermaid';
 import * as htmlToImage from 'html-to-image';
 import { generateSequenceDiagram, generateStateDiagram, getPlantUMLImageUrl } from '../utils/plantuml';
 import { ConfirmationModal } from './ConfirmationModal';
 import MarkdownDisplay from './MarkdownDisplay';
+import { TableExportModal } from './TableExportModal';
+import type { TableExportConfig } from './TableExportModal';
 
 interface ArtifactListViewProps {
     artifactType: 'vision' | 'need' | 'use_case' | 'requirement' | 'actor' | 'stakeholder' | 'area' | 'document';
@@ -244,6 +246,9 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
         onConfirm: () => { },
         isDestructive: false
     });
+
+    // Table Export Modal State
+    const [showTableExportModal, setShowTableExportModal] = useState(false);
 
     // Debounce search input
     useEffect(() => {
@@ -680,6 +685,148 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
         };
 
         return cleanNulls(exportItem);
+    };
+
+    // Helper function to escape markdown table cell content
+    const escapeMarkdownCell = (text: string): string => {
+        if (!text) return '-';
+        return text
+            .replace(/\n/g, ' ')  // Replace newlines with spaces
+            .replace(/\|/g, '\\|')  // Escape pipe characters
+            .replace(/\*\*/g, '')  // Remove bold
+            .replace(/\*/g, '')    // Remove italic
+            .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')  // Convert links to plain text
+            .trim();
+    };
+
+    // Get available columns based on artifact type
+    const getAvailableColumns = (): { key: string; label: string }[] => {
+        const commonColumns = [
+            { key: 'aid', label: 'Artifact ID' },
+            { key: 'title', label: 'Title' },
+            { key: 'description', label: 'Description' },
+            { key: 'status', label: 'Status' }
+        ];
+
+        if (artifactType === 'vision' || artifactType === 'document') {
+            return commonColumns;
+        }
+
+        const extendedColumns = [
+            { key: 'area', label: 'Area' },
+            ...commonColumns
+        ];
+
+        if (artifactType === 'need') {
+            extendedColumns.push(
+                { key: 'owner', label: 'Owner' },
+                { key: 'stakeholder', label: 'Stakeholder' },
+                { key: 'level', label: 'Level' }
+            );
+        } else if (artifactType === 'use_case') {
+            extendedColumns.push(
+                { key: 'primary_actor', label: 'Primary Actor' },
+                { key: 'trigger', label: 'Trigger' }
+            );
+        } else if (artifactType === 'requirement') {
+            extendedColumns.push(
+                { key: 'owner', label: 'Owner' },
+                { key: 'ears_type', label: 'EARS Type' }
+            );
+        }
+
+        return extendedColumns;
+    };
+
+    // Show table export modal
+    const handleCopyAsTable = () => {
+        if (!filteredResults || filteredResults.length === 0) {
+            alert('No artifacts to copy matching current filters');
+            return;
+        }
+        setShowTableExportModal(true);
+    };
+
+    // Execute table export with configuration
+    const handleTableExport = async (config: TableExportConfig) => {
+        const artifactsToExport = filteredResults;
+        if (!artifactsToExport || artifactsToExport.length === 0) {
+            return;
+        }
+
+        const { title, columns, truncateDescription } = config;
+        let markdown = '';
+
+        // Add title if provided
+        if (title) {
+            markdown += `# ${title}\n\n`;
+        }
+
+        // Table header
+        const headerRow = columns.map(col => {
+            const colDef = getAvailableColumns().find(c => c.key === col);
+            return colDef ? colDef.label : col;
+        }).join(' | ');
+        markdown += `| ${headerRow} |\n`;
+        markdown += `| ${columns.map(() => '---').join(' | ')} |\n`;
+
+        // Table rows
+        artifactsToExport.forEach((a: any) => {
+            const row = columns.map(col => {
+                let value = '';
+
+                if (col === 'aid') {
+                    value = a.aid || '-';
+                } else if (col === 'title') {
+                    value = a.title || a.short_name || '-';
+                } else if (col === 'description') {
+                    value = a.description || a.text || '-';
+                    if (truncateDescription && value.length > 100) {
+                        value = value.substring(0, 97) + '...';
+                    }
+                } else if (col === 'status') {
+                    value = a.status || '-';
+                } else if (col === 'area') {
+                    value = a.area || '-';
+                } else if (col === 'owner') {
+                    if (owners) {
+                        const ownerObj = owners.find((o: any) => o.id === a.owner_id || o.id === a.owner || o.name === a.owner);
+                        value = ownerObj ? ownerObj.name : (a.owner || '-');
+                    } else {
+                        value = a.owner || '-';
+                    }
+                } else if (col === 'stakeholder') {
+                    if (stakeholders) {
+                        const stakeholderObj = stakeholders.find((s: any) => s.id === a.stakeholder_id || s.id === a.stakeholder || s.name === a.stakeholder);
+                        value = stakeholderObj ? stakeholderObj.name : (a.stakeholder || '-');
+                    } else {
+                        value = a.stakeholder || '-';
+                    }
+                } else if (col === 'level') {
+                    value = a.level || '-';
+                } else if (col === 'primary_actor') {
+                    value = a.primary_actor?.name || '-';
+                } else if (col === 'trigger') {
+                    value = a.trigger || '-';
+                } else if (col === 'ears_type') {
+                    value = a.ears_type || '-';
+                } else {
+                    value = a[col] || '-';
+                }
+
+                return escapeMarkdownCell(value);
+            });
+
+            markdown += `| ${row.join(' | ')} |\n`;
+        });
+
+        try {
+            await navigator.clipboard.writeText(markdown);
+            // Success is now handled by the modal
+        } catch (err) {
+            console.error('Failed to copy table:', err);
+            alert('Failed to copy table to clipboard');
+        }
     };
 
     const handleExport = () => {
@@ -2146,6 +2293,14 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                 }}
             />
 
+            <TableExportModal
+                isOpen={showTableExportModal}
+                onClose={() => setShowTableExportModal(false)}
+                onExport={handleTableExport}
+                availableColumns={getAvailableColumns()}
+                defaultTitle={`${artifactType.charAt(0).toUpperCase() + artifactType.slice(1).replace('_', ' ')} Table`}
+            />
+
             {/* Actions */}
             <div className="flex justify-between items-center">
                 <div className="flex gap-3 items-center">
@@ -2225,11 +2380,20 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                         <button
                             onClick={handleExportWord}
                             disabled={!artifacts || artifacts.length === 0}
-                            className="px-3 py-2 bg-blue-600 text-white rounded-r hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
+                            className="px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
                             title="Export Word"
                         >
                             <Download className="w-4 h-4" />
                             DOC
+                        </button>
+                        <button
+                            onClick={handleCopyAsTable}
+                            disabled={!artifacts || artifacts.length === 0}
+                            className="px-3 py-2 bg-teal-600 text-white rounded-r hover:bg-teal-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
+                            title="Copy as Markdown Table"
+                        >
+                            <Table className="w-4 h-4" />
+                            Table
                         </button>
                     </div>
 
