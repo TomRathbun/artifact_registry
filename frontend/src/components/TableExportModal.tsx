@@ -19,7 +19,7 @@ export function TableExportModal({ isOpen, onClose, onExport, availableColumns, 
     const [title, setTitle] = useState(defaultTitle);
     const [selectedColumns, setSelectedColumns] = useState<string[]>(availableColumns.map(col => col.key));
     const [truncateDescription, setTruncateDescription] = useState(true);
-    const [successMessage, setSuccessMessage] = useState<string>('');
+    const [successMessage] = useState<string>('');
 
     if (!isOpen) return null;
 

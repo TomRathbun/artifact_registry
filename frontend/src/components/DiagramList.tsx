@@ -5,7 +5,7 @@ import { Link, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Plus, Network, Edit, Trash2, GitGraph, ArrowUp, ArrowDown, Filter, Wand2, FileCode, Check, FileText } from 'lucide-react';
 import MarkdownDisplay from './MarkdownDisplay';
-import { MetadataService } from '../client';
+import { MetadataService, ProjectsService } from '../client';
 
 export default function DiagramList() {
     const { projectId } = useParams<{ projectId: string }>();

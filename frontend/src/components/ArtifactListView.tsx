@@ -5,7 +5,7 @@ import { VisionService, NeedsService, UseCaseService, RequirementService, Metada
 import VisionHeader from './VisionHeader';
 import ImportConflictModal from './ImportConflictModal';
 import axios from 'axios';
-import { Download, Upload, Trash2, Edit, FileDown, Copy, Clipboard, Files, ArrowUp, ArrowDown, Filter, FilterX, RotateCcw, Search, X, Table } from 'lucide-react';
+import { Download, Upload, Trash2, Edit, FileDown, Copy, Clipboard, Files, ArrowUp, ArrowDown, Filter, FilterX, RotateCcw, Search, Table } from 'lucide-react';
 import { marked } from 'marked';
 import mermaid from 'mermaid';
 import * as htmlToImage from 'html-to-image';
@@ -1743,11 +1743,25 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
         const filteredArtifacts = filteredResults;
         if (!filteredArtifacts || filteredArtifacts.length === 0) return;
 
-        // Custom renderer to ensure images are resized in Word
+        // Custom renderer to ensure images quantitative are resized in Word
         const renderer = new marked.Renderer();
         renderer.image = ({ href, text }) => {
             // Add inline styles and attributes that Word respects for page-width fitting
             return `<img src="${href}" alt="${text}" width="100%" style="width: 100%; max-width: 100%; height: auto; display: block; margin: 10px 0;" />`;
+        };
+
+        // Custom renderer for code blocks to display as a slightly shaded 1x1 table
+        renderer.code = ({ text }) => {
+            const escapedText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+            return `
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; background-color: #f8f9fa; border: 1px solid #e9ecef;">
+                    <tr>
+                        <td style="padding: 10px;">
+                            <pre style="margin: 0; font-family: Consolas, 'Courier New', monospace; font-size: 0.9em; white-space: pre-wrap; word-wrap: break-word; color: #333;"><code>${escapedText}</code></pre>
+                        </td>
+                    </tr>
+                </table>
+            `;
         };
 
         let content = `
