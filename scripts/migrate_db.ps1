@@ -14,8 +14,14 @@ else {
     $Alembic = "alembic"
 }
 
-# Run the migration
-& $Alembic upgrade head
+# Prefer uv so the project venv is always used
+Set-Location (Join-Path $PSScriptRoot "..")
+if (Get-Command uv -ErrorAction SilentlyContinue) {
+    uv run python -m alembic upgrade head
+}
+else {
+    & $Alembic upgrade head
+}
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "Migrations applied successfully!" -ForegroundColor Green

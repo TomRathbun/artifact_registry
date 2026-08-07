@@ -1,1 +1,29 @@
-Generic single-database configuration.
+# Database migrations (Alembic)
+
+## Canonical layout
+
+Use **only** this tree:
+
+- Root config: `alembic.ini` (repo root)
+- Scripts: `migrations/` (this directory)
+- Revisions: `migrations/versions/`
+
+```powershell
+# From repo root
+uv run python -m alembic upgrade head
+# or
+.\scripts\migrate_db.ps1
+```
+
+Do **not** create a second Alembic environment under `alembic/` or nested `migrations/alembic.ini`.
+Those were removed as drift sources.
+
+## One-off / legacy scripts
+
+Historical data fixes live under `scripts/migrations_one_off/` and are **not** part of the
+Alembic revision chain. Run them only when documented for a specific upgrade path.
+
+## Fresh installs
+
+The app lifespan still calls `Base.metadata.create_all()` as a safety net for local
+bootstrapping. Prefer `alembic upgrade head` so revision history stays authoritative.

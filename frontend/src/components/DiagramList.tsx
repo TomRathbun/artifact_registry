@@ -2,10 +2,9 @@ import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 
-import axios from 'axios';
 import { Plus, Network, Edit, Trash2, GitGraph, ArrowUp, ArrowDown, Filter, Wand2, FileCode, Check, FileText } from 'lucide-react';
 import MarkdownDisplay from './MarkdownDisplay';
-import { MetadataService, ProjectsService } from '../client';
+import { MetadataService, ProjectsService, DiagramsService } from '../client';
 
 export default function DiagramList() {
     const { projectId } = useParams<{ projectId: string }>();
@@ -29,43 +28,42 @@ export default function DiagramList() {
     const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({});
     const [copyStatus, setCopyStatus] = useState<string | null>(null);
 
+    // Fetch Project to get real ID first (diagrams API needs UUID)
+    const { data: project } = useQuery({
+        queryKey: ['project', projectId],
+        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectIdGet(projectId!)
+    });
+    const realProjectId = project?.id || projectId;
+
     const { data: diagrams, isLoading, isError, error } = useQuery({
-        queryKey: ['diagrams', projectId],
+        queryKey: ['diagrams', realProjectId],
         queryFn: async () => {
             try {
-                const response = await axios.get(`/api/v1/projects/${projectId}/diagrams`);
-                return response.data;
+                return await DiagramsService.listDiagramsApiV1ProjectsProjectIdDiagramsGet(realProjectId!);
             } catch (err) {
                 console.error("Error fetching diagrams:", err);
                 throw err;
             }
         },
-        enabled: !!projectId,
+        enabled: !!realProjectId,
     });
-
-    // Fetch Project to get real ID
-    const { data: project } = useQuery({
-        queryKey: ['project', projectId],
-        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectsProjectIdGet(projectId!)
-    });
-    const realProjectId = project?.id || projectId;
 
     const { data: areas } = useQuery({
         queryKey: ['areas', realProjectId],
-        queryFn: () => MetadataService.listAreasApiV1MetadataMetadataAreasGet(realProjectId),
+        queryFn: () => MetadataService.listAreasApiV1MetadataAreasGet(realProjectId),
     });
 
     const createMutation = useMutation({
         mutationFn: async (data: { name: string; description: string; type: string; filter_data?: any }) => {
-            await axios.post(`/api/v1/projects/${projectId}/diagrams`, {
+            await DiagramsService.createDiagramApiV1ProjectsProjectIdDiagramsPost(realProjectId!, {
                 name: data.name,
                 description: data.description,
                 type: data.type,
                 filter_data: data.filter_data
-            });
+            } as any);
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['diagrams', projectId] });
+            queryClient.invalidateQueries({ queryKey: ['diagrams', realProjectId] });
             setIsCreating(false);
             setNewDiagramName('');
             setNewDiagramDesc('');
@@ -76,24 +74,24 @@ export default function DiagramList() {
 
     const updateMutation = useMutation({
         mutationFn: async (data: { id: string; name: string; description: string; filter_data?: any }) => {
-            await axios.put(`/api/v1/diagrams/${data.id}`, {
+            await DiagramsService.updateDiagramApiV1DiagramsDiagramIdPut(data.id, {
                 name: data.name,
                 description: data.description,
                 filter_data: data.filter_data
-            });
+            } as any);
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['diagrams', projectId] });
+            queryClient.invalidateQueries({ queryKey: ['diagrams', realProjectId] });
             setEditingDiagram(null);
         },
     });
 
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
-            await axios.delete(`/api/v1/diagrams/${id}`);
+            await DiagramsService.deleteDiagramApiV1DiagramsDiagramIdDelete(id);
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['diagrams', projectId] });
+            queryClient.invalidateQueries({ queryKey: ['diagrams', realProjectId] });
             setDeletingDiagramId(null);
         },
     });

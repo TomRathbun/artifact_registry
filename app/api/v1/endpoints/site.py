@@ -5,6 +5,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.api import deps
 from app.api.deps import get_db
 from app.db.models.site import Site
 from app.schemas.site import SiteCreate, SiteUpdate, SiteOut
@@ -12,7 +13,7 @@ from app.schemas.site import SiteCreate, SiteUpdate, SiteOut
 router = APIRouter()
 
 @router.post("/", response_model=SiteOut)
-def create_site(site_in: SiteCreate, db: Session = Depends(get_db)):
+def create_site(site_in: SiteCreate, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     site = Site(
         id=str(uuid4()),
         name=site_in.name,
@@ -30,7 +31,7 @@ def create_site(site_in: SiteCreate, db: Session = Depends(get_db)):
     return site_dict
 
 @router.get("/", response_model=List[SiteOut])
-def read_sites(skip: int = 0, limit: int = 100, project_id: str = None, db: Session = Depends(get_db)):
+def read_sites(skip: int = 0, limit: int = 100, project_id: str = None, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     query = db.query(Site)
     if project_id:
         query = query.filter(Site.project_id == project_id)
@@ -42,7 +43,7 @@ def read_sites(skip: int = 0, limit: int = 100, project_id: str = None, db: Sess
     return sites
 
 @router.get("/{site_id}", response_model=SiteOut)
-def read_site(site_id: str, db: Session = Depends(get_db)):
+def read_site(site_id: str, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     site = db.query(Site).filter(Site.id == site_id).first()
     if not site:
         raise HTTPException(status_code=404, detail="Site not found")
@@ -50,7 +51,7 @@ def read_site(site_id: str, db: Session = Depends(get_db)):
     return site
 
 @router.put("/{site_id}", response_model=SiteOut)
-def update_site(site_id: str, site_in: SiteUpdate, db: Session = Depends(get_db)):
+def update_site(site_id: str, site_in: SiteUpdate, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     site = db.query(Site).filter(Site.id == site_id).first()
     if not site:
         raise HTTPException(status_code=404, detail="Site not found")
@@ -68,7 +69,7 @@ def update_site(site_id: str, site_in: SiteUpdate, db: Session = Depends(get_db)
     return site
 
 @router.delete("/{site_id}")
-def delete_site(site_id: str, db: Session = Depends(get_db)):
+def delete_site(site_id: str, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     site = db.query(Site).filter(Site.id == site_id).first()
     if not site:
         raise HTTPException(status_code=404, detail="Site not found")

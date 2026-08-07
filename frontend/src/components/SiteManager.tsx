@@ -46,7 +46,7 @@ export default function SiteManager() {
     // Fetch Project to get real ID
     const { data: project } = useQuery({
         queryKey: ['project', projectId],
-        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectsProjectIdGet(projectId!),
+        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectIdGet(projectId!),
         enabled: !!projectId
     });
 
@@ -54,7 +54,7 @@ export default function SiteManager() {
 
     const { data: sites, isLoading } = useQuery({
         queryKey: ['sites', projectId],
-        queryFn: () => SiteService.listSitesApiV1SitesGet(0, 100, realProjectId),
+        queryFn: () => SiteService.readSitesApiV1SitesGet(0, 100, realProjectId),
         enabled: !!realProjectId
     });
 

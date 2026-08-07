@@ -144,7 +144,7 @@ export default function ComponentDiagram({ diagramId: propDiagramId, readOnly = 
     // Fetch all components (needed for the list)
     const { data: allComponents } = useQuery({
         queryKey: ['components'],
-        queryFn: () => ComponentService.listComponentsApiV1ComponentsGet(),
+        queryFn: () => ComponentService.readComponentsApiV1ComponentsGet(),
     });
 
     // Fetch diagram details if diagramId exists

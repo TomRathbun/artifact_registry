@@ -25,7 +25,8 @@ router = APIRouter()
 @router.get("/statistics/{project_id}")
 def get_project_statistics(
     project_id: str,
-    db: Session = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db),
+    _user=Depends(deps.get_current_user),
 ):
     # Resolve project_id to UUID if name was provided
     if not is_valid_uuid(project_id):

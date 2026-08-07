@@ -4,13 +4,15 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.db.session import get_db
+from app.api import deps
+from app.services.project_purge import purge_project_content
 from app.db.models.project import Project
 from app.schemas.project import ProjectCreate, ProjectOut, ProjectUpdate
 
 router = APIRouter(tags=["projects"])
 
 @router.get("/", response_model=List[ProjectOut])
-def list_projects(db: Session = Depends(get_db)):
+def list_projects(db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     return db.query(Project).all()
 
 from uuid import UUID
@@ -23,7 +25,7 @@ def is_valid_uuid(val):
         return False
 
 @router.get("/{project_id}", response_model=ProjectOut)
-def get_project(project_id: str, db: Session = Depends(get_db)):
+def get_project(project_id: str, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     if is_valid_uuid(project_id):
         project = db.query(Project).filter(Project.id == project_id).first()
     else:
@@ -34,7 +36,7 @@ def get_project(project_id: str, db: Session = Depends(get_db)):
     return project
 
 @router.post("/", response_model=ProjectOut, status_code=status.HTTP_201_CREATED)
-def create_project(payload: ProjectCreate, db: Session = Depends(get_db)):
+def create_project(payload: ProjectCreate, db: Session = Depends(get_db), _perm=Depends(deps.check_permissions(["admin"]))):
     if db.query(Project).filter(Project.name == payload.name).first():
         raise HTTPException(status_code=400, detail="Project with this name already exists")
     
@@ -45,7 +47,7 @@ def create_project(payload: ProjectCreate, db: Session = Depends(get_db)):
     return db_obj
 
 @router.put("/{project_id}", response_model=ProjectOut)
-def update_project(project_id: str, payload: ProjectUpdate, db: Session = Depends(get_db)):
+def update_project(project_id: str, payload: ProjectUpdate, db: Session = Depends(get_db), _perm=Depends(deps.check_permissions(["admin"]))):
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -59,34 +61,17 @@ def update_project(project_id: str, payload: ProjectUpdate, db: Session = Depend
     return project
 
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_project(project_id: str, db: Session = Depends(get_db)):
+def delete_project(project_id: str, db: Session = Depends(get_db), _perm=Depends(deps.check_permissions(["admin"]))):
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    
-    # Import models here to avoid circular imports if any, or just for clarity
-    from app.db.models.vision import Vision
-    from app.db.models.need import Need
-    from app.db.models.use_case import UseCase
-    from app.db.models.requirement import Requirement
-    from app.db.models.linkage import Linkage
-    
-    # Delete Linkages first (referencing artifacts)
-    db.query(Linkage).filter(Linkage.project_id == project_id).delete()
-    
-    # Delete Artifacts
-    db.query(Requirement).filter(Requirement.project_id == project_id).delete()
-    db.query(UseCase).filter(UseCase.project_id == project_id).delete()
-    db.query(Need).filter(Need.project_id == project_id).delete()
-    db.query(Vision).filter(Vision.project_id == project_id).delete()
-    
-    # Delete Project
-    db.delete(project)
+
+    purge_project_content(db, project_id, delete_project_row=True)
     db.commit()
     return None
 
 @router.get("/{project_id}/export", response_model=None)
-def export_project(project_id: str, db: Session = Depends(get_db)):
+def export_project(project_id: str, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -111,10 +96,14 @@ def export_project(project_id: str, db: Session = Depends(get_db)):
     needs = db.query(Need).filter(Need.project_id == project_id).all()
     use_cases = db.query(UseCase).filter(UseCase.project_id == project_id).all()
     requirements = db.query(Requirement).filter(Requirement.project_id == project_id).all()
-    components = db.query(Component).all()
+    components = db.query(Component).filter(
+        (Component.project_id == project_id) | (Component.project_id == None)
+    ).all()
     diagrams = db.query(Diagram).filter(Diagram.project_id == project_id).all()
     linkages = db.query(Linkage).filter(Linkage.project_id == project_id).all()
-    sites = db.query(Site).all()
+    sites = db.query(Site).filter(
+        (Site.project_id == project_id) | (Site.project_id == None)
+    ).all()
     
     # For people, we need to filter by project_id if the column exists (it was added in migration)
     # Or we can just export all people associated with the project's artifacts?
@@ -189,7 +178,7 @@ def export_project(project_id: str, db: Session = Depends(get_db)):
     return export_data
 
 @router.post("/{project_id}/import", status_code=status.HTTP_200_OK)
-def import_project(project_id: str, data: dict, db: Session = Depends(get_db)):
+def import_project(project_id: str, data: dict, db: Session = Depends(get_db), _perm=Depends(deps.check_permissions(["admin"]))):
     import json
     # Verify project exists (or we are creating it)
     # The user wants to OVERWRITE.
@@ -198,61 +187,18 @@ def import_project(project_id: str, data: dict, db: Session = Depends(get_db)):
     # Check if project exists
     project = db.query(Project).filter(Project.id == project_id).first()
     if project:
-        # Delete everything using the delete_project logic
-        # We can call the delete_project function directly if we refactor it, 
-        # or just copy the logic.
-        # Let's copy/reuse logic to ensure clean slate.
-        
-        # Import models
-        from app.db.models.vision import Vision
-        from app.db.models.need import Need, need_sites, need_components
-        from app.db.models.use_case import UseCase, use_case_preconditions, use_case_postconditions, use_case_exceptions, use_case_stakeholders, Precondition, Postcondition, Exception as UCException
-        from app.db.models.requirement import Requirement
-        from app.db.models.linkage import Linkage
+        # Wipe project-scoped content; keep project row for ID stability
+        purge_project_content(db, project_id, delete_project_row=False)
+        from app.db.models.need import need_sites, need_components
+        from app.db.models.use_case import use_case_preconditions, use_case_postconditions, use_case_exceptions, use_case_stakeholders, Precondition, Postcondition, Exception as UCException
         from app.db.models.diagram import Diagram, DiagramComponent, DiagramEdge
         from app.db.models.metadata import Person
-        
-        # Delete Linkages
-        db.query(Linkage).filter(Linkage.project_id == project_id).delete()
-        
-        # Delete Diagram internals
-        # DiagramComponent/Edge cascade delete with Diagram? Yes.
-        
-        # Delete Association Table Rows (Manually, as cascade might not be set)
-        # We need to fetch IDs of artifacts to be deleted first
-        uc_ids_to_del = [uc.aid for uc in db.query(UseCase).filter(UseCase.project_id == project_id).all()]
-        need_ids_to_del = [n.aid for n in db.query(Need).filter(Need.project_id == project_id).all()]
-        
-        if uc_ids_to_del:
-            db.execute(use_case_preconditions.delete().where(use_case_preconditions.c.use_case_id.in_(uc_ids_to_del)))
-            db.execute(use_case_postconditions.delete().where(use_case_postconditions.c.use_case_id.in_(uc_ids_to_del)))
-            db.execute(use_case_exceptions.delete().where(use_case_exceptions.c.use_case_id.in_(uc_ids_to_del)))
-            db.execute(use_case_stakeholders.delete().where(use_case_stakeholders.c.use_case_id.in_(uc_ids_to_del)))
-            
-        if need_ids_to_del:
-            db.execute(need_sites.delete().where(need_sites.c.need_id.in_(need_ids_to_del)))
-            db.execute(need_components.delete().where(need_components.c.need_id.in_(need_ids_to_del)))
+        from app.db.models.vision import Vision
+        from app.db.models.need import Need
+        from app.db.models.use_case import UseCase
+        from app.db.models.requirement import Requirement
+        from app.db.models.linkage import Linkage
 
-        # Delete Artifacts
-        db.query(Requirement).filter(Requirement.project_id == project_id).delete()
-        
-        db.query(UseCase).filter(UseCase.project_id == project_id).delete()
-        db.query(Need).filter(Need.project_id == project_id).delete()
-        db.query(Vision).filter(Vision.project_id == project_id).delete()
-        
-        # Delete Reusables
-        db.query(Precondition).filter(Precondition.project_id == project_id).delete()
-        db.query(Postcondition).filter(Postcondition.project_id == project_id).delete()
-        db.query(UCException).filter(UCException.project_id == project_id).delete()
-        
-        # Delete Diagrams
-        db.query(Diagram).filter(Diagram.project_id == project_id).delete()
-        
-        # Delete People (Project specific)
-        db.query(Person).filter(Person.project_id == project_id).delete()
-        
-        # We DO NOT delete the Project row itself, so we keep the ID and Name (unless updated from JSON).
-        # Actually, we should update the project details from JSON.
         if "project" in data:
             p_data = data["project"]
             project.name = p_data.get("name", project.name)

@@ -1,24 +1,22 @@
 [project]
 name = "artifact_registry"
-version = "0.1.1"
-requires-python = ">=3.12"  # Suppresses default warning
+version = "0.1.9"
+requires-python = ">=3.12"
 dependencies = [
     "fastapi",
     "uvicorn[standard]",
     "sqlalchemy",
     "pydantic[email]",
     "python-jose[cryptography]",
-    "passlib[argon2]", # Argon2 for bcrypt alternative
+    "argon2-cffi",
     "python-multipart",
     "pydantic-settings>=2.12.0",
-    "jwt>=1.4.0",
-    "pyjwt[crypto]>=2.10.1",
+    "python-dotenv",
     "alembic>=1.17.1",
     "requests>=2.32.5",
     "pandas>=2.3.3",
     "psycopg2-binary>=2.9.11",
     "deep-translator>=1.11.4",
-    "psycopg2>=2.9.11",
 ]
 
 [dependency-groups]
@@ -26,7 +24,11 @@ dev = [
     "pytest",
     "httpx",
     "pytest-asyncio"
-]  # FIXED: Modern group syntax
+]
 
 [tool.uv]
 # No more deprecated tool.uv.dev-dependencies
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

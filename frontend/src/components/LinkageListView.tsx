@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link as RouterLink } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { LinkageService } from '../client/services/LinkageService';
+import { LinkagesService } from '../client/services/LinkagesService';
 import { ProjectsService } from '../client/services/ProjectsService';
 import type { LinkageCreate } from '../client/models/LinkageCreate';
 import { Link as LinkIcon, Plus, Trash2, ExternalLink, Eye, Search, Edit, Filter, ArrowUp, ArrowDown } from 'lucide-react';
@@ -84,7 +84,7 @@ export default function LinkageListView() {
     // Fetch project details to determine the real UUID
     const { data: project } = useQuery({
         queryKey: ['project', projectId],
-        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectsProjectIdGet(projectId!),
+        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectIdGet(projectId!),
         enabled: !!projectId
     });
 
@@ -131,7 +131,7 @@ export default function LinkageListView() {
     // Fetch all linkages
     const { data: linkages, isLoading } = useQuery({
         queryKey: ['linkages', 'all', project?.id],
-        queryFn: () => LinkageService.listLinkagesApiV1LinkageLinkagesGet(project!.id),
+        queryFn: () => LinkagesService.listLinkagesApiV1LinkagesGet(project!.id),
         enabled: !!project?.id,
     });
 
@@ -221,7 +221,7 @@ export default function LinkageListView() {
 
     // Mutations
     const createMutation = useMutation({
-        mutationFn: (payload: LinkageCreate) => LinkageService.createLinkageApiV1LinkageLinkagesPost(payload),
+        mutationFn: (payload: LinkageCreate) => LinkagesService.createLinkageApiV1LinkagesPost(payload),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['linkages', 'all', project?.id] });
             setIsAdding(false);
@@ -232,7 +232,7 @@ export default function LinkageListView() {
 
     const updateMutation = useMutation({
         mutationFn: ({ aid, payload }: { aid: string; payload: LinkageCreate }) =>
-            LinkageService.updateLinkageApiV1LinkageLinkagesAidPut(aid, payload),
+            LinkagesService.updateLinkageApiV1LinkagesAidPut(aid, payload),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['linkages', 'all', project?.id] });
             setEditingLinkage(null);
@@ -240,7 +240,7 @@ export default function LinkageListView() {
     });
 
     const deleteMutation = useMutation({
-        mutationFn: (aid: string) => LinkageService.deleteLinkageApiV1LinkageLinkagesAidDelete(aid),
+        mutationFn: (aid: string) => LinkagesService.deleteLinkageApiV1LinkagesAidDelete(aid),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['linkages', 'all', project?.id] });
         },

@@ -6,5 +6,6 @@ export type AreaCreate = {
     code: string;
     name: string;
     description?: (string | null);
+    project_id?: (string | null);
 };
 

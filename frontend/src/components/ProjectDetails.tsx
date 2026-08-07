@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
-import { VisionService, NeedsService, MetadataService, ProjectsService } from '../client'
+import { VisionsService, NeedsService, MetadataService, ProjectsService } from '../client'
 
 import { ArrowLeft, Plus, X, FileDown } from 'lucide-react'
 
@@ -26,35 +26,35 @@ export default function ProjectDetails() {
     // Fetch project details to get the real UUID if projectId is a name
     const { data: project } = useQuery({
         queryKey: ['project', projectId],
-        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectsProjectIdGet(projectId!)
+        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectIdGet(projectId!)
     })
 
     const realProjectId = project?.id
 
     const { data: visions } = useQuery({
         queryKey: ['visions', realProjectId],
-        queryFn: () => VisionService.listVisionStatementsApiV1VisionVisionStatementsGet(realProjectId),
+        queryFn: () => VisionsService.listVisionStatementsApiV1VisionsGet(realProjectId!),
         enabled: !!realProjectId
     })
     const { data: needs } = useQuery({
         queryKey: ['needs', realProjectId],
-        queryFn: () => NeedsService.listNeedsApiV1NeedNeedsGet(realProjectId),
+        queryFn: () => NeedsService.listNeedsApiV1NeedsGet(realProjectId!),
         enabled: !!realProjectId
     })
 
     // Metadata for edit form
     const { data: areas } = useQuery({
         queryKey: ['areas', realProjectId],
-        queryFn: () => MetadataService.listAreasApiV1MetadataMetadataAreasGet(realProjectId)
+        queryFn: () => MetadataService.listAreasApiV1MetadataAreasGet(realProjectId)
     })
     const { data: owners } = useQuery({
         queryKey: ['owners', realProjectId],
-        queryFn: () => MetadataService.listPeopleApiV1MetadataMetadataPeopleGet('owner'),
+        queryFn: () => MetadataService.listPeopleApiV1MetadataPeopleGet('owner'),
         enabled: !!realProjectId
     })
     const { data: stakeholders } = useQuery({
         queryKey: ['stakeholders', realProjectId],
-        queryFn: () => MetadataService.listPeopleApiV1MetadataMetadataPeopleGet('stakeholder'),
+        queryFn: () => MetadataService.listPeopleApiV1MetadataPeopleGet('stakeholder'),
         enabled: !!realProjectId
     })
 
@@ -62,7 +62,7 @@ export default function ProjectDetails() {
     const projectNeeds = needs || []
 
     const updateNeedMutation = useMutation({
-        mutationFn: (data: any) => NeedsService.updateNeedApiV1NeedNeedsAidPut(editingNeed.aid, data),
+        mutationFn: (data: any) => NeedsService.updateNeedApiV1NeedsAidPut(editingNeed.aid, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['needs', realProjectId] })
             setEditingNeed(null)

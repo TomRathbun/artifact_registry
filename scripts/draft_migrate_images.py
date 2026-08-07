@@ -11,7 +11,8 @@ if not DATABASE_URL:
     DATABASE_URL = "postgresql://admin@127.0.0.1:5433/registry"
     
 # UPLOAD DIR from config logic (hardcoded fallback based on findings)
-UPLOAD_DIR = Path("C:/Users/USER/registry-data/uploads")
+from app.core.config import settings
+UPLOAD_DIR = settings.UPLOAD_DIR
 
 TR2_ID = 'a1573933-ec35-4bbd-a94c-e0fedbd2581d'
 

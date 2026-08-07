@@ -13,7 +13,7 @@ export default function SidePanel({ projectId }: SidePanelProps) {
 
     const { data: project } = useQuery({
         queryKey: ['project', projectId],
-        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectsProjectIdGet(projectId),
+        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectIdGet(projectId),
         enabled: !!projectId,
     });
 

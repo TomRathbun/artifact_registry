@@ -3,8 +3,9 @@ from uuid import uuid4
 import json
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
+from app.api import deps
 from app.api.deps import get_db
 from app.db.models.component import Component, ComponentRelationship
 from app.schemas.component import ComponentCreate, ComponentUpdate, ComponentOut, ComponentRelationshipCreate
@@ -12,7 +13,7 @@ from app.schemas.component import ComponentCreate, ComponentUpdate, ComponentOut
 router = APIRouter()
 
 @router.post("/", response_model=ComponentOut)
-def create_component(component_in: ComponentCreate, db: Session = Depends(get_db)):
+def create_component(component_in: ComponentCreate, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     component = Component(
         id=str(uuid4()),
         name=component_in.name,
@@ -28,19 +29,30 @@ def create_component(component_in: ComponentCreate, db: Session = Depends(get_db
     return component
 
 @router.get("/", response_model=List[ComponentOut])
-def read_components(skip: int = 0, limit: int = 100, project_id: str = None, db: Session = Depends(get_db)):
-    query = db.query(Component)
+def read_components(skip: int = 0, limit: int = 100, project_id: str = None, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
+    query = db.query(Component).options(selectinload(Component.children_relationships))
     if project_id:
         query = query.filter(Component.project_id == project_id)
     components = query.offset(skip).limit(limit).all()
 
-    
-    # Transform for output
+    # Batch-load children referenced by relationships (avoid N+1)
+    child_ids = {
+        rel.child_id
+        for c in components
+        for rel in (c.children_relationships or [])
+    }
+    children_by_id = {}
+    if child_ids:
+        children_by_id = {
+            child.id: child
+            for child in db.query(Component).filter(Component.id.in_(child_ids)).all()
+        }
+
     results = []
     for c in components:
         children = []
         for rel in c.children_relationships:
-            child = db.query(Component).filter(Component.id == rel.child_id).first()
+            child = children_by_id.get(rel.child_id)
             if child:
                 children.append({
                     "child_id": child.id,
@@ -51,10 +63,9 @@ def read_components(skip: int = 0, limit: int = 100, project_id: str = None, db:
                     "protocol": rel.protocol,
                     "data_items": rel.data_items
                 })
-        
-        # Deserialize tags from JSON
+
         tags = json.loads(c.tags) if c.tags else []
-        
+
         results.append(ComponentOut(
             id=c.id,
             name=c.name,
@@ -67,11 +78,11 @@ def read_components(skip: int = 0, limit: int = 100, project_id: str = None, db:
             project_id=c.project_id,
             children=children
         ))
-        
+
     return results
 
 @router.get("/{component_id}", response_model=ComponentOut)
-def read_component(component_id: str, db: Session = Depends(get_db)):
+def read_component(component_id: str, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     component = db.query(Component).filter(Component.id == component_id).first()
     if not component:
         raise HTTPException(status_code=404, detail="Component not found")
@@ -107,7 +118,7 @@ def read_component(component_id: str, db: Session = Depends(get_db)):
     )
 
 @router.put("/{component_id}", response_model=ComponentOut)
-def update_component(component_id: str, component_in: ComponentUpdate, db: Session = Depends(get_db)):
+def update_component(component_id: str, component_in: ComponentUpdate, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     component = db.query(Component).filter(Component.id == component_id).first()
     if not component:
         raise HTTPException(status_code=404, detail="Component not found")
@@ -162,7 +173,7 @@ def update_component(component_id: str, component_in: ComponentUpdate, db: Sessi
     )
 
 @router.delete("/{component_id}")
-def delete_component(component_id: str, db: Session = Depends(get_db)):
+def delete_component(component_id: str, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     component = db.query(Component).filter(Component.id == component_id).first()
     if not component:
         raise HTTPException(status_code=404, detail="Component not found")
@@ -172,7 +183,7 @@ def delete_component(component_id: str, db: Session = Depends(get_db)):
     return {"ok": True}
 
 @router.post("/{component_id}/link")
-def link_component(component_id: str, link_in: ComponentRelationshipCreate, db: Session = Depends(get_db)):
+def link_component(component_id: str, link_in: ComponentRelationshipCreate, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     # Check parent exists
     parent = db.query(Component).filter(Component.id == component_id).first()
     if not parent:
@@ -203,7 +214,7 @@ def link_component(component_id: str, link_in: ComponentRelationshipCreate, db: 
     return {"ok": True}
 
 @router.delete("/{component_id}/link/{child_id}")
-def unlink_component(component_id: str, child_id: str, db: Session = Depends(get_db)):
+def unlink_component(component_id: str, child_id: str, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     link = db.query(ComponentRelationship).filter(
         ComponentRelationship.parent_id == component_id,
         ComponentRelationship.child_id == child_id

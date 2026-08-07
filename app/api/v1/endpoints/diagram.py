@@ -2,6 +2,7 @@ from typing import List
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from app.api import deps
 from app.api.deps import get_db
 from app.db.models.diagram import Diagram, DiagramComponent, DiagramEdge
 from app.db.models.project import Project
@@ -32,13 +33,13 @@ def resolve_project_id(db: Session, project_identifier: str) -> str:
     raise HTTPException(status_code=404, detail="Project not found")
 
 @router.get("/projects/{project_id}/diagrams", response_model=List[DiagramOut])
-def list_diagrams(project_id: str, db: Session = Depends(get_db)):
+def list_diagrams(project_id: str, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     real_project_id = resolve_project_id(db, project_id)
     diagrams = db.query(Diagram).filter(Diagram.project_id == real_project_id).all()
     return diagrams
 
 @router.post("/projects/{project_id}/diagrams", response_model=DiagramOut)
-def create_diagram(project_id: str, diagram_in: DiagramCreate, db: Session = Depends(get_db)):
+def create_diagram(project_id: str, diagram_in: DiagramCreate, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     real_project_id = resolve_project_id(db, project_id)
     diagram = Diagram(
         project_id=real_project_id,
@@ -54,14 +55,14 @@ def create_diagram(project_id: str, diagram_in: DiagramCreate, db: Session = Dep
     return diagram
 
 @router.get("/diagrams/{diagram_id}", response_model=DiagramOut)
-def get_diagram(diagram_id: str, db: Session = Depends(get_db)):
+def get_diagram(diagram_id: str, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     diagram = db.query(Diagram).filter(Diagram.id == diagram_id).first()
     if not diagram:
         raise HTTPException(status_code=404, detail="Diagram not found")
     return diagram
 
 @router.put("/diagrams/{diagram_id}", response_model=DiagramOut)
-def update_diagram(diagram_id: str, diagram_in: DiagramUpdate, db: Session = Depends(get_db)):
+def update_diagram(diagram_id: str, diagram_in: DiagramUpdate, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     diagram = db.query(Diagram).filter(Diagram.id == diagram_id).first()
     if not diagram:
         raise HTTPException(status_code=404, detail="Diagram not found")
@@ -80,7 +81,7 @@ def update_diagram(diagram_id: str, diagram_in: DiagramUpdate, db: Session = Dep
     return diagram
 
 @router.delete("/diagrams/{diagram_id}")
-def delete_diagram(diagram_id: str, db: Session = Depends(get_db)):
+def delete_diagram(diagram_id: str, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     diagram = db.query(Diagram).filter(Diagram.id == diagram_id).first()
     if not diagram:
         raise HTTPException(status_code=404, detail="Diagram not found")
@@ -97,7 +98,8 @@ def update_diagram_component(
     diagram_id: str, 
     component_id: str, 
     comp_in: DiagramComponentUpdate, 
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _user=Depends(deps.get_current_user),
 ):
     diagram = db.query(Diagram).filter(Diagram.id == diagram_id).first()
     if not diagram:
@@ -127,7 +129,12 @@ def update_diagram_component(
     return diagram
 
 @router.delete("/diagrams/{diagram_id}/components/{component_id}")
-def remove_component_from_diagram(diagram_id: str, component_id: str, db: Session = Depends(get_db)):
+def remove_component_from_diagram(
+    diagram_id: str,
+    component_id: str,
+    db: Session = Depends(get_db),
+    _user=Depends(deps.get_current_user),
+):
     diagram_comp = db.query(DiagramComponent).filter(
         DiagramComponent.diagram_id == diagram_id,
         DiagramComponent.component_id == component_id
@@ -146,7 +153,8 @@ def update_diagram_edge(
     source_id: str,
     target_id: str,
     edge_in: DiagramEdgeUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _user=Depends(deps.get_current_user),
 ):
     diagram = db.query(Diagram).filter(Diagram.id == diagram_id).first()
     if not diagram:

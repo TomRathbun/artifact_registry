@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { ExceptionBase } from './ExceptionBase';
 import type { ExtensionStep } from './ExtensionStep';
 import type { MssStep } from './MssStep';
 export type UseCaseCreate = {
@@ -12,15 +13,11 @@ export type UseCaseCreate = {
     stakeholder_ids?: Array<string>;
     area?: (string | null);
     status?: (string | null);
-    scope?: (string | null);
-    level?: (string | null);
     precondition_ids?: Array<string>;
     postcondition_ids?: Array<string>;
-    exception_ids?: Array<string>;
+    exceptions?: Array<ExceptionBase>;
     mss?: Array<MssStep>;
     extensions?: Array<ExtensionStep>;
-    req_references?: Array<string>;
     project_id: string;
-    source_need_id: string;
 };
 

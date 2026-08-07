@@ -13,7 +13,7 @@ from sqlalchemy import text
 from app.api import deps
 
 @router.get("/info")
-def get_system_info(db: Session = Depends(deps.get_db)):
+def get_system_info(db: Session = Depends(deps.get_db), _user=Depends(deps.get_current_user)):
     """
     Get system version information.
     """
@@ -46,7 +46,7 @@ def get_system_info(db: Session = Depends(deps.get_db)):
 
     return {
         "app_name": settings.PROJECT_NAME,
-        "version": "0.1.0",
+        "version": settings.VERSION,
         "python_version": platform.python_version(),
         "node_version": node_version,
         "fastapi_version": fastapi.__version__,
@@ -67,10 +67,7 @@ def get_dependencies(_auth = Depends(deps.check_permissions(["admin"]))):
     """
     Get dependency information for frontend and backend.
     """
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")) # Adjust based on depth
-    # Actually simpler to use absolute paths since we know the structure
-    # c:\Users\USER\registry
-    registry_root = "c:\\Users\\USER\\registry"
+    registry_root = str(settings.BASE_DIR)
     
     frontend_pkg = os.path.join(registry_root, "frontend", "package.json")
     backend_lock = os.path.join(registry_root, "uv.lock")
@@ -79,9 +76,9 @@ def get_dependencies(_auth = Depends(deps.check_permissions(["admin"]))):
     if os.path.exists(frontend_pkg):
         with open(frontend_pkg, 'r') as f:
             data = json.load(f)
-            deps = data.get('dependencies', {})
-            dev_deps = data.get('devDependencies', {})
-            for name, version in {**deps, **dev_deps}.items():
+            npm_deps = data.get('dependencies', {})
+            npm_dev_deps = data.get('devDependencies', {})
+            for name, version in {**npm_deps, **npm_dev_deps}.items():
                 frontend_deps.append({
                     "name": name,
                     "version": version.replace('^', '').replace('~', ''),
@@ -158,7 +155,7 @@ async def analyze_dependency(request: UpgradeRequest, _auth = Depends(deps.check
     """
     Perform a detailed dry-run check to identify potential compatibility issues.
     """
-    registry_root = "c:\\Users\\USER\\registry"
+    registry_root = str(settings.BASE_DIR)
     
     try:
         if request.source == "pypi":
@@ -209,11 +206,11 @@ async def analyze_dependency(request: UpgradeRequest, _auth = Depends(deps.check
         return {"safe": False, "summary": f"Analysis failed: {str(e)}"}
 
 @router.get("/changelog")
-def get_changelog():
+def get_changelog(_user=Depends(deps.get_current_user)):
     """
     Get the content of CHANGELOG.md
     """
-    registry_root = "c:\\Users\\USER\\registry"
+    registry_root = str(settings.BASE_DIR)
     changelog_path = os.path.join(registry_root, "CHANGELOG.md")
     
     if os.path.exists(changelog_path):
@@ -228,7 +225,7 @@ async def upgrade_dependency(request: UpgradeRequest, _auth = Depends(deps.check
     """
     Perform a dry-run compatibility check and then upgrade if safe.
     """
-    registry_root = "c:\\Users\\USER\\registry"
+    registry_root = str(settings.BASE_DIR)
     
     try:
         if request.source == "pypi":

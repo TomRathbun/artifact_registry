@@ -2,11 +2,13 @@
 Requirements Classifier API Endpoint
 Uses LSTM model from requirements_classifier project to classify requirement quality
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Dict, List, Optional
 from pathlib import Path
 import re
+
+from app.api import deps
 
 # Try to import PyTorch - if not available, we'll use mock mode
 try:
@@ -162,7 +164,10 @@ def preprocess_text(text: str) -> List[int]:
 
 
 @router.post("/classify", response_model=ClassificationResponse)
-async def classify_requirement(request: ClassificationRequest):
+async def classify_requirement(
+    request: ClassificationRequest,
+    _user=Depends(deps.get_current_user),
+):
     """
     Classify a requirement text using the LSTM model
     

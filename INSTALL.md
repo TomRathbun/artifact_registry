@@ -48,12 +48,18 @@ Create a `.env` file in the root directory:
 
 ```env
 DATABASE_URL=postgresql://admin@127.0.0.1:5433/registry
+# Required: use a long random string in any shared/networked install
 SECRET_KEY=your-super-secret-key-here
 
 # Relative paths to the sibling registry-data directory
+# (absolute paths also work, e.g. C:/Users/YOU/dev/registry-data/uploads)
 UPLOAD_DIR=../registry-data/uploads
 BACKUP_DIR=../registry-data/db_backups
+DATA_ARCHIVE_DIR=../registry-data/data_archives
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 ```
+
+Default admin (seeded on first start if no users exist): username `admin`, password `seclpass` (forced password change).
 
 ### 2. Install Dependencies
 ```bash
@@ -77,40 +83,50 @@ To apply migrations manually:
 .\scripts\migrate_db.ps1
 ```
 
-### 4. Start the Backend Server (Windows)
-Run the following batch wrapper in the root directory:
+### 4. Start everything (Windows)
+From the repo root:
 ```cmd
-.\win_run_backend.bat
+.\win_start_all.bat
 ```
-*Note: This script automatically handles reload optimizations (excluding .venv) and PowerShell execution policy bypass.*
+This starts PostgreSQL (if portable binaries exist), the API on port **8000**, and the Vite UI on port **5173** in separate windows.
+
+Or start pieces individually:
+```cmd
+.\win_start_db.bat
+.\win_run_backend.bat
+cd frontend && npm run dev
+```
 
 ### 5. Manual Start (Non-Windows)
-If not on Windows, run:
 ```bash
+# Database: use your local PostgreSQL on the port in .env (default 5433)
+
+# Backend
 uv run uvicorn artifact_registry:app --reload --port 8000
+
+# Frontend (second terminal)
+cd frontend && npm install && npm run dev
 ```
 
----
+API: http://127.0.0.1:8000/docs  
+UI: http://127.0.0.1:5173
 
-## 🎨 Frontend Setup (React)
+### Flat API routes
+Artifact routes no longer use double prefixes. Examples:
 
-### 1. Install Dependencies
-```bash
-cd frontend
-npm install
+| Resource | Path |
+|----------|------|
+| Visions | `/api/v1/visions/` |
+| Needs | `/api/v1/needs/` |
+| Use cases | `/api/v1/use-cases/` |
+| Requirements | `/api/v1/requirements/` |
+| Linkages | `/api/v1/linkages/` |
+| Metadata areas | `/api/v1/metadata/areas` |
+
+Regenerate the TypeScript client after API changes:
+```powershell
+.\scripts\generate_openapi_client.ps1
 ```
-
-### 2. Configure API Endpoint
-Create `frontend/.env`:
-```env
-VITE_API_BASE_URL=http://localhost:8000
-```
-
-### 3. Start Development Server
-```bash
-npm run dev
-```
-The application will be accessible at `http://localhost:5173`.
 
 ---
 

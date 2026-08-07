@@ -1,3 +1,5 @@
+import secrets
+
 from fastapi import APIRouter, Depends, HTTPException, status, Form
 from app.schemas.user import UserCreate, UserOut, UserUpdate
 from app.crud import user as crud_user
@@ -54,13 +56,13 @@ def reset_password(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Use default password for easier management
-    new_password = "changeme"
-    
+    # High-entropy temporary password; force change on next login
+    new_password = secrets.token_urlsafe(16)
+
     user.hashed_password = security.get_password_hash(new_password)
     user.password_expired = True
     db.commit()
-    return {"new_password": new_password}
+    return {"new_password": new_password, "password_expired": True}
 
 @router.post("/", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def create_user(

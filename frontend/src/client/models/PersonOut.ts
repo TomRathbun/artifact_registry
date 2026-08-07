@@ -3,10 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 export type PersonOut = {
+    id: string;
     name: string;
     role?: (string | null);
     email?: (string | null);
     person_type?: string;
-    id: string;
 };
 

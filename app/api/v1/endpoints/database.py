@@ -17,8 +17,35 @@ from app.db.base import Base, engine
 from sqlalchemy import inspect, text
 import json
 from app.api import deps
+from app.utils.paths import safe_join, sanitize_filename
 
 router = APIRouter()
+
+SENSITIVE_COLUMNS = {
+    "hashed_password",
+    "password",
+    "secret",
+    "token",
+    "access_token",
+    "refresh_token",
+    "api_key",
+}
+
+
+def resolve_backup_path(filename: str) -> Path:
+    """Resolve a backup filename strictly under BACKUP_DIR."""
+    safe_name = sanitize_filename(filename)
+    return safe_join(BACKUP_DIR, safe_name)
+
+
+def mask_sample_row(row: dict) -> dict:
+    masked = {}
+    for key, value in row.items():
+        if key.lower() in SENSITIVE_COLUMNS or "password" in key.lower() or "secret" in key.lower():
+            masked[key] = "***"
+        else:
+            masked[key] = value
+    return masked
 
 DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
 DB_PORT = os.getenv("DB_PORT", "5433")
@@ -275,15 +302,18 @@ async def download_backup(filename: str, _perm=Depends(deps.check_permissions(["
     Download a specific backup file.
     """
     try:
-        filepath = BACKUP_DIR / filename
+        safe_name = sanitize_filename(filename)
+        filepath = resolve_backup_path(safe_name)
         if not filepath.exists():
             raise HTTPException(status_code=404, detail="Backup file not found")
         
         return FileResponse(
             path=filepath,
-            filename=filename,
+            filename=safe_name,
             media_type="application/octet-stream"
         )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to download backup: {str(e)}")
 
@@ -293,18 +323,21 @@ async def delete_backup(filename: str, _perm=Depends(deps.check_permissions(["db
     Delete a backup file.
     """
     try:
-        filepath = BACKUP_DIR / filename
+        safe_name = sanitize_filename(filename)
+        filepath = resolve_backup_path(safe_name)
         if not filepath.exists():
             raise HTTPException(status_code=404, detail="Backup file not found")
         
         os.remove(filepath)
         
         metadata = get_metadata()
-        if filename in metadata:
-            del metadata[filename]
+        if safe_name in metadata:
+            del metadata[safe_name]
             save_metadata(metadata)
             
-        return {"message": f"Backup {filename} deleted successfully"}
+        return {"message": f"Backup {safe_name} deleted successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to delete backup: {str(e)}")
 
@@ -314,13 +347,20 @@ async def add_backup_note(filename: str, note_data: dict, _perm=Depends(deps.che
     Add or update a note for a backup.
     """
     try:
+        safe_name = sanitize_filename(filename)
+        # Ensure backup exists under BACKUP_DIR
+        filepath = resolve_backup_path(safe_name)
+        if not filepath.exists():
+            raise HTTPException(status_code=404, detail="Backup file not found")
         note = note_data.get("note", "")
         metadata = get_metadata()
-        if filename not in metadata:
-            metadata[filename] = {}
-        metadata[filename]["note"] = note
+        if safe_name not in metadata:
+            metadata[safe_name] = {}
+        metadata[safe_name]["note"] = note
         save_metadata(metadata)
         return {"message": "Note updated successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update note: {str(e)}")
 
@@ -330,7 +370,7 @@ async def restore_from_backup(filename: str, _perm=Depends(deps.check_permission
     Restore database from a specific backup file on the server.
     """
     try:
-        filepath = BACKUP_DIR / filename
+        filepath = resolve_backup_path(filename)
         if not filepath.exists():
             raise HTTPException(status_code=404, detail="Backup file not found")
         
@@ -448,9 +488,10 @@ async def restart_db(_perm=Depends(deps.check_permissions(["db:restore"]))):
         raise HTTPException(status_code=500, detail=f"Flush failed: {str(e)}")
 
 @router.get("/schema")
-async def get_schema(_perm=Depends(deps.check_permissions(["db:status"]))):
+async def get_schema(_perm=Depends(deps.check_permissions(["admin"]))):
     """
-    Get database tables and sample data.
+    Get database tables and masked sample data (admin only).
+    Sensitive columns (passwords, secrets) are redacted.
     """
     try:
         inspector = inspect(engine)
@@ -460,11 +501,12 @@ async def get_schema(_perm=Depends(deps.check_permissions(["db:status"]))):
         with SessionLocal() as db:
             for table_name in table_names:
                 columns = inspector.get_columns(table_name)
-                # Get first 5 rows
+                # Get first 5 rows (masked)
                 try:
-                    result = db.execute(text(f"SELECT * FROM {table_name} LIMIT 5"))
-                    rows = [dict(row._mapping) for row in result]
-                except:
+                    # Quote identifiers carefully — table names come from inspector
+                    result = db.execute(text(f'SELECT * FROM "{table_name}" LIMIT 5'))
+                    rows = [mask_sample_row(dict(row._mapping)) for row in result]
+                except Exception:
                     rows = []
                 
                 schema_info.append({

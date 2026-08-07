@@ -23,7 +23,7 @@ from app.schemas.requirement import (
     EARSValidationRequest,
     EARSValidationResponse
 )
-router = APIRouter(prefix="/requirements", tags=["Requirements"])
+router = APIRouter(tags=["Requirements"])
 
 
 # -------------------------------------------------
@@ -31,7 +31,7 @@ router = APIRouter(prefix="/requirements", tags=["Requirements"])
 # -------------------------------------------------
 
 @router.get("/ears/templates", response_model=EARSTemplateResponse)
-def get_ears_templates():
+def get_ears_templates(_user=Depends(deps.get_current_user)):
     """
     Get all EARS pattern templates and descriptions.
     """
@@ -48,7 +48,7 @@ def get_ears_templates():
 
 
 @router.post("/ears/validate", response_model=EARSValidationResponse)
-def validate_ears_requirement(payload: EARSValidationRequest):
+def validate_ears_requirement(payload: EARSValidationRequest, _user=Depends(deps.get_current_user)):
     """
     Validate a requirement text against an EARS pattern.
     Returns validation result with suggestions if invalid.
@@ -86,6 +86,7 @@ def list_requirements(
     search: Optional[str] = Query(None, description="Keyword search in short_name/text"),
     select_all: bool = Query(False, description="Ignore all filters and return everything"),
     db: Session = Depends(get_db),
+    _user=Depends(deps.get_current_user),
 ):
     """
     List all requirements with optional filtering.
@@ -138,7 +139,7 @@ def list_requirements(
 
 
 @router.get("/{aid}")
-def get_requirement(aid: str, db: Session = Depends(get_db)):
+def get_requirement(aid: str, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     """
     Retrieve a single requirement by its artifact identifier (aid).
     Includes source_use_case_id from linkage.
@@ -170,8 +171,6 @@ def create_requirement(
     db: Session = Depends(get_db),
     _perm = Depends(deps.check_permissions(["requirement:create"]))
 ):
-    print(db)
-    print(payload.model_dump())
     # 1. Validate Project
     if not db.query(Project).filter(Project.id == payload.project_id).first():
         raise HTTPException(status_code=400, detail="Project not found")
@@ -228,7 +227,6 @@ def update_requirement(
     update_data = payload.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_req, field, value)
-        print(f'setting field {field} to {value}')
 
     db_req.last_updated = datetime.now(UTC)
     db.commit()

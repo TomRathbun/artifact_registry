@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Upload, Copy, Image as ImageIcon, Check, Trash2, Edit2, X } from 'lucide-react';
-import axios from 'axios';
 import { useParams } from 'react-router-dom';
-import { ProjectsService } from '../client';
+import { ProjectsService, ImagesService } from '../client';
 
 interface ImageFile {
     filename: string;
@@ -19,36 +18,29 @@ const ImageGallery: React.FC = () => {
     const [uploading, setUploading] = useState(false);
     const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
 
-    // Fetch Project to get real ID
     const { data: project } = useQuery({
         queryKey: ['project', projectId],
-        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectsProjectIdGet(projectId!),
+        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectIdGet(projectId!),
         enabled: !!projectId
     });
 
     const realProjectId = project?.id || projectId;
 
     const { data: images, isLoading } = useQuery<ImageFile[]>({
-        queryKey: ['images', projectId],
+        queryKey: ['images', realProjectId],
         queryFn: async () => {
-            const response = await axios.get('/api/v1/images/', {
-                params: { project_id: realProjectId }
-            });
-            return response.data;
+            const data = await ImagesService.listImagesApiV1ImagesGet(realProjectId);
+            return data as ImageFile[];
         },
         enabled: !!realProjectId
     });
 
     const uploadMutation = useMutation({
         mutationFn: async (file: File) => {
-            const formData = new FormData();
-            formData.append('file', file);
-            if (realProjectId) {
-                formData.append('project_id', realProjectId);
-            }
-            await axios.post('/api/v1/images/upload', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            await ImagesService.uploadImageApiV1ImagesUploadPost({
+                file,
+                project_id: realProjectId,
+            } as any);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['images'] });
@@ -63,7 +55,7 @@ const ImageGallery: React.FC = () => {
 
     const deleteMutation = useMutation({
         mutationFn: async (filename: string) => {
-            await axios.delete(`/api/v1/images/${filename}`);
+            await ImagesService.deleteImageApiV1ImagesFilenameDelete(filename);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['images'] });
@@ -79,7 +71,9 @@ const ImageGallery: React.FC = () => {
 
     const renameMutation = useMutation({
         mutationFn: async ({ oldName, newName }: { oldName: string; newName: string }) => {
-            await axios.put(`/api/v1/images/${oldName}/rename`, { new_filename: newName });
+            await ImagesService.renameImageApiV1ImagesFilenameRenamePut(oldName, {
+                new_filename: newName,
+            });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['images'] });
@@ -88,7 +82,7 @@ const ImageGallery: React.FC = () => {
         },
         onError: (error: any) => {
             console.error('Rename failed:', error);
-            alert(error.response?.data?.detail || 'Failed to rename image');
+            alert(error?.body?.detail || error?.message || 'Failed to rename image');
         }
     });
 
@@ -118,112 +112,112 @@ const ImageGallery: React.FC = () => {
         }
     };
 
-    const copyToClipboard = (url: string, filename: string) => {
-        // Use relative URL for portability within the app
-        const markdown = `![${filename}](${url})`;
+    const copyToClipboard = (url: string) => {
+        const markdown = `![](${url})`;
+        navigator.clipboard.writeText(markdown);
+        setCopiedUrl(url);
+        setTimeout(() => setCopiedUrl(null), 2000);
+    };
 
-        navigator.clipboard.writeText(markdown).then(() => {
-            setCopiedUrl(url);
-            setTimeout(() => setCopiedUrl(null), 2000);
-        });
+    const formatSize = (bytes: number) => {
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     };
 
     return (
-        <div className="p-8 max-w-6xl mx-auto">
-            <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-3">
-                    <ImageIcon className="w-8 h-8 text-blue-600" />
-                    <h1 className="text-3xl font-bold text-slate-800">Image Gallery</h1>
-                </div>
+        <div className="p-6 max-w-7xl mx-auto">
+            <div className="flex justify-between items-center mb-6">
                 <div>
-                    <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-colors shadow-sm">
-                        <Upload className="w-4 h-4" />
-                        <span>{uploading ? 'Uploading...' : 'Upload Image'}</span>
-                        <input
-                            type="file"
-                            className="hidden"
-                            accept="image/*"
-                            onChange={handleFileChange}
-                            disabled={uploading}
-                        />
-                    </label>
+                    <h1 className="text-2xl font-bold text-slate-800">Image Gallery</h1>
+                    <p className="text-slate-500 text-sm mt-1">
+                        Upload images for use in artifact documentation (Markdown)
+                    </p>
                 </div>
+                <label className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700 transition-colors">
+                    <Upload className="w-4 h-4" />
+                    {uploading ? 'Uploading...' : 'Upload Image'}
+                    <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleFileChange}
+                        disabled={uploading}
+                    />
+                </label>
             </div>
 
             {isLoading ? (
                 <div className="text-center py-12 text-slate-500">Loading images...</div>
+            ) : !images || images.length === 0 ? (
+                <div className="text-center py-16 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                    <ImageIcon className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                    <p className="text-slate-500">No images yet. Upload one to get started.</p>
+                </div>
             ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {images?.map((image) => (
-                        <div key={image.url} className="group bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
-                            <div className="aspect-video bg-slate-100 relative overflow-hidden flex items-center justify-center p-2">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {images.map((img) => (
+                        <div
+                            key={img.filename}
+                            className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow group"
+                        >
+                            <div className="aspect-video bg-slate-100 relative overflow-hidden">
                                 <img
-                                    src={image.url}
-                                    alt={image.filename}
-                                    className="object-contain w-full h-full"
+                                    src={img.url}
+                                    alt={img.filename}
+                                    className="w-full h-full object-contain"
                                 />
-                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                    <button
-                                        onClick={() => copyToClipboard(image.url, image.filename)}
-                                        className="bg-white text-slate-800 px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 hover:bg-blue-50"
-                                    >
-                                        {copiedUrl === image.url ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                                        {copiedUrl === image.url ? 'Copied!' : 'Copy'}
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(image.filename)}
-                                        className="bg-white text-red-600 px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 hover:bg-red-50"
-                                        title="Delete"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => startRenaming(image.filename)}
-                                        className="bg-white text-blue-600 px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 hover:bg-blue-50"
-                                        title="Rename"
-                                    >
-                                        <Edit2 className="w-4 h-4" />
-                                    </button>
-                                </div>
                             </div>
-                            <div className="p-3 bg-white border-t border-slate-100">
-                                {renamingImage === image.filename ? (
-                                    <div className="flex items-center gap-2">
+                            <div className="p-3">
+                                {renamingImage === img.filename ? (
+                                    <div className="flex gap-1 mb-2">
                                         <input
-                                            type="text"
                                             value={newFilename}
                                             onChange={(e) => setNewFilename(e.target.value)}
-                                            className="flex-1 text-sm border rounded px-2 py-1"
+                                            className="flex-1 text-xs border rounded px-2 py-1"
+                                            onKeyDown={(e) => e.key === 'Enter' && submitRename()}
                                             autoFocus
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') submitRename();
-                                                if (e.key === 'Escape') setRenamingImage(null);
-                                            }}
                                         />
-                                        <button onClick={submitRename} className="text-green-600 hover:text-green-700">
+                                        <button onClick={submitRename} className="p-1 text-green-600">
                                             <Check className="w-4 h-4" />
                                         </button>
-                                        <button onClick={() => setRenamingImage(null)} className="text-slate-400 hover:text-slate-600">
+                                        <button onClick={() => setRenamingImage(null)} className="p-1 text-slate-400">
                                             <X className="w-4 h-4" />
                                         </button>
                                     </div>
                                 ) : (
-                                    <p className="text-sm font-medium text-slate-700 truncate" title={image.filename}>
-                                        {image.filename}
+                                    <p className="text-sm font-medium text-slate-700 truncate mb-1" title={img.filename}>
+                                        {img.filename}
                                     </p>
                                 )}
-                                <p className="text-xs text-slate-400 mt-1">{(image.size / 1024).toFixed(1)} KB</p>
+                                <p className="text-xs text-slate-400 mb-2">{formatSize(img.size || 0)}</p>
+                                <div className="flex gap-1">
+                                    <button
+                                        onClick={() => copyToClipboard(img.url)}
+                                        className="flex-1 flex items-center justify-center gap-1 text-xs py-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600"
+                                        title="Copy Markdown"
+                                    >
+                                        {copiedUrl === img.url ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                                        {copiedUrl === img.url ? 'Copied' : 'Copy MD'}
+                                    </button>
+                                    <button
+                                        onClick={() => startRenaming(img.filename)}
+                                        className="p-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600"
+                                        title="Rename"
+                                    >
+                                        <Edit2 className="w-3 h-3" />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(img.filename)}
+                                        className="p-1.5 rounded bg-red-50 hover:bg-red-100 text-red-600"
+                                        title="Delete"
+                                    >
+                                        <Trash2 className="w-3 h-3" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ))}
-
-                    {images?.length === 0 && (
-                        <div className="col-span-full py-12 text-center border-2 border-dashed border-slate-200 rounded-lg bg-slate-50">
-                            <ImageIcon className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                            <h3 className="text-lg font-medium text-slate-700">No images yet</h3>
-                            <p className="text-slate-500">Upload an image to get started</p>
-                        </div>
-                    )}
                 </div>
             )}
         </div>

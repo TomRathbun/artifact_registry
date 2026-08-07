@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import MarkdownDisplay from './MarkdownDisplay';
-import { NeedsService, UseCasesService, RequirementsService, VisionService, LinkageService, ProjectsService, MetadataService } from '../client';
+import { NeedsService, UseCasesService, RequirementsService, VisionsService, LinkagesService, ProjectsService, MetadataService } from '../client';
 import {
     ArrowLeft, Edit, ExternalLink, X, ChevronLeft, ChevronRight,
     ZoomIn, ZoomOut, MessageSquarePlus, MessageSquare, Tag,
@@ -25,7 +25,7 @@ function PersonName({ personId }: { personId: string }) {
     const { data: people } = useQuery({
         queryKey: ['people'],
         queryFn: async () => {
-            const response = await fetch(`/api/v1/metadata/metadata/people`);
+            const response = await fetch(`/api/v1/metadata/people`);
             return response.ok ? await response.json() : [];
         },
         staleTime: 5 * 60 * 1000, // Cache for 5 minutes
@@ -45,13 +45,13 @@ function LinkedArtifactName({ link, onClick }: { link: any; onClick: () => void 
 
             switch (link.target_artifact_type) {
                 case 'vision':
-                    return await VisionService.getVisionStatementApiV1VisionVisionStatementsAidGet(link.target_id);
+                    return await VisionsService.getVisionStatementApiV1VisionsAidGet(link.target_id);
                 case 'need':
-                    return await NeedsService.getNeedApiV1NeedNeedsAidGet(link.target_id);
+                    return await NeedsService.getNeedApiV1NeedsAidGet(link.target_id);
                 case 'use_case':
-                    return await UseCasesService.getUseCaseApiV1UseCaseUseCasesAidGet(link.target_id);
+                    return await UseCasesService.getUseCaseApiV1UseCasesAidGet(link.target_id);
                 case 'requirement':
-                    return await RequirementsService.getRequirementApiV1RequirementRequirementsAidGet(link.target_id);
+                    return await RequirementsService.getRequirementApiV1RequirementsAidGet(link.target_id);
                 case 'diagram':
                     const diagResponse = await fetch(`/api/v1/diagrams/${link.target_id}`);
                     return diagResponse.ok ? await diagResponse.json() : null;
@@ -116,7 +116,7 @@ function CompactLinkages({
 }) {
     const { data: linkages } = useQuery({
         queryKey: ['linkages', artifactId],
-        queryFn: () => LinkageService.getOutgoingLinkagesApiV1LinkageLinkagesFromSourceAidGet(artifactId),
+        queryFn: () => LinkagesService.getOutgoingLinkagesApiV1LinkagesFromSourceAidGet(artifactId),
         enabled: !!artifactId,
     });
 
@@ -219,7 +219,7 @@ export default function ArtifactPresentation() {
     // Fetch areas for the rename dialog
     const { data: areas } = useQuery({
         queryKey: ['areas', projectId],
-        queryFn: () => MetadataService.listAreasApiV1MetadataMetadataAreasGet(project?.id || projectId),
+        queryFn: () => MetadataService.listAreasApiV1MetadataAreasGet(project?.id || projectId),
     });
 
     const fetchSuggestedAid = async (targetArea: string) => {
@@ -401,7 +401,7 @@ export default function ArtifactPresentation() {
     // Fetch project details
     const { data: project } = useQuery({
         queryKey: ['project', projectId],
-        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectsProjectIdGet(projectId!),
+        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectIdGet(projectId!),
         enabled: !!projectId
     });
 
@@ -419,13 +419,13 @@ export default function ArtifactPresentation() {
                     try {
                         switch (artifactType) {
                             case 'vision':
-                                return await VisionService.getVisionStatementApiV1VisionVisionStatementsAidGet(aid);
+                                return await VisionsService.getVisionStatementApiV1VisionsAidGet(aid);
                             case 'need':
-                                return await NeedsService.getNeedApiV1NeedNeedsAidGet(aid);
+                                return await NeedsService.getNeedApiV1NeedsAidGet(aid);
                             case 'use_case':
-                                return await UseCasesService.getUseCaseApiV1UseCaseUseCasesAidGet(aid);
+                                return await UseCasesService.getUseCaseApiV1UseCasesAidGet(aid);
                             case 'requirement':
-                                return await RequirementsService.getRequirementApiV1RequirementRequirementsAidGet(aid);
+                                return await RequirementsService.getRequirementApiV1RequirementsAidGet(aid);
                             case 'document':
                                 const docResponse = await fetch(`/api/v1/documents/${aid}`);
                                 return docResponse.ok ? await docResponse.json() : null;
@@ -443,15 +443,15 @@ export default function ArtifactPresentation() {
             // Otherwise fetch all artifacts ordered by AID
             switch (artifactType) {
                 case 'vision':
-                    return await VisionService.listVisionStatementsApiV1VisionVisionStatementsGet(project.id);
+                    return await VisionsService.listVisionStatementsApiV1VisionsGet(project.id);
                 case 'need':
-                    const needResponse = await fetch(`/api/v1/need/needs/?project_id=${project.id}`);
+                    const needResponse = await fetch(`/api/v1/needs/?project_id=${project.id}`);
                     return needResponse.ok ? await needResponse.json() : [];
                 case 'use_case':
-                    const ucResponse = await fetch(`/api/v1/use_case/use_cases/?project_id=${project.id}`);
+                    const ucResponse = await fetch(`/api/v1/use-cases/?project_id=${project.id}`);
                     return ucResponse.ok ? await ucResponse.json() : [];
                 case 'requirement':
-                    const reqResponse = await fetch(`/api/v1/requirement/requirements/?project_id=${project.id}`);
+                    const reqResponse = await fetch(`/api/v1/requirements/?project_id=${project.id}`);
                     return reqResponse.ok ? await reqResponse.json() : [];
                 case 'document':
                     const docResponse = await fetch(`/api/v1/documents/?project_id=${project.id}`);
@@ -494,13 +494,13 @@ export default function ArtifactPresentation() {
         queryFn: async () => {
             switch (artifactType) {
                 case 'vision':
-                    return await VisionService.getVisionStatementApiV1VisionVisionStatementsAidGet(artifactId!);
+                    return await VisionsService.getVisionStatementApiV1VisionsAidGet(artifactId!);
                 case 'need':
-                    return await NeedsService.getNeedApiV1NeedNeedsAidGet(artifactId!);
+                    return await NeedsService.getNeedApiV1NeedsAidGet(artifactId!);
                 case 'use_case':
-                    return await UseCasesService.getUseCaseApiV1UseCaseUseCasesAidGet(artifactId!);
+                    return await UseCasesService.getUseCaseApiV1UseCasesAidGet(artifactId!);
                 case 'requirement':
-                    return await RequirementsService.getRequirementApiV1RequirementRequirementsAidGet(artifactId!);
+                    return await RequirementsService.getRequirementApiV1RequirementsAidGet(artifactId!);
                 case 'document':
                     const docResponse = await fetch(`/api/v1/documents/${artifactId}`);
                     if (!docResponse.ok) throw new Error('Document not found');
@@ -546,13 +546,13 @@ export default function ArtifactPresentation() {
 
             switch (selectedLink.target_artifact_type) {
                 case 'vision':
-                    return await VisionService.getVisionStatementApiV1VisionVisionStatementsAidGet(selectedLink.target_id);
+                    return await VisionsService.getVisionStatementApiV1VisionsAidGet(selectedLink.target_id);
                 case 'need':
-                    return await NeedsService.getNeedApiV1NeedNeedsAidGet(selectedLink.target_id);
+                    return await NeedsService.getNeedApiV1NeedsAidGet(selectedLink.target_id);
                 case 'use_case':
-                    return await UseCasesService.getUseCaseApiV1UseCaseUseCasesAidGet(selectedLink.target_id);
+                    return await UseCasesService.getUseCaseApiV1UseCasesAidGet(selectedLink.target_id);
                 case 'requirement':
-                    return await RequirementsService.getRequirementApiV1RequirementRequirementsAidGet(selectedLink.target_id);
+                    return await RequirementsService.getRequirementApiV1RequirementsAidGet(selectedLink.target_id);
                 case 'diagram':
                     const diagResponse = await fetch(`/api/v1/diagrams/${selectedLink.target_id}`);
                     return diagResponse.ok ? await diagResponse.json() : null;

@@ -19,7 +19,7 @@ from app.schemas.need import NeedCreate, NeedOut
 from app.utils.id_generator import generate_artifact_id
 from app.api import deps
 
-router = APIRouter(prefix="/needs", tags=["Needs"])
+router = APIRouter(tags=["Needs"])
 
 # -------------------------------------------------
 # GET – list (filterable)
@@ -33,6 +33,7 @@ def list_needs(
     search: Optional[str] = Query(None, description="Keyword search in title/description"),
     select_all: bool = Query(False, description="Ignore filters and return all"),
     db: Session = Depends(get_db),
+    _user=Depends(deps.get_current_user),
 ):
     query = db.query(Need)
 
@@ -63,7 +64,7 @@ def list_needs(
 # GET – by id
 # -------------------------------------------------
 @router.get("/{aid}", response_model=NeedOut)
-def get_need(aid: str, db: Session = Depends(get_db)):
+def get_need(aid: str, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     obj = db.query(Need).filter(Need.aid == aid).first()
     if not obj:
         raise HTTPException(404, "Need not found")

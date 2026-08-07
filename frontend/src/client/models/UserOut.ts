@@ -4,8 +4,12 @@
 /* eslint-disable */
 export type UserOut = {
     email: string;
-    aid: number;
-    is_active?: boolean;
+    username: string;
+    full_name?: (string | null);
+    roles?: (Array<string> | null);
+    aid: string;
+    is_active: boolean;
+    password_expired: boolean;
     created_date: string;
 };
 

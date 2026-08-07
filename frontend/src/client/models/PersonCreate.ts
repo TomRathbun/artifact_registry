@@ -7,6 +7,5 @@ export type PersonCreate = {
     roles?: Array<string>;
     description?: (string | null);
     project_id?: (string | null);
-    person_type?: string;
 };
 

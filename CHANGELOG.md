@@ -2,6 +2,36 @@
 
 All notable changes to the Artifact Registry project will be documented in this file.
 
+## [0.1.9] - 2026-08-07
+
+### API
+- Flattened double-nested routes to REST-ish paths:
+  - `/api/v1/visions/`, `/api/v1/needs/`, `/api/v1/use-cases/`, `/api/v1/requirements/`, `/api/v1/linkages/`, `/api/v1/metadata/areas|people`
+  - Old paths such as `/api/v1/need/needs/` return 404
+
+### Tooling
+- Regenerated OpenAPI TypeScript client; `scripts/generate_openapi_client.ps1` + `npm run generate:api`
+- `win_start_all.bat` / `scripts/start_all.ps1` start DB + API + UI
+- CI: `.github/workflows/ci.yml` runs pytest + frontend `tsc`
+- Rewrote backend tests for flat routes (**27** passing)
+
+### Security
+- Require authentication on API reads; enforce create/edit/delete permissions more consistently
+- Admin-only for project create/update/delete/import, AID rename, and schema inspection
+- Path traversal guards on image/document uploads and backup filename handling
+- JWT `SECRET_KEY` required for production; insecure default warned
+- Login rejects inactive users; admin password reset returns high-entropy temporary passwords
+- CORS restricted to configured origins; schema samples mask password/secret columns
+- Frontend `AuthGuard` on protected routes; OpenAPI client clears session on 401
+
+### Fixed
+- Post-move data paths: `.env` and `system.py` use current `registry-data` / `BASE_DIR`
+- Single canonical `get_db` shared by deps and session modules
+- Project delete/import purge covers documents, diagrams, comments, images, associations
+- Linkages validate source/target belong to the linkage `project_id`
+- Dependency hygiene: drop duplicate jwt/pyjwt/psycopg2; declare dotenv and argon2-cffi
+- Unified app entry (`app.main` re-exports `artifact_registry:app`)
+
 ## [0.1.8] - 2026-01-09
 
 ### Admin & Infrastructure

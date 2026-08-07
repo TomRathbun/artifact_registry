@@ -14,7 +14,7 @@ export class ProjectsService {
      * @returns ProjectOut Successful Response
      * @throws ApiError
      */
-    public static listProjectsApiV1ProjectsProjectsGet(): CancelablePromise<Array<ProjectOut>> {
+    public static listProjectsApiV1ProjectsGet(): CancelablePromise<Array<ProjectOut>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/projects/',
@@ -26,7 +26,7 @@ export class ProjectsService {
      * @returns ProjectOut Successful Response
      * @throws ApiError
      */
-    public static createProjectApiV1ProjectsProjectsPost(
+    public static createProjectApiV1ProjectsPost(
         requestBody: ProjectCreate,
     ): CancelablePromise<ProjectOut> {
         return __request(OpenAPI, {
@@ -45,7 +45,7 @@ export class ProjectsService {
      * @returns ProjectOut Successful Response
      * @throws ApiError
      */
-    public static getProjectApiV1ProjectsProjectsProjectIdGet(
+    public static getProjectApiV1ProjectsProjectIdGet(
         projectId: string,
     ): CancelablePromise<ProjectOut> {
         return __request(OpenAPI, {
@@ -66,7 +66,7 @@ export class ProjectsService {
      * @returns ProjectOut Successful Response
      * @throws ApiError
      */
-    public static updateProjectApiV1ProjectsProjectsProjectIdPut(
+    public static updateProjectApiV1ProjectsProjectIdPut(
         projectId: string,
         requestBody: ProjectUpdate,
     ): CancelablePromise<ProjectOut> {
@@ -89,7 +89,7 @@ export class ProjectsService {
      * @returns void
      * @throws ApiError
      */
-    public static deleteProjectApiV1ProjectsProjectsProjectIdDelete(
+    public static deleteProjectApiV1ProjectsProjectIdDelete(
         projectId: string,
     ): CancelablePromise<void> {
         return __request(OpenAPI, {
@@ -98,6 +98,50 @@ export class ProjectsService {
             path: {
                 'project_id': projectId,
             },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Export Project
+     * @param projectId
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static exportProjectApiV1ProjectsProjectIdExportGet(
+        projectId: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/projects/{project_id}/export',
+            path: {
+                'project_id': projectId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Import Project
+     * @param projectId
+     * @param requestBody
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static importProjectApiV1ProjectsProjectIdImportPost(
+        projectId: string,
+        requestBody: Record<string, any>,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/projects/{project_id}/import',
+            path: {
+                'project_id': projectId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },

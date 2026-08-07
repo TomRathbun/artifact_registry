@@ -1,10 +1,8 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import './setupAuth' // must load before any API calls
 import './index.css'
 import App from './App.tsx'
-import { OpenAPI } from './client'
-
-OpenAPI.BASE = ''
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

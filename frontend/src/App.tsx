@@ -25,34 +25,105 @@ import DatabaseManager from './components/DatabaseManager';
 import AdminPage from './components/AdminPage';
 import LoginPage from './components/LoginPage';
 import PasswordChangePage from './components/PasswordChangePage';
+import AuthGuard from './components/AuthGuard';
 
-import { OpenAPI } from './client';
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error: any) => {
+        if (error?.status === 401) return false;
+        return failureCount < 2;
+      },
+    },
+  },
+});
 
-const queryClient = new QueryClient();
+// Global 401 handler: clear session and send user to login
+if (typeof window !== 'undefined') {
+  window.addEventListener('unhandledrejection', (event) => {
+    const err = event.reason;
+    if (err?.status === 401 || err?.body?.detail === 'Could not validate credentials') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      if (!window.location.pathname.startsWith('/login')) {
+        window.location.href = '/login';
+      }
+    }
+  });
+}
 
 function App() {
-  const token = localStorage.getItem('token');
-  if (token) {
-    OpenAPI.TOKEN = token;
-  }
-
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <div className="min-h-screen bg-transparent text-slate-900">
           <Routes>
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/change-password" element={<PasswordChangePage />} />
-            <Route path="/admin" element={<AdminPage />} />
-            <Route path="/" element={token ? <ProjectDashboard /> : <LoginPage />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/changelog" element={<ChangelogPage />} />
-            <Route path="/images" element={<ImageGallery />} />
-            <Route path="/dependencies" element={<DependencyPage />} />
-            {/* Project layout with side panel */}
-            <Route path="/project/:projectId" element={<ProjectLayout />}>
+            <Route
+              path="/change-password"
+              element={
+                <AuthGuard>
+                  <PasswordChangePage />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <AuthGuard>
+                  <AdminPage />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/"
+              element={
+                <AuthGuard>
+                  <ProjectDashboard />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/about"
+              element={
+                <AuthGuard>
+                  <AboutPage />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/changelog"
+              element={
+                <AuthGuard>
+                  <ChangelogPage />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/images"
+              element={
+                <AuthGuard>
+                  <ImageGallery />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/dependencies"
+              element={
+                <AuthGuard>
+                  <DependencyPage />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/project/:projectId"
+              element={
+                <AuthGuard>
+                  <ProjectLayout />
+                </AuthGuard>
+              }
+            >
               <Route path="images" element={<ImageGallery />} />
-              {/* List views */}
               <Route index element={<ArtifactListView artifactType="vision" />} />
               <Route path="visions" element={<ArtifactListView artifactType="vision" />} />
               <Route path="needs" element={<ArtifactListView artifactType="need" />} />
@@ -70,23 +141,26 @@ function App() {
               <Route path="diagrams" element={<DiagramList />} />
               <Route path="diagrams/:diagramId" element={<DiagramView />} />
               <Route path="components/diagram" element={<ComponentDiagram />} />
-
               <Route path="linkages" element={<LinkageListView />} />
               <Route path="graph" element={<ArtifactGraphView />} />
               <Route path="statistics" element={<StatisticsView />} />
               <Route path="database" element={<DatabaseManager />} />
-              {/* Create new artifact */}
               <Route path=":artifactType/create" element={<ArtifactWizard />} />
-              {/* View artifact in presentation mode (new default) */}
               <Route path=":artifactType/:artifactId" element={<ArtifactPresentation />} />
-              {/* Edit existing artifact */}
               <Route path=":artifactType/:artifactId/edit" element={<ArtifactWizard />} />
             </Route>
-            <Route path="/database" element={<DatabaseManager />} />
+            <Route
+              path="/database"
+              element={
+                <AuthGuard>
+                  <DatabaseManager />
+                </AuthGuard>
+              }
+            />
           </Routes>
         </div>
       </BrowserRouter>
-    </QueryClientProvider >
+    </QueryClientProvider>
   );
 }
 

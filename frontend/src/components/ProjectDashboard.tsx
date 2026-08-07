@@ -23,7 +23,7 @@ export default function ProjectDashboard() {
     const queryClient = useQueryClient()
     const { data: projects, isLoading } = useQuery({
         queryKey: ['projects'],
-        queryFn: () => ProjectsService.listProjectsApiV1ProjectsProjectsGet(),
+        queryFn: () => ProjectsService.listProjectsApiV1ProjectsGet(),
 
     })
 
@@ -55,7 +55,7 @@ export default function ProjectDashboard() {
     });
 
     const createProjectMutation = useMutation({
-        mutationFn: (data: ProjectCreate) => ProjectsService.createProjectApiV1ProjectsProjectsPost(data),
+        mutationFn: (data: ProjectCreate) => ProjectsService.createProjectApiV1ProjectsPost(data),
 
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['projects'] })
@@ -72,7 +72,7 @@ export default function ProjectDashboard() {
     })
 
     const deleteProjectMutation = useMutation({
-        mutationFn: (projectId: string) => ProjectsService.deleteProjectApiV1ProjectsProjectsProjectIdDelete(projectId),
+        mutationFn: (projectId: string) => ProjectsService.deleteProjectApiV1ProjectsProjectIdDelete(projectId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['projects'] })
         },

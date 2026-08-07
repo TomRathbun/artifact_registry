@@ -18,13 +18,13 @@ export default function ArtifactSelector({ projectId, artifactType, onSelect, on
         queryFn: async () => {
             switch (artifactType) {
                 case 'need':
-                    return (await axios.get(`/api/v1/need/needs/?project_id=${projectId}&select_all=true`)).data;
+                    return (await axios.get(`/api/v1/needs/?project_id=${projectId}&select_all=true`)).data;
                 case 'requirement':
-                    return (await axios.get(`/api/v1/requirement/requirements/?project_id=${projectId}&select_all=true`)).data;
+                    return (await axios.get(`/api/v1/requirements/?project_id=${projectId}&select_all=true`)).data;
                 case 'use_case':
-                    return (await axios.get(`/api/v1/use_case/use-cases/?project_id=${projectId}&select_all=true`)).data;
+                    return (await axios.get(`/api/v1/use-cases/?project_id=${projectId}&select_all=true`)).data;
                 case 'vision':
-                    return (await axios.get(`/api/v1/vision/vision-statements/?project_id=${projectId}`)).data;
+                    return (await axios.get(`/api/v1/visions/?project_id=${projectId}`)).data;
                 case 'diagram':
                     return (await axios.get(`/api/v1/projects/${projectId}/diagrams`)).data;
                 case 'component':

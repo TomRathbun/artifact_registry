@@ -23,10 +23,10 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import MultiHandleNode from './MultiHandleNode';
 import {
-    VisionService,
+    VisionsService,
     NeedsService,
-    UseCaseService,
-    RequirementService,
+    UseCasesService,
+    RequirementsService,
     MetadataService,
     ProjectsService
 } from '../client';
@@ -118,7 +118,7 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
 
     const { data: project } = useQuery({
         queryKey: ['project', projectId],
-        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectsProjectIdGet(projectId!),
+        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectIdGet(projectId!),
         enabled: !!projectId
     });
 
@@ -126,25 +126,25 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
 
     const { data: visions } = useQuery({
         queryKey: ['visions', realProjectId],
-        queryFn: () => VisionService.listVisionStatementsApiV1VisionVisionStatementsGet(realProjectId!),
+        queryFn: () => VisionsService.listVisionStatementsApiV1VisionsGet(realProjectId!),
         enabled: !!realProjectId
     });
 
     const { data: needs } = useQuery({
         queryKey: ['needs', realProjectId],
-        queryFn: () => NeedsService.listNeedsApiV1NeedNeedsGet(realProjectId!),
+        queryFn: () => NeedsService.listNeedsApiV1NeedsGet(realProjectId!),
         enabled: !!realProjectId
     });
 
     const { data: useCases } = useQuery({
         queryKey: ['useCases', realProjectId],
-        queryFn: () => UseCaseService.listUseCasesApiV1UseCaseUseCasesGet(realProjectId!),
+        queryFn: () => UseCasesService.listUseCasesApiV1UseCasesGet(realProjectId!),
         enabled: !!realProjectId
     });
 
     const { data: requirements } = useQuery({
         queryKey: ['requirements', realProjectId],
-        queryFn: () => RequirementService.listRequirementsApiV1RequirementRequirementsGet(realProjectId!),
+        queryFn: () => RequirementsService.listRequirementsApiV1RequirementsGet(realProjectId!),
         enabled: !!realProjectId
     });
 
@@ -169,7 +169,7 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
     const { data: linkages } = useQuery({
         queryKey: ['linkages', realProjectId],
         queryFn: async () => {
-            const resp = await axios.get('/api/v1/linkage/linkages/', { params: { project_id: realProjectId } });
+            const resp = await axios.get('/api/v1/linkages/', { params: { project_id: realProjectId } });
             return resp.data;
         },
         enabled: !!realProjectId
@@ -177,7 +177,7 @@ const ArtifactGraphView: React.FC<ArtifactGraphViewProps> = ({ initialArea = 'Al
 
     const { data: areas } = useQuery({
         queryKey: ['areas', realProjectId],
-        queryFn: () => MetadataService.listAreasApiV1MetadataMetadataAreasGet(realProjectId),
+        queryFn: () => MetadataService.listAreasApiV1MetadataAreasGet(realProjectId),
     });
 
     useEffect(() => {

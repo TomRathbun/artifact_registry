@@ -80,7 +80,8 @@ def transition_artifact(
 def get_artifact_history(
     artifact_type: str,
     artifact_id: str,
-    db: Session = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db),
+    _user=Depends(deps.get_current_user),
 ):
     events = db.query(ArtifactEvent).filter(
         ArtifactEvent.artifact_type == artifact_type,

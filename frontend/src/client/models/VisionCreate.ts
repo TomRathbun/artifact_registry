@@ -8,6 +8,7 @@ export type VisionCreate = {
      * Supports Markdown formatting
      */
     description: string;
+    area?: (string | null);
     project_id: string;
 };
 

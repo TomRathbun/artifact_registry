@@ -49,6 +49,8 @@ DATABASE_URL=postgresql://admin@127.0.0.1:5433/registry
 SECRET_KEY=$Secret
 UPLOAD_DIR=../registry-data/uploads
 BACKUP_DIR=../registry-data/db_backups
+DATA_ARCHIVE_DIR=../registry-data/data_archives
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 "@
     Set-Content -Path ".env" -Value $EnvContent
     Write-Host "  [OK] Generated backend .env"

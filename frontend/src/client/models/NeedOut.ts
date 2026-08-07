@@ -2,6 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { ComponentOut } from './ComponentOut';
+import type { NeedLevel } from './NeedLevel';
+import type { SiteOut } from './SiteOut';
 export type NeedOut = {
     aid: string;
     title: string;
@@ -17,5 +20,8 @@ export type NeedOut = {
     source_vision_id?: (string | null);
     created_date?: (string | null);
     last_updated?: (string | null);
+    level?: (NeedLevel | null);
+    sites?: Array<SiteOut>;
+    components?: Array<ComponentOut>;
 };
 

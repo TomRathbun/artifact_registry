@@ -10,10 +10,13 @@ export type RequirementCreate = {
     area?: (string | null);
     level?: (ReqLevel | null);
     ears_type?: (EarsType | null);
+    ears_trigger?: (string | null);
+    ears_state?: (string | null);
+    ears_condition?: (string | null);
+    ears_feature?: (string | null);
     status?: (string | null);
     rationale?: (string | null);
     owner?: (string | null);
     project_id: string;
-    source_use_case_id: string;
 };
 

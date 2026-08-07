@@ -17,7 +17,8 @@ router = APIRouter()
 def list_comments(
     artifact_aid: str = Query(..., description="Artifact AID to get comments for"),
     resolved: Optional[bool] = Query(None, description="Filter by resolution status"),
-    db: Session = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db),
+    _user=Depends(deps.get_current_user),
 ):
     """
     List all comments for an artifact.
@@ -36,7 +37,8 @@ def list_comments(
 def create_comment(
     comment_in: schemas.CommentCreate,
     db: Session = Depends(deps.get_db),
-    current_user: deps.User = Depends(deps.get_current_user)
+    current_user: deps.User = Depends(deps.get_current_user),
+    _perm=Depends(deps.check_permissions(["comment:create"])),
 ):
     """
     Create a new comment on an artifact field.
@@ -58,7 +60,8 @@ def create_comment(
 def resolve_comment(
     comment_id: str,
     resolve_data: schemas.CommentResolve,
-    db: Session = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db),
+    _perm=Depends(deps.check_permissions(["comment:resolve"])),
 ):
     """
     Mark a comment as resolved.
@@ -80,7 +83,8 @@ def resolve_comment(
 @router.patch("/{comment_id}/unresolve", response_model=schemas.Comment)
 def unresolve_comment(
     comment_id: str,
-    db: Session = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db),
+    _perm=Depends(deps.check_permissions(["comment:unresolve"])),
 ):
     """
     Mark a comment as unresolved (reopen it).
@@ -101,7 +105,8 @@ def unresolve_comment(
 @router.delete("/{comment_id}")
 def delete_comment(
     comment_id: str,
-    db: Session = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db),
+    _user=Depends(deps.get_current_user),
 ):
     """
     Delete a comment.

@@ -9,5 +9,8 @@ export type MssStep = {
     step_num: number;
     actor: string;
     description: string;
+    message?: (string | null);
+    target_actor?: (string | null);
+    response?: (string | null);
 };
 

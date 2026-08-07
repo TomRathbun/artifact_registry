@@ -17,7 +17,8 @@ def suggest_aid(
     artifact_type: str,
     area: str,
     project_id: str,
-    db: Session = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db),
+    _user=Depends(deps.get_current_user),
 ):
     artifact_type_map = {
         "need": Need,
@@ -35,7 +36,7 @@ def suggest_aid(
     return {"suggested_aid": new_aid}
 
 @router.post("/rename-aid")
-def rename_aid(data: AIDRename, db: Session = Depends(deps.get_db)):
+def rename_aid(data: AIDRename, db: Session = Depends(deps.get_db), _perm=Depends(deps.check_permissions(["admin"]))):
     artifact_type_map = {
         "need": {"model": Need, "table": "needs", "link_type": "need"},
         "use_case": {"model": UseCase, "table": "use_cases", "link_type": "use_case"},
@@ -108,6 +109,7 @@ def rename_aid(data: AIDRename, db: Session = Depends(deps.get_db)):
             db.execute(text("UPDATE use_case_preconditions SET use_case_id = :new WHERE use_case_id = :old"), {"new": data.new_aid, "old": data.old_aid})
             db.execute(text("UPDATE use_case_postconditions SET use_case_id = :new WHERE use_case_id = :old"), {"new": data.new_aid, "old": data.old_aid})
             db.execute(text("UPDATE use_case_stakeholders SET use_case_id = :new WHERE use_case_id = :old"), {"new": data.new_aid, "old": data.old_aid})
+            db.execute(text("UPDATE use_case_exceptions SET use_case_id = :new WHERE use_case_id = :old"), {"new": data.new_aid, "old": data.old_aid})
         
         # 7. Delete the old artifact
         db.delete(old_artifact)

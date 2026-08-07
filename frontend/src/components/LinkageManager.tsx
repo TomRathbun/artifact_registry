@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { LinkageService } from '../client/services/LinkageService';
+import { LinkagesService } from '../client/services/LinkagesService';
 import type { LinkageCreate } from '../client/models/LinkageCreate';
 import { Link as LinkIcon, ExternalLink, Eye, Trash2, Search } from 'lucide-react';
 import ArtifactSelector from './ArtifactSelector';
@@ -99,13 +99,13 @@ export const LinkageManager: React.FC<LinkageManagerProps> = ({
     // Fetch existing linkages
     const { data: linkages, isLoading } = useQuery({
         queryKey: ['linkages', actualSourceId],
-        queryFn: () => LinkageService.getOutgoingLinkagesApiV1LinkageLinkagesFromSourceAidGet(actualSourceId!),
+        queryFn: () => LinkagesService.getOutgoingLinkagesApiV1LinkagesFromSourceAidGet(actualSourceId!),
         enabled: !!actualSourceId,
     });
 
     // Create mutation
     const createMutation = useMutation({
-        mutationFn: (payload: LinkageCreate) => LinkageService.createLinkageApiV1LinkageLinkagesPost(payload),
+        mutationFn: (payload: LinkageCreate) => LinkagesService.createLinkageApiV1LinkagesPost(payload),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['linkages', sourceId] });
             setTargetId('');
@@ -114,7 +114,7 @@ export const LinkageManager: React.FC<LinkageManagerProps> = ({
 
     // Delete mutation
     const deleteMutation = useMutation({
-        mutationFn: (aid: string) => LinkageService.deleteLinkageApiV1LinkageLinkagesAidDelete(aid),
+        mutationFn: (aid: string) => LinkagesService.deleteLinkageApiV1LinkagesAidDelete(aid),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['linkages', sourceId] });
         },

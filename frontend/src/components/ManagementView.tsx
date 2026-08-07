@@ -51,7 +51,7 @@ export default function ManagementView({ type }: ManagementViewProps) {
     // Fetch Project to get real ID
     const { data: project } = useQuery({
         queryKey: ['project', projectId],
-        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectsProjectIdGet(projectId!),
+        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectIdGet(projectId!),
         enabled: !!projectId
     });
 
@@ -63,9 +63,9 @@ export default function ManagementView({ type }: ManagementViewProps) {
         queryFn: async () => {
             switch (type) {
                 case 'area':
-                    return MetadataService.listAreasApiV1MetadataMetadataAreasGet(realProjectId);
+                    return MetadataService.listAreasApiV1MetadataAreasGet(realProjectId);
                 case 'people':
-                    return MetadataService.listPeopleApiV1MetadataMetadataPeopleGet(realProjectId);
+                    return MetadataService.listPeopleApiV1MetadataPeopleGet(realProjectId);
                 default:
                     return [];
             }
@@ -78,9 +78,9 @@ export default function ManagementView({ type }: ManagementViewProps) {
         mutationFn: async (data: any) => {
             switch (type) {
                 case 'area':
-                    return MetadataService.createAreaApiV1MetadataMetadataAreasPost(data);
+                    return MetadataService.createAreaApiV1MetadataAreasPost(data);
                 case 'people':
-                    return MetadataService.createPersonApiV1MetadataMetadataPeoplePost({ ...data, project_id: realProjectId });
+                    return MetadataService.createPersonApiV1MetadataPeoplePost({ ...data, project_id: realProjectId });
                 default:
                     throw new Error('Invalid type');
             }
@@ -100,9 +100,9 @@ export default function ManagementView({ type }: ManagementViewProps) {
         mutationFn: async ({ id, data }: { id: string | number, data: any }) => {
             switch (type) {
                 case 'area':
-                    return MetadataService.updateAreaApiV1MetadataMetadataAreasCodePut(id as string, data);
+                    return MetadataService.updateAreaApiV1MetadataAreasCodePut(id as string, data);
                 case 'people':
-                    return MetadataService.updatePersonApiV1MetadataMetadataPeoplePersonIdPut(id as string, data);
+                    return MetadataService.updatePersonApiV1MetadataPeoplePersonIdPut(id as string, data);
                 default:
                     throw new Error('Invalid type');
             }
@@ -118,9 +118,9 @@ export default function ManagementView({ type }: ManagementViewProps) {
         mutationFn: async (id: string | number) => {
             switch (type) {
                 case 'area':
-                    return MetadataService.deleteAreaApiV1MetadataMetadataAreasCodeDelete(id as string);
+                    return MetadataService.deleteAreaApiV1MetadataAreasCodeDelete(id as string);
                 case 'people':
-                    return MetadataService.deletePersonApiV1MetadataMetadataPeoplePersonIdDelete(id as string);
+                    return MetadataService.deletePersonApiV1MetadataPeoplePersonIdDelete(id as string);
                 default:
                     throw new Error('Invalid type');
             }

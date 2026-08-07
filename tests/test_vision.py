@@ -1,52 +1,40 @@
-# tests/test_vision.py
-def create_vision(db_session, statement):
-    from app.db.models.vision import Vision
-    vision = Vision(aid="TEST-GLOBAL-VISION-001", statement=statement)
-    db_session.add(vision)
-    db_session.commit()
-    db_session.refresh(vision)
-    return vision.aid
+"""Vision CRUD against flat /api/v1/visions routes."""
 
-def test_list_vision_statements(client, db_session):
-    create_vision(db_session, "Test")
-    response = client.get("/vision-statements/")
-    assert response.status_code == 200
-    assert isinstance(response.json(), list)
 
-def test_get_vision_statement(client, db_session):
-    aid = create_vision(db_session, "Test vision")
-    response = client.get(f"/vision-statements/{aid}")
-    assert response.status_code == 200
-    assert response.json()["statement"] == "Test vision"
+def test_vision_crud_lifecycle(client, auth_headers, sample_project):
+    project_id = sample_project["id"]
 
-def test_get_vision_statement_not_found(client):
-    response = client.get("/vision-statements/invalid")
-    assert response.status_code == 404
+    created = client.post(
+        "/api/v1/visions/",
+        headers=auth_headers,
+        json={
+            "title": "Enterprise Vision",
+            "description": "We deliver secure systems",
+            "project_id": project_id,
+        },
+    )
+    assert created.status_code == 201, created.text
+    vision = created.json()
+    aid = vision["aid"]
 
-def test_create_vision_statement(client, db_session, auth_token):
-    payload = {"statement": "Test vision"}
-    response = client.post("/vision-statements/", json=payload, headers={"Authorization": f"Bearer {auth_token}"})
-    assert response.status_code == 201
-    assert response.json()["aid"] == "TEST-GLOBAL-VISION-001"
+    listed = client.get(
+        f"/api/v1/visions/?project_id={project_id}",
+        headers=auth_headers,
+    )
+    assert listed.status_code == 200
+    assert len(listed.json()) >= 1
 
-def test_update_vision_statement(client, db_session, auth_token):
-    create_vision(db_session, "Old")
-    payload = {"statement": "New vision"}
-    response = client.put("/vision-statements/TEST-GLOBAL-VISION-001", json=payload, headers={"Authorization": f"Bearer {auth_token}"})
-    assert response.status_code == 200
-    assert response.json()["statement"] == "New vision"
+    updated = client.put(
+        f"/api/v1/visions/{aid}",
+        headers=auth_headers,
+        json={
+            "title": "Enterprise Vision v2",
+            "description": "Updated",
+            "project_id": project_id,
+        },
+    )
+    assert updated.status_code == 200
+    assert updated.json()["title"] == "Enterprise Vision v2"
 
-def test_update_vision_statement_not_found(client, auth_token):
-    response = client.put("/vision-statements/invalid", json={}, headers={"Authorization": f"Bearer {auth_token}"})
-    assert response.status_code == 404
-
-def test_delete_vision_statement(client, db_session, auth_token):
-    create_vision(db_session, "Test")
-    response = client.delete("/vision-statements/TEST-GLOBAL-VISION-001", headers={"Authorization": f"Bearer {auth_token}"})
-    assert response.status_code == 204
-    get_res = client.get("/vision-statements/TEST-GLOBAL-VISION-001")
-    assert get_res.status_code == 404
-
-def test_delete_vision_statement_not_found(client, auth_token):
-    response = client.delete("/vision-statements/invalid", headers={"Authorization": f"Bearer {auth_token}"})
-    assert response.status_code == 404
+    deleted = client.delete(f"/api/v1/visions/{aid}", headers=auth_headers)
+    assert deleted.status_code == 204

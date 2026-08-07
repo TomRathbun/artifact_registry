@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { VisionService, NeedsService, UseCaseService, RequirementService } from '../client';
+import { VisionsService, NeedsService, UseCasesService, RequirementsService } from '../client';
 import MarkdownDisplay from './MarkdownDisplay';
 
 export default function ArtifactEditor() {
@@ -26,16 +26,16 @@ export default function ArtifactEditor() {
                 let data: any = null;
                 switch (artifactType) {
                     case 'vision':
-                        data = await VisionService.getVisionStatementApiV1VisionVisionStatementsAidGet(artifactId);
+                        data = await VisionsService.getVisionStatementApiV1VisionsAidGet(artifactId);
                         break;
                     case 'need':
-                        data = await NeedsService.getNeedApiV1NeedNeedsAidGet(artifactId);
+                        data = await NeedsService.getNeedApiV1NeedsAidGet(artifactId);
                         break;
                     case 'use_case':
-                        data = await UseCaseService.getUseCaseApiV1UseCaseUseCasesAidGet(artifactId);
+                        data = await UseCasesService.getUseCaseApiV1UseCasesAidGet(artifactId);
                         break;
                     case 'requirement':
-                        data = await RequirementService.getRequirementApiV1RequirementRequirementsAidGet(artifactId);
+                        data = await RequirementsService.getRequirementApiV1RequirementsAidGet(artifactId);
                         break;
                     case 'document':
                         const response = await fetch(`/api/v1/documents/${artifactId}`);
@@ -60,13 +60,13 @@ export default function ArtifactEditor() {
             if (!artifactId) throw new Error('No artifact ID');
             switch (artifactType) {
                 case 'vision':
-                    return VisionService.updateVisionStatementApiV1VisionVisionStatementsAidPut(artifactId, updated);
+                    return VisionsService.updateVisionStatementApiV1VisionsAidPut(artifactId, updated);
                 case 'need':
-                    return NeedsService.updateNeedApiV1NeedNeedsAidPut(artifactId, updated);
+                    return NeedsService.updateNeedApiV1NeedsAidPut(artifactId, updated);
                 case 'use_case':
-                    return UseCaseService.updateUseCaseApiV1UseCaseUseCasesAidPut(artifactId, updated);
+                    return UseCasesService.updateUseCaseApiV1UseCasesAidPut(artifactId, updated);
                 case 'requirement':
-                    return RequirementService.updateRequirementApiV1RequirementRequirementsAidPut(artifactId, updated);
+                    return RequirementsService.updateRequirementApiV1RequirementsAidPut(artifactId, updated);
                 case 'document':
                     const response = await fetch(`/api/v1/documents/${artifactId}`, {
                         method: 'PUT',

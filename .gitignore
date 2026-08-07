@@ -69,3 +69,8 @@ db_backups/
 uploads/
 data_archives/
 *.sql
+
+# Test scratch dirs
+.test_uploads/
+.test_backups/
+.test_archives/

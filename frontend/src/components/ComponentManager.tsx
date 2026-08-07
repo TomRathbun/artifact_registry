@@ -15,7 +15,7 @@ export default function ComponentManager() {
 
     const { data: project } = useQuery({
         queryKey: ['project', projectId],
-        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectsProjectIdGet(projectId!),
+        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectIdGet(projectId!),
         enabled: !!projectId,
     });
 
@@ -74,7 +74,7 @@ export default function ComponentManager() {
 
     const { data: components, isLoading } = useQuery({
         queryKey: ['components', projectId],
-        queryFn: () => ComponentService.listComponentsApiV1ComponentsGet(0, 100, realProjectId),
+        queryFn: () => ComponentService.readComponentsApiV1ComponentsGet(0, 100, realProjectId),
         enabled: !!realProjectId
     });
 

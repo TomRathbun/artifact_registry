@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams, useLocation } from 'react-rout
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import {
-    VisionService,
+    VisionsService,
     NeedsService,
     UseCasesService,
     RequirementsService,
@@ -12,6 +12,7 @@ import {
     ComponentService,
     ProjectsService,
     ArtifactEventsService,
+    DocumentsService,
 } from '../client';
 import { X, Plus, Trash2, History, ArrowLeft, MessageSquare } from 'lucide-react';
 import DualListBox from './DualListBox';
@@ -144,7 +145,7 @@ export default function ArtifactWizard() {
     // Fetch project details to get the real UUID if projectId is a name
     const { data: project } = useQuery({
         queryKey: ['project', projectId],
-        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectsProjectIdGet(projectId!)
+        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectIdGet(projectId!)
     });
 
     const realProjectId = project?.id;
@@ -321,23 +322,23 @@ export default function ArtifactWizard() {
     // Queries for auxiliary data
     const { data: owners } = useQuery({
         queryKey: ['owners', realProjectId],
-        queryFn: () => MetadataService.listPeopleApiV1MetadataMetadataPeopleGet(realProjectId, 'owner'),
+        queryFn: () => MetadataService.listPeopleApiV1MetadataPeopleGet(realProjectId, 'owner'),
         enabled: !!realProjectId
     });
     const { data: stakeholders } = useQuery({
         queryKey: ['stakeholders', realProjectId],
-        queryFn: () => MetadataService.listPeopleApiV1MetadataMetadataPeopleGet(realProjectId, 'stakeholder'),
+        queryFn: () => MetadataService.listPeopleApiV1MetadataPeopleGet(realProjectId, 'stakeholder'),
         enabled: !!realProjectId
     });
 
     const { data: areas } = useQuery({
         queryKey: ['areas', realProjectId],
-        queryFn: () => MetadataService.listAreasApiV1MetadataMetadataAreasGet(realProjectId)
+        queryFn: () => MetadataService.listAreasApiV1MetadataAreasGet(realProjectId)
     });
     const { data: actors } = useQuery({
         queryKey: ['actors', realProjectId],
         queryFn: async () => {
-            const result = await MetadataService.listPeopleApiV1MetadataMetadataPeopleGet(realProjectId, 'actor');
+            const result = await MetadataService.listPeopleApiV1MetadataPeopleGet(realProjectId, 'actor');
             return (result || []).sort((a: any, b: any) => a.name.localeCompare(b.name));
         },
         enabled: !!realProjectId
@@ -346,7 +347,7 @@ export default function ArtifactWizard() {
         queryKey: ['preconditions', realProjectId],
         queryFn: () => {
             if (!realProjectId) return [];
-            return UseCasesService.listPreconditionsApiV1UseCaseUseCasesPreconditionsGet(realProjectId);
+            return UseCasesService.listPreconditionsApiV1UseCasesPreconditionsGet(realProjectId);
         },
         enabled: !!realProjectId
     });
@@ -354,7 +355,7 @@ export default function ArtifactWizard() {
         queryKey: ['postconditions', realProjectId],
         queryFn: () => {
             if (!realProjectId) return [];
-            return UseCasesService.listPostconditionsApiV1UseCaseUseCasesPostconditionsGet(realProjectId);
+            return UseCasesService.listPostconditionsApiV1UseCasesPostconditionsGet(realProjectId);
         },
         enabled: !!realProjectId
     });
@@ -362,27 +363,27 @@ export default function ArtifactWizard() {
 
     // const { data: visions } = useQuery({
     //     queryKey: ['visions', realProjectId],
-    //     queryFn: () => VisionService.listVisionStatementsApiV1VisionVisionStatementsGet(realProjectId),
+    //     queryFn: () => VisionsService.listVisionStatementsApiV1VisionsGet(realProjectId),
     //     enabled: !!realProjectId
     // });
 
     // const { data: needs } = useQuery({
     //     queryKey: ['needs', realProjectId],
-    //     queryFn: () => NeedsService.listNeedsApiV1NeedNeedsGet(realProjectId),
+    //     queryFn: () => NeedsService.listNeedsApiV1NeedsGet(realProjectId),
     //     enabled: !!realProjectId
     // });
     // const { data: useCases } = useQuery({
     //     queryKey: ['use_cases', realProjectId],
-    //     queryFn: () => UseCasesService.listUseCasesApiV1UseCaseUseCasesGet(undefined, undefined, undefined, true), // TODO: Filter by project?
+    //     queryFn: () => UseCasesService.listUseCasesApiV1UseCasesGet(undefined, undefined, undefined, true), // TODO: Filter by project?
     //     enabled: !!realProjectId
     // });
     const { data: allSites } = useQuery({
         queryKey: ['sites'],
-        queryFn: () => SiteService.listSitesApiV1SitesGet()
+        queryFn: () => SiteService.readSitesApiV1SitesGet()
     });
     const { data: allComponents } = useQuery({
         queryKey: ['components'],
-        queryFn: () => ComponentService.listComponentsApiV1ComponentsGet()
+        queryFn: () => ComponentService.readComponentsApiV1ComponentsGet()
     });
 
     // Fetch existing artifact data if in edit mode
@@ -391,14 +392,12 @@ export default function ArtifactWizard() {
         queryFn: async () => {
             if (!artifactId) return null;
             switch (artifactType) {
-                case 'vision': return await VisionService.getVisionStatementApiV1VisionVisionStatementsAidGet(artifactId);
-                case 'need': return await NeedsService.getNeedApiV1NeedNeedsAidGet(artifactId);
-                case 'use_case': return await UseCasesService.getUseCaseApiV1UseCaseUseCasesAidGet(artifactId);
-                case 'requirement': return await RequirementsService.getRequirementApiV1RequirementRequirementsAidGet(artifactId);
+                case 'vision': return await VisionsService.getVisionStatementApiV1VisionsAidGet(artifactId);
+                case 'need': return await NeedsService.getNeedApiV1NeedsAidGet(artifactId);
+                case 'use_case': return await UseCasesService.getUseCaseApiV1UseCasesAidGet(artifactId);
+                case 'requirement': return await RequirementsService.getRequirementApiV1RequirementsAidGet(artifactId);
                 case 'document':
-                    const response = await fetch(`/api/v1/documents/${artifactId}`);
-                    if (!response.ok) throw new Error('Failed to fetch document');
-                    return await response.json();
+                    return await DocumentsService.readDocumentApiV1DocumentsAidGet(artifactId);
             }
         },
         enabled: !!artifactId
@@ -475,7 +474,7 @@ export default function ArtifactWizard() {
 
         const timer = setTimeout(async () => {
             try {
-                const response = await fetch('/api/v1/requirement/requirements/ears/validate', {
+                const response = await fetch('/api/v1/requirements/ears/validate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -559,23 +558,15 @@ export default function ArtifactWizard() {
 
             switch (artifactType) {
                 case 'vision':
-                    return await VisionService.createVisionStatementApiV1VisionVisionStatementsPost(filteredPayload as any);
+                    return await VisionsService.createVisionStatementApiV1VisionsPost(filteredPayload as any);
                 case 'need':
-                    return await NeedsService.createNeedApiV1NeedNeedsPost(filteredPayload as any);
+                    return await NeedsService.createNeedApiV1NeedsPost(filteredPayload as any);
                 case 'use_case':
-                    return await UseCasesService.createUseCaseApiV1UseCaseUseCasesPost(filteredPayload as any);
+                    return await UseCasesService.createUseCaseApiV1UseCasesPost(filteredPayload as any);
                 case 'requirement':
-                    return await RequirementsService.createRequirementApiV1RequirementRequirementsPost(filteredPayload as any);
+                    return await RequirementsService.createRequirementApiV1RequirementsPost(filteredPayload as any);
                 case 'document':
-                    const response = await fetch('/api/v1/documents/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(filteredPayload),
-                    });
-                    if (!response.ok) throw new Error('Failed to create document');
-                    return await response.json();
+                    return await DocumentsService.createDocumentApiV1DocumentsPost(filteredPayload as any);
             }
         },
         onSuccess: (result: any) => {
@@ -595,23 +586,15 @@ export default function ArtifactWizard() {
 
             switch (artifactType) {
                 case 'vision':
-                    return await VisionService.updateVisionStatementApiV1VisionVisionStatementsAidPut(aid, filteredPayload as any);
+                    return await VisionsService.updateVisionStatementApiV1VisionsAidPut(aid, filteredPayload as any);
                 case 'need':
-                    return await NeedsService.updateNeedApiV1NeedNeedsAidPut(aid, filteredPayload as any);
+                    return await NeedsService.updateNeedApiV1NeedsAidPut(aid, filteredPayload as any);
                 case 'use_case':
-                    return await UseCasesService.updateUseCaseApiV1UseCaseUseCasesAidPut(aid, filteredPayload as any);
+                    return await UseCasesService.updateUseCaseApiV1UseCasesAidPut(aid, filteredPayload as any);
                 case 'requirement':
-                    return await RequirementsService.updateRequirementApiV1RequirementRequirementsAidPut(aid, filteredPayload as any);
+                    return await RequirementsService.updateRequirementApiV1RequirementsAidPut(aid, filteredPayload as any);
                 case 'document':
-                    const response = await fetch(`/api/v1/documents/${aid}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(filteredPayload),
-                    });
-                    if (!response.ok) throw new Error('Failed to update document');
-                    return await response.json();
+                    return await DocumentsService.updateDocumentApiV1DocumentsAidPut(aid, filteredPayload as any);
             }
         },
         onSuccess: () => {
@@ -622,7 +605,7 @@ export default function ArtifactWizard() {
 
     // Modal related mutations
     const createAreaMutation = useMutation({
-        mutationFn: (payload: any) => MetadataService.createAreaApiV1MetadataMetadataAreasPost(payload),
+        mutationFn: (payload: any) => MetadataService.createAreaApiV1MetadataAreasPost(payload),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['areas'] });
             setShowAreaModal(false);
@@ -630,7 +613,7 @@ export default function ArtifactWizard() {
     });
     const createPersonMutation = useMutation({
         mutationFn: (payload: any) => {
-            return MetadataService.createPersonApiV1MetadataMetadataPeoplePost({
+            return MetadataService.createPersonApiV1MetadataPeoplePost({
                 ...payload,
                 project_id: realProjectId
             });
@@ -644,7 +627,7 @@ export default function ArtifactWizard() {
     const createPreconditionMutation = useMutation({
         mutationFn: (text: string) => {
             if (!realProjectId) throw new Error("Project ID is required");
-            return UseCasesService.createPreconditionApiV1UseCaseUseCasesPreconditionsPost({ text, project_id: realProjectId });
+            return UseCasesService.createPreconditionApiV1UseCasesPreconditionsPost({ text, project_id: realProjectId });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['preconditions'] });
@@ -654,7 +637,7 @@ export default function ArtifactWizard() {
     const createPostconditionMutation = useMutation({
         mutationFn: (text: string) => {
             if (!realProjectId) throw new Error("Project ID is required");
-            return UseCasesService.createPostconditionApiV1UseCaseUseCasesPostconditionsPost({ text, project_id: realProjectId });
+            return UseCasesService.createPostconditionApiV1UseCasesPostconditionsPost({ text, project_id: realProjectId });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['postconditions'] });
@@ -665,7 +648,7 @@ export default function ArtifactWizard() {
     const createActorMutation = useMutation({
         mutationFn: (payload: any) => {
             if (!realProjectId) throw new Error("Project ID is required");
-            return MetadataService.createPersonApiV1MetadataMetadataPeoplePost({
+            return MetadataService.createPersonApiV1MetadataPeoplePost({
                 ...payload,
                 roles: ['actor'],
                 project_id: realProjectId
@@ -684,8 +667,8 @@ export default function ArtifactWizard() {
                 artifactType,
                 artifactId,
                 {
-                    from_status: watch('status') || 'Draft',
-                    to_status: targetStatus,
+                    from_status: (watch('status') || 'Draft') as any,
+                    to_status: targetStatus as any,
                     rationale: transitionRationale,
                     comment: transitionComment
                 }
@@ -1575,12 +1558,9 @@ export default function ArtifactWizard() {
                                             const formData = new FormData();
                                             formData.append('file', file);
                                             try {
-                                                const response = await fetch('/api/v1/documents/upload', {
-                                                    method: 'POST',
-                                                    body: formData,
-                                                });
-                                                if (!response.ok) throw new Error('Upload failed');
-                                                const result = await response.json();
+                                                const result = await DocumentsService.uploadFileApiV1DocumentsUploadPost({
+                                                    file,
+                                                } as any);
                                                 setValue('content_url', result.url); // Store path
                                                 setValue('mime_type', file.type);
                                             } catch (err) {

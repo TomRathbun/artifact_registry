@@ -10,7 +10,7 @@ from app.schemas.vision import VisionCreate, VisionOut
 from app.utils.id_generator import generate_artifact_id
 from app.api import deps
 
-router = APIRouter(prefix="/vision-statements", tags=["Vision Statements"])
+router = APIRouter(tags=["Visions"])
 
 # -------------------------------------------------
 # GET – list (filterable)
@@ -20,6 +20,7 @@ def list_vision_statements(
     project_id: str = Query(..., description="Filter by project ID"),
     search: Optional[str] = Query(None, description="Keyword search in title/description"),
     db: Session = Depends(get_db),
+    _user=Depends(deps.get_current_user),
 ):
     query = db.query(Vision).filter(Vision.project_id == project_id)
     if search:
@@ -54,7 +55,7 @@ def create_vision_statement(
 # GET – by id
 # -------------------------------------------------
 @router.get("/{aid}", response_model=VisionOut)
-def get_vision_statement(aid: str, db: Session = Depends(get_db)):
+def get_vision_statement(aid: str, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     obj = db.query(Vision).filter(Vision.aid == aid).first()
     if not obj:
         raise HTTPException(status_code=404, detail="Vision Statement not found")

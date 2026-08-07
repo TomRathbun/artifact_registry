@@ -7,14 +7,15 @@ from app.db.session import get_db
 from app.db.models.metadata import Area, Person
 from app.schemas.metadata import AreaCreate, AreaOut, PersonCreate, PersonOut
 import uuid
+from app.api import deps
 
-router = APIRouter(prefix="/metadata", tags=["Metadata"])
+router = APIRouter(tags=["Metadata"])
 
 # -------------------------------------------------
 # Areas
 # -------------------------------------------------
 @router.get("/areas", response_model=List[AreaOut])
-def list_areas(project_id: str = None, db: Session = Depends(get_db)):
+def list_areas(project_id: str = None, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     query = db.query(Area)
     if project_id:
         # Strict filtering: Match project_id OR be the special 'GLOBAL' area
@@ -24,7 +25,7 @@ def list_areas(project_id: str = None, db: Session = Depends(get_db)):
 
 
 @router.post("/areas", response_model=AreaOut, status_code=status.HTTP_201_CREATED)
-def create_area(payload: AreaCreate, db: Session = Depends(get_db)):
+def create_area(payload: AreaCreate, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     if db.query(Area).filter(Area.code == payload.code).first():
         raise HTTPException(status_code=400, detail="Area code already exists")
     
@@ -38,7 +39,7 @@ def create_area(payload: AreaCreate, db: Session = Depends(get_db)):
     return area
 
 @router.put("/areas/{code}", response_model=AreaOut)
-def update_area(code: str, payload: AreaCreate, db: Session = Depends(get_db)):
+def update_area(code: str, payload: AreaCreate, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     area = db.query(Area).filter(Area.code == code).first()
     if not area:
         raise HTTPException(status_code=404, detail="Area not found")
@@ -52,7 +53,7 @@ def update_area(code: str, payload: AreaCreate, db: Session = Depends(get_db)):
     return area
 
 @router.delete("/areas/{code}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_area(code: str, db: Session = Depends(get_db)):
+def delete_area(code: str, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     area = db.query(Area).filter(Area.code == code).first()
     if not area:
         raise HTTPException(status_code=404, detail="Area not found")
@@ -67,7 +68,8 @@ def delete_area(code: str, db: Session = Depends(get_db)):
 def list_people(
     project_id: str = None, 
     role: str = None, 
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _user=Depends(deps.get_current_user),
 ):
     query = db.query(Person)
     
@@ -85,14 +87,14 @@ def list_people(
     return query.all()
 
 @router.get("/people/{person_id}", response_model=PersonOut)
-def get_person(person_id: str, db: Session = Depends(get_db)):
+def get_person(person_id: str, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     person = db.query(Person).filter(Person.id == person_id).first()
     if not person:
         raise HTTPException(status_code=404, detail="Person not found")
     return person
 
 @router.post("/people", response_model=PersonOut, status_code=status.HTTP_201_CREATED)
-def create_person(payload: PersonCreate, db: Session = Depends(get_db)):
+def create_person(payload: PersonCreate, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     person = Person(**payload.dict())
     db.add(person)
     db.commit()
@@ -100,7 +102,7 @@ def create_person(payload: PersonCreate, db: Session = Depends(get_db)):
     return person
 
 @router.put("/people/{person_id}", response_model=PersonOut)
-def update_person(person_id: str, payload: PersonCreate, db: Session = Depends(get_db)):
+def update_person(person_id: str, payload: PersonCreate, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     person = db.query(Person).filter(Person.id == person_id).first()
     if not person:
         raise HTTPException(status_code=404, detail="Person not found")
@@ -114,7 +116,7 @@ def update_person(person_id: str, payload: PersonCreate, db: Session = Depends(g
     return person
 
 @router.delete("/people/{person_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_person(person_id: str, db: Session = Depends(get_db)):
+def delete_person(person_id: str, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     person = db.query(Person).filter(Person.id == person_id).first()
     if not person:
         raise HTTPException(status_code=404, detail="Person not found")

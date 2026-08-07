@@ -1,5 +1,6 @@
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from app.api import deps
 from pydantic import BaseModel
 from typing import List, Union
 from deep_translator import GoogleTranslator
@@ -27,7 +28,7 @@ class TranslationRequest(BaseModel):
     target: str = "ar"
 
 @router.post("/translate")
-def translate_text(request: TranslationRequest):
+def translate_text(request: TranslationRequest, _user=Depends(deps.get_current_user)):
     try:
         translator = GoogleTranslator(source=request.source, target=request.target)
         if isinstance(request.text, list):

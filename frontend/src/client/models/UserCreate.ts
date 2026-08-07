@@ -4,6 +4,9 @@
 /* eslint-disable */
 export type UserCreate = {
     email: string;
+    username: string;
+    full_name?: (string | null);
+    roles?: (Array<string> | null);
     password: string;
 };
 

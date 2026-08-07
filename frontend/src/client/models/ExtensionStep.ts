@@ -9,5 +9,9 @@ export type ExtensionStep = {
     step: string;
     condition: string;
     handling: string;
+    actor?: (string | null);
+    message?: (string | null);
+    target_actor?: (string | null);
+    response?: (string | null);
 };
 

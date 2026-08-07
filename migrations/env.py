@@ -14,7 +14,8 @@ if config.config_file_name is not None:
 #  IMPORT YOUR MODELS (so autogenerate sees them)
 # -------------------------------------------------
 from app.db.base import Base
-from app.db.models import user, vision, need, use_case, requirement, linkage  # noqa
+# Import package so all models register on Base.metadata for autogenerate
+import app.db.base  # noqa: F401 — loads models via base.py side effects
 target_metadata = Base.metadata
 
 # -------------------------------------------------

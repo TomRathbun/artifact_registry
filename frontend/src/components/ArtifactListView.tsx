@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { VisionService, NeedsService, UseCaseService, RequirementService, MetadataService, ProjectsService, LinkagesService, SiteService, ComponentService } from '../client';
+import { VisionsService, NeedsService, UseCasesService, RequirementsService, MetadataService, ProjectsService, LinkagesService, SiteService, ComponentService, DocumentsService, DiagramsService } from '../client';
 import VisionHeader from './VisionHeader';
 import ImportConflictModal from './ImportConflictModal';
-import axios from 'axios';
 import { Download, Upload, Trash2, Edit, FileDown, Copy, Clipboard, Files, ArrowUp, ArrowDown, Filter, FilterX, RotateCcw, Search, Table } from 'lucide-react';
 import { marked } from 'marked';
 import mermaid from 'mermaid';
@@ -300,21 +299,21 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
     // Fetch project details first to get the real UUID
     const { data: project } = useQuery({
         queryKey: ['project', projectId],
-        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectsProjectIdGet(projectId!),
+        queryFn: () => ProjectsService.getProjectApiV1ProjectsProjectIdGet(projectId!),
         enabled: !!projectId
     });
 
     // Fetch vision statement for header (only once)
     const { data: vision } = useQuery({
         queryKey: ['vision', project?.id],
-        queryFn: () => VisionService.listVisionStatementsApiV1VisionVisionStatementsGet(project!.id),
+        queryFn: () => VisionsService.listVisionStatementsApiV1VisionsGet(project!.id),
         enabled: artifactType !== 'vision' && !!project?.id,
     });
 
     // Fetch areas for filter
     const { data: areas } = useQuery({
         queryKey: ['areas', project?.id],
-        queryFn: () => MetadataService.listAreasApiV1MetadataMetadataAreasGet(project?.id),
+        queryFn: () => MetadataService.listAreasApiV1MetadataAreasGet(project?.id),
     });
 
 
@@ -326,13 +325,12 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
             if (!project?.id) return [];
             switch (artifactType) {
                 case 'vision':
-                    return VisionService.listVisionStatementsApiV1VisionVisionStatementsGet(
+                    return VisionsService.listVisionStatementsApiV1VisionsGet(
                         project.id,
-                        status.length > 0 ? status[0] : undefined,
                         debouncedSearch || undefined
                     );
                 case 'need':
-                    return NeedsService.listNeedsApiV1NeedNeedsGet(
+                    return NeedsService.listNeedsApiV1NeedsGet(
                         project.id,
                         undefined,
                         undefined,
@@ -341,16 +339,15 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                         false
                     );
                 case 'use_case':
-                    return UseCaseService.listUseCasesApiV1UseCaseUseCasesGet(
+                    return UseCasesService.listUseCasesApiV1UseCasesGet(
                         project.id,
                         undefined,
                         undefined,
                         undefined,
-                        debouncedSearch || undefined,
                         false
                     );
                 case 'requirement':
-                    return RequirementService.listRequirementsApiV1RequirementRequirementsGet(
+                    return RequirementsService.listRequirementsApiV1RequirementsGet(
                         project.id,
                         undefined,
                         undefined,
@@ -360,14 +357,18 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                         debouncedSearch || undefined,
                         false
                     );
-                case 'document':
-                    // Manual fetch until client is regenerated
-                    const params = new URLSearchParams();
-                    params.append('project_id', project.id);
-                    if (debouncedSearch) params.append('search', debouncedSearch);
-                    const res = await fetch(`/api/v1/documents/?${params.toString()}`);
-                    if (!res.ok) throw new Error('Failed to fetch documents');
-                    return res.json();
+                case 'document': {
+                    const docs: any[] = await DocumentsService.readDocumentsApiV1DocumentsGet(0, 100, project.id);
+                    if (debouncedSearch) {
+                        const q = debouncedSearch.toLowerCase();
+                        return docs.filter((d: any) =>
+                            (d.title || '').toLowerCase().includes(q) ||
+                            (d.description || '').toLowerCase().includes(q) ||
+                            (d.aid || '').toLowerCase().includes(q)
+                        );
+                    }
+                    return docs;
+                }
                 default:
                     return [];
             }
@@ -505,12 +506,12 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
     // Fetch metadata for export mapping
     const { data: owners } = useQuery({
         queryKey: ['owners', project?.id],
-        queryFn: () => MetadataService.listPeopleApiV1MetadataMetadataPeopleGet(project?.id),
+        queryFn: () => MetadataService.listPeopleApiV1MetadataPeopleGet(project?.id),
         enabled: !!artifacts && !!project?.id
     });
     const { data: stakeholders } = useQuery({
         queryKey: ['stakeholders', project?.id],
-        queryFn: () => MetadataService.listPeopleApiV1MetadataMetadataPeopleGet(project?.id),
+        queryFn: () => MetadataService.listPeopleApiV1MetadataPeopleGet(project?.id),
         enabled: !!artifacts && !!project?.id
     });
 
@@ -518,28 +519,25 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
 
     const { data: linkages } = useQuery({
         queryKey: ['linkages'],
-        queryFn: () => LinkagesService.listLinkagesApiV1LinkageLinkagesGet(),
+        queryFn: () => LinkagesService.listLinkagesApiV1LinkagesGet(),
         enabled: !!artifacts
     });
 
     const { data: allSites } = useQuery({
         queryKey: ['sites'],
-        queryFn: () => SiteService.listSitesApiV1SitesGet(),
+        queryFn: () => SiteService.readSitesApiV1SitesGet(),
         enabled: artifactType === 'need' && !!artifacts
     });
 
     const { data: allComponents } = useQuery({
         queryKey: ['components'],
-        queryFn: () => ComponentService.listComponentsApiV1ComponentsGet(),
+        queryFn: () => ComponentService.readComponentsApiV1ComponentsGet(),
         enabled: artifactType === 'need' && !!artifacts
     });
 
     const { data: diagrams } = useQuery({
         queryKey: ['diagrams', project?.id],
-        queryFn: async () => {
-            const res = await axios.get(`/api/v1/projects/${project?.id}/diagrams`);
-            return res.data;
-        },
+        queryFn: () => DiagramsService.listDiagramsApiV1ProjectsProjectIdDiagramsGet(project!.id),
         enabled: !!project?.id
     });
 
@@ -850,7 +848,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
         }
 
         if (linkages) {
-            const artifactIds = new Set(artifacts.map((a: any) => a.aid));
+            const artifactIds = new Set((artifacts || []).map((a: any) => a.aid));
             linkages.forEach((l: any) => {
                 // Check if this linkage involves any of the exported artifacts
                 if (artifactIds.has(l.source_id) || artifactIds.has(l.target_id)) {
@@ -964,11 +962,11 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
 
             try {
                 // Fetch people once to prevent duplicates
-                allPeople = await MetadataService.listPeopleApiV1MetadataMetadataPeopleGet(targetProjectId);
+                allPeople = await MetadataService.listPeopleApiV1MetadataPeopleGet(targetProjectId);
 
                 if (artifactType === 'need') {
-                    allSites = await SiteService.listSitesApiV1SitesGet();
-                    allComponents = await ComponentService.listComponentsApiV1ComponentsGet();
+                    allSites = await SiteService.readSitesApiV1SitesGet();
+                    allComponents = await ComponentService.readComponentsApiV1ComponentsGet();
                 }
             } catch (e) {
                 console.error("Failed to fetch metadata", e);
@@ -982,7 +980,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
 
                     // Handle Area lookup/creation
                     if (artifact.area) {
-                        const areas = await MetadataService.listAreasApiV1MetadataMetadataAreasGet();
+                        const areas = await MetadataService.listAreasApiV1MetadataAreasGet();
                         let areaObj = areas.find((a: any) => a.name === artifact.area || a.code === artifact.area);
 
                         if (!areaObj) {
@@ -995,7 +993,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                                 }
                             }
 
-                            areaObj = await MetadataService.createAreaApiV1MetadataMetadataAreasPost({
+                            areaObj = await MetadataService.createAreaApiV1MetadataAreasPost({
                                 code: areaCode || artifact.area.substring(0, 3).toUpperCase(),
                                 name: artifact.area,
                                 description: ''
@@ -1024,11 +1022,10 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                         if (existing) {
                             ownerId = existing.id;
                         } else {
-                            const newPerson = await MetadataService.createPersonApiV1MetadataMetadataPeoplePost({
+                            const newPerson = await MetadataService.createPersonApiV1MetadataPeoplePost({
                                 name: cleanName,
-                                roles: ['owner'],
+                                roles: ['both'],
                                 project_id: targetProjectId,
-                                person_type: 'both'
                             });
                             ownerId = newPerson.id;
                             allPeople.push(newPerson); // Update local cache
@@ -1051,11 +1048,10 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                         if (existing) {
                             artifact.stakeholder_id = existing.id;
                         } else {
-                            const newPerson = await MetadataService.createPersonApiV1MetadataMetadataPeoplePost({
+                            const newPerson = await MetadataService.createPersonApiV1MetadataPeoplePost({
                                 name: cleanName,
-                                roles: ['stakeholder'],
-                                project_id: targetProjectId,
-                                person_type: 'both'
+                                roles: ['both'],
+                                project_id: targetProjectId
                             });
                             artifact.stakeholder_id = newPerson.id;
                             allPeople.push(newPerson); // Update local cache
@@ -1077,17 +1073,16 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                                     let existing = allPeople.find((p: any) => p.name === stakeholderName);
                                     if (!existing) {
                                         // Create new person
-                                        existing = await MetadataService.createPersonApiV1MetadataMetadataPeoplePost({
+                                        existing = await MetadataService.createPersonApiV1MetadataPeoplePost({
                                             name: stakeholderName,
-                                            roles: ['stakeholder'],
-                                            project_id: targetProjectId,
-                                            person_type: 'both'
+                                            roles: ['both'],
+                                            project_id: targetProjectId
                                         });
                                         allPeople.push(existing); // Add to cache
                                     } else if (!(existing as any).roles?.includes('stakeholder')) {
                                         // Update roles if stakeholder role is missing
                                         const updatedRoles = [...((existing as any).roles || []), 'stakeholder'];
-                                        await MetadataService.updatePersonApiV1MetadataMetadataPeoplePersonIdPut(existing.id, {
+                                        await MetadataService.updatePersonApiV1MetadataPeoplePersonIdPut(existing.id, {
                                             ...(existing as any),
                                             roles: updatedRoles
                                         } as any);
@@ -1101,14 +1096,14 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
 
                         // Convert preconditions array of text to array of IDs
                         if (artifact.preconditions && Array.isArray(artifact.preconditions)) {
-                            const allPreconditions = await UseCaseService.listPreconditionsApiV1UseCaseUseCasesPreconditionsGet(artifact.project_id);
+                            const allPreconditions = await UseCasesService.listPreconditionsApiV1UseCasesPreconditionsGet(artifact.project_id);
                             const preconditionIds = [];
                             for (const preconditionText of artifact.preconditions) {
                                 if (typeof preconditionText === 'string') {
                                     // Check if precondition already exists
                                     let existing = allPreconditions.find((p: any) => p.text === preconditionText && p.project_id === artifact.project_id);
                                     if (!existing) {
-                                        existing = await UseCaseService.createPreconditionApiV1UseCaseUseCasesPreconditionsPost({
+                                        existing = await UseCasesService.createPreconditionApiV1UseCasesPreconditionsPost({
                                             text: preconditionText,
                                             project_id: artifact.project_id
                                         });
@@ -1122,14 +1117,14 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
 
                         // Convert postconditions array of text to array of IDs
                         if (artifact.postconditions && Array.isArray(artifact.postconditions)) {
-                            const allPostconditions = await UseCaseService.listPostconditionsApiV1UseCaseUseCasesPostconditionsGet(artifact.project_id);
+                            const allPostconditions = await UseCasesService.listPostconditionsApiV1UseCasesPostconditionsGet(artifact.project_id);
                             const postconditionIds = [];
                             for (const postconditionText of artifact.postconditions) {
                                 if (typeof postconditionText === 'string') {
                                     // Check if postcondition already exists
                                     let existing = allPostconditions.find((p: any) => p.text === postconditionText && p.project_id === artifact.project_id);
                                     if (!existing) {
-                                        existing = await UseCaseService.createPostconditionApiV1UseCaseUseCasesPostconditionsPost({
+                                        existing = await UseCasesService.createPostconditionApiV1UseCasesPostconditionsPost({
                                             text: postconditionText,
                                             project_id: artifact.project_id
                                         });
@@ -1143,7 +1138,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
 
                         // Convert exceptions to IDs
                         if (artifact.exceptions && Array.isArray(artifact.exceptions)) {
-                            const allExceptions = await UseCaseService.listExceptionsApiV1UseCaseUseCasesExceptionsGet(artifact.project_id);
+                            const allExceptions = await UseCasesService.listExceptionsApiV1UseCasesExceptionsGet(artifact.project_id);
                             const exceptionIds = [];
                             for (const exception of artifact.exceptions) {
                                 if (exception.trigger && exception.handling) {
@@ -1154,7 +1149,7 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                                         e.project_id === artifact.project_id
                                     );
                                     if (!existing) {
-                                        existing = await UseCaseService.createExceptionApiV1UseCaseUseCasesExceptionsPost({
+                                        existing = await UseCasesService.createExceptionApiV1UseCasesExceptionsPost({
                                             trigger: exception.trigger,
                                             handling: exception.handling,
                                             project_id: artifact.project_id
@@ -1170,20 +1165,19 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                         // Handle primary_actor name to ID (if it's a string)
                         if (artifact.primary_actor && typeof artifact.primary_actor === 'string') {
                             // Reuse allPeople if available, otherwise fetch
-                            const people = allPeople || await MetadataService.listPeopleApiV1MetadataMetadataPeopleGet(targetProjectId);
+                            const people = allPeople || await MetadataService.listPeopleApiV1MetadataPeopleGet(targetProjectId);
                             let existing = people.find((p: any) => p.name === artifact.primary_actor);
                             if (!existing) {
-                                existing = await MetadataService.createPersonApiV1MetadataMetadataPeoplePost({
+                                existing = await MetadataService.createPersonApiV1MetadataPeoplePost({
                                     name: artifact.primary_actor,
-                                    roles: ['actor'],
-                                    project_id: targetProjectId,
-                                    person_type: 'both'
+                                    roles: ['both'],
+                                    project_id: targetProjectId
                                 });
                                 if (allPeople) allPeople.push(existing);
                             } else if (!(existing as any).roles?.includes('actor')) {
                                 // Update roles if actor role is missing
                                 const updatedRoles = [...((existing as any).roles || []), 'actor'];
-                                await MetadataService.updatePersonApiV1MetadataMetadataPeoplePersonIdPut(existing.id, {
+                                await MetadataService.updatePersonApiV1MetadataPeoplePersonIdPut(existing.id, {
                                     ...(existing as any),
                                     roles: updatedRoles
                                 } as any);
@@ -1194,24 +1188,23 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
 
                         // Handle MSS steps - convert actor names to IDs
                         if (artifact.mss && Array.isArray(artifact.mss)) {
-                            const people = allPeople || await MetadataService.listPeopleApiV1MetadataMetadataPeopleGet(targetProjectId);
+                            const people = allPeople || await MetadataService.listPeopleApiV1MetadataPeopleGet(targetProjectId);
                             for (const step of artifact.mss) {
                                 if (step.actor && typeof step.actor === 'string') {
                                     // Check if person exists
                                     let existing = people.find((p: any) => p.name === step.actor);
                                     if (!existing) {
                                         // Create new person with actor role
-                                        existing = await MetadataService.createPersonApiV1MetadataMetadataPeoplePost({
+                                        existing = await MetadataService.createPersonApiV1MetadataPeoplePost({
                                             name: step.actor,
-                                            roles: ['actor'],
-                                            project_id: targetProjectId,
-                                            person_type: 'both'
+                                            roles: ['both'],
+                                            project_id: targetProjectId
                                         });
                                         people.push(existing);
                                     } else if (!(existing as any).roles?.includes('actor')) {
                                         // Update roles if actor role is missing
                                         const updatedRoles = [...((existing as any).roles || []), 'actor'];
-                                        await MetadataService.updatePersonApiV1MetadataMetadataPeoplePersonIdPut(existing.id, {
+                                        await MetadataService.updatePersonApiV1MetadataPeoplePersonIdPut(existing.id, {
                                             ...(existing as any),
                                             roles: updatedRoles
                                         } as any);
@@ -1300,14 +1293,13 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
 
                         // Handle Owner (convert name to ID)
                         if (artifact.owner && typeof artifact.owner === 'string') {
-                            const people = await MetadataService.listPeopleApiV1MetadataMetadataPeopleGet(targetProjectId);
+                            const people = await MetadataService.listPeopleApiV1MetadataPeopleGet(targetProjectId);
                             let existing = people.find((p: any) => p.name === artifact.owner);
                             if (!existing) {
-                                existing = await MetadataService.createPersonApiV1MetadataMetadataPeoplePost({
+                                existing = await MetadataService.createPersonApiV1MetadataPeoplePost({
                                     name: artifact.owner,
-                                    roles: ['owner'],
-                                    project_id: targetProjectId,
-                                    person_type: 'both'
+                                    roles: ['both'],
+                                    project_id: targetProjectId
                                 });
                             }
                             artifact.owner_id = existing.id;
@@ -1316,14 +1308,13 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
 
                         // Handle Stakeholder (convert name to ID)
                         if (artifact.stakeholder && typeof artifact.stakeholder === 'string') {
-                            const people = await MetadataService.listPeopleApiV1MetadataMetadataPeopleGet(targetProjectId);
+                            const people = await MetadataService.listPeopleApiV1MetadataPeopleGet(targetProjectId);
                             let existing = people.find((p: any) => p.name === artifact.stakeholder);
                             if (!existing) {
-                                existing = await MetadataService.createPersonApiV1MetadataMetadataPeoplePost({
+                                existing = await MetadataService.createPersonApiV1MetadataPeoplePost({
                                     name: artifact.stakeholder,
-                                    roles: ['stakeholder'],
-                                    project_id: targetProjectId,
-                                    person_type: 'both'
+                                    roles: ['both'],
+                                    project_id: targetProjectId
                                 });
                             }
                             artifact.stakeholder_id = existing.id;
@@ -1334,16 +1325,16 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                     let result;
                     switch (artifactType) {
                         case 'vision':
-                            result = await VisionService.createVisionStatementApiV1VisionVisionStatementsPost(artifact);
+                            result = await VisionsService.createVisionStatementApiV1VisionsPost(artifact);
                             break;
                         case 'need':
-                            result = await NeedsService.createNeedApiV1NeedNeedsPost(artifact);
+                            result = await NeedsService.createNeedApiV1NeedsPost(artifact);
                             break;
                         case 'use_case':
-                            result = await UseCaseService.createUseCaseApiV1UseCaseUseCasesPost(artifact);
+                            result = await UseCasesService.createUseCaseApiV1UseCasesPost(artifact);
                             break;
                         case 'requirement':
-                            result = await RequirementService.createRequirementApiV1RequirementRequirementsPost(artifact);
+                            result = await RequirementsService.createRequirementApiV1RequirementsPost(artifact);
                             break;
                         case 'document':
                             const response = await fetch('/api/v1/documents/', {
@@ -1412,12 +1403,12 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
                         relationshipType = 'satisfies';
                     }
 
-                    await LinkagesService.createLinkageApiV1LinkageLinkagesPost({
+                    await LinkagesService.createLinkageApiV1LinkagesPost({
                         source_artifact_type: sourceType,
                         source_id: newSourceAid,
                         target_artifact_type: targetType,
                         target_id: newTargetAid,
-                        relationship_type: relationshipType,
+                        relationship_type: relationshipType as any,
                         project_id: targetProjectId
                     });
                     linkageResults.push({ success: true, source: newSourceAid, target: newTargetAid });
@@ -2117,17 +2108,15 @@ export function ArtifactListView({ artifactType }: ArtifactListViewProps) {
         mutationFn: async (aid: string) => {
             switch (artifactType) {
                 case 'vision':
-                    return VisionService.deleteVisionStatementApiV1VisionVisionStatementsAidDelete(aid);
+                    return VisionsService.deleteVisionStatementApiV1VisionsAidDelete(aid);
                 case 'need':
-                    return NeedsService.deleteNeedApiV1NeedNeedsAidDelete(aid);
+                    return NeedsService.deleteNeedApiV1NeedsAidDelete(aid);
                 case 'use_case':
-                    return UseCaseService.deleteUseCaseApiV1UseCaseUseCasesAidDelete(aid);
+                    return UseCasesService.deleteUseCaseApiV1UseCasesAidDelete(aid);
                 case 'requirement':
-                    return RequirementService.deleteRequirementApiV1RequirementRequirementsAidDelete(aid);
+                    return RequirementsService.deleteRequirementApiV1RequirementsAidDelete(aid);
                 case 'document':
-                    const res = await fetch(`/api/v1/documents/${aid}`, { method: 'DELETE' });
-                    if (!res.ok) throw new Error('Failed to delete document');
-                    return res.json();
+                    return DocumentsService.deleteDocumentApiV1DocumentsAidDelete(aid);
                 default:
                     throw new Error(`Delete not implemented for ${artifactType}`);
             }

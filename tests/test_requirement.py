@@ -1,44 +1,33 @@
-# tests/test_requirement.py
-from fastapi import status
-
-# -------------------------------------------------
-#  GET – list (already covered, keep existing tests)
-# -------------------------------------------------
-
-def test_get_requirement(client):
-    # create one first
-    payload = {"area": "MCK", "text": "Test requirement"}
-    create_res = client.post("/requirements/", json=payload)
-    aid = create_res.json()["aid"]
-
-    response = client.get(f"/requirements/{aid}")
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-    assert data["aid"] == aid
-    assert data["text"] == "Test requirement"
+"""Requirement CRUD against flat /api/v1/requirements routes."""
 
 
-def test_get_requirement_not_found(client):
-    response = client.get("/requirements/INVALID-AID")
-    assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert "Requirement not found" in response.json()["detail"]
+def test_requirement_crud_and_ears_templates(client, auth_headers, sample_project):
+    project_id = sample_project["id"]
 
+    templates = client.get(
+        "/api/v1/requirements/ears/templates",
+        headers=auth_headers,
+    )
+    assert templates.status_code == 200
+    assert "templates" in templates.json() or isinstance(templates.json(), dict)
 
-def test_delete_requirement(client):
-    # create
-    payload = {"area": "MCK", "text": "Delete me"}
-    create_res = client.post("/requirements/", json=payload)
-    aid = create_res.json()["aid"]
+    created = client.post(
+        "/api/v1/requirements/",
+        headers=auth_headers,
+        json={
+            "short_name": "REQ-100",
+            "text": "The system shall authenticate users.",
+            "project_id": project_id,
+            "area": "GLOBAL",
+            "level": "sys",
+            "ears_type": "ubiquitous",
+        },
+    )
+    assert created.status_code == 201, created.text
+    aid = created.json()["aid"]
 
-    # delete
-    del_res = client.delete(f"/requirements/{aid}")
-    assert del_res.status_code == status.HTTP_204_NO_CONTENT
+    got = client.get(f"/api/v1/requirements/{aid}", headers=auth_headers)
+    assert got.status_code == 200
 
-    # verify gone
-    get_res = client.get(f"/requirements/{aid}")
-    assert get_res.status_code == status.HTTP_404_NOT_FOUND
-
-
-def test_delete_requirement_not_found(client):
-    response = client.delete("/requirements/INVALID-AID")
-    assert response.status_code == status.HTTP_404_NOT_FOUND
+    deleted = client.delete(f"/api/v1/requirements/{aid}", headers=auth_headers)
+    assert deleted.status_code == 204

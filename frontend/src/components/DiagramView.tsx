@@ -1,10 +1,10 @@
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
 import ComponentDiagram from './ComponentDiagram';
 import ArtifactGraphView from './ArtifactGraphView';
 import SequenceDiagramEditor from './SequenceDiagramEditor';
 import PlantUMLDiagramEditor from './PlantUMLDiagramEditor';
+import { DiagramsService } from '../client';
 
 export default function DiagramView() {
     const { diagramId } = useParams<{ diagramId: string }>();
@@ -13,8 +13,7 @@ export default function DiagramView() {
         queryKey: ['diagram', diagramId],
         queryFn: async () => {
             if (!diagramId) return null;
-            const response = await axios.get(`/api/v1/diagrams/${diagramId}`);
-            return response.data;
+            return await DiagramsService.getDiagramApiV1DiagramsDiagramIdGet(diagramId);
         },
         enabled: !!diagramId,
     });

@@ -20,19 +20,20 @@ from app.schemas.use_case import (
 from app.utils.id_generator import generate_artifact_id
 from app.api import deps
 
-router = APIRouter(prefix="/use-cases", tags=["Use Cases"])
+router = APIRouter(tags=["Use Cases"])
 
 # --- Precondition Endpoints ---
 
 @router.get("/preconditions", response_model=List[PreconditionOut])
 def list_preconditions(
     project_id: str = Query(..., description="Project ID"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _user=Depends(deps.get_current_user),
 ):
     return db.query(Precondition).filter(Precondition.project_id == project_id).all()
 
 @router.post("/preconditions", response_model=PreconditionOut, status_code=status_code.HTTP_201_CREATED)
-def create_precondition(payload: PreconditionCreate, db: Session = Depends(get_db)):
+def create_precondition(payload: PreconditionCreate, db: Session = Depends(get_db), _perm=Depends(deps.check_permissions(["use_case:create"]))):
     db_obj = Precondition(
         id=str(uuid4()),
         text=payload.text,
@@ -44,7 +45,7 @@ def create_precondition(payload: PreconditionCreate, db: Session = Depends(get_d
     return db_obj
 
 @router.delete("/preconditions/{id}", status_code=status_code.HTTP_204_NO_CONTENT)
-def delete_precondition(id: str, db: Session = Depends(get_db)):
+def delete_precondition(id: str, db: Session = Depends(get_db), _perm=Depends(deps.check_permissions(["use_case:delete"]))):
     db_obj = db.query(Precondition).filter(Precondition.id == id).first()
     if not db_obj:
         raise HTTPException(status_code=404, detail="Precondition not found")
@@ -57,12 +58,13 @@ def delete_precondition(id: str, db: Session = Depends(get_db)):
 @router.get("/postconditions", response_model=List[PostconditionOut])
 def list_postconditions(
     project_id: str = Query(..., description="Project ID"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _user=Depends(deps.get_current_user),
 ):
     return db.query(Postcondition).filter(Postcondition.project_id == project_id).all()
 
 @router.post("/postconditions", response_model=PostconditionOut, status_code=status_code.HTTP_201_CREATED)
-def create_postcondition(payload: PostconditionCreate, db: Session = Depends(get_db)):
+def create_postcondition(payload: PostconditionCreate, db: Session = Depends(get_db), _perm=Depends(deps.check_permissions(["use_case:create"]))):
     db_obj = Postcondition(
         id=str(uuid4()),
         text=payload.text,
@@ -74,7 +76,7 @@ def create_postcondition(payload: PostconditionCreate, db: Session = Depends(get
     return db_obj
 
 @router.delete("/postconditions/{id}", status_code=status_code.HTTP_204_NO_CONTENT)
-def delete_postcondition(id: str, db: Session = Depends(get_db)):
+def delete_postcondition(id: str, db: Session = Depends(get_db), _perm=Depends(deps.check_permissions(["use_case:delete"]))):
     db_obj = db.query(Postcondition).filter(Postcondition.id == id).first()
     if not db_obj:
         raise HTTPException(status_code=404, detail="Postcondition not found")
@@ -87,12 +89,13 @@ def delete_postcondition(id: str, db: Session = Depends(get_db)):
 @router.get("/exceptions", response_model=List[ExceptionOut])
 def list_exceptions(
     project_id: str = Query(..., description="Project ID"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _user=Depends(deps.get_current_user),
 ):
     return db.query(UseCaseException).filter(UseCaseException.project_id == project_id).all()
 
 @router.post("/exceptions", response_model=ExceptionOut, status_code=status_code.HTTP_201_CREATED)
-def create_exception(payload: ExceptionCreate, db: Session = Depends(get_db)):
+def create_exception(payload: ExceptionCreate, db: Session = Depends(get_db), _perm=Depends(deps.check_permissions(["use_case:create"]))):
     db_obj = UseCaseException(
         id=str(uuid4()),
         trigger=payload.trigger,
@@ -105,7 +108,7 @@ def create_exception(payload: ExceptionCreate, db: Session = Depends(get_db)):
     return db_obj
 
 @router.delete("/exceptions/{id}", status_code=status_code.HTTP_204_NO_CONTENT)
-def delete_exception(id: str, db: Session = Depends(get_db)):
+def delete_exception(id: str, db: Session = Depends(get_db), _perm=Depends(deps.check_permissions(["use_case:delete"]))):
     db_obj = db.query(UseCaseException).filter(UseCaseException.id == id).first()
     if not db_obj:
         raise HTTPException(status_code=404, detail="Exception not found")
@@ -123,6 +126,7 @@ def list_use_cases(
         primary_actor: Optional[str] = Query(None, description="Filter by primary_actor"),
         select_all: bool = Query(False, description="Select all requirements (ignore filters)"),
         db: Session = Depends(get_db),
+        _user=Depends(deps.get_current_user),
 ):
     query = db.query(UseCase)
     if project_id:
@@ -136,7 +140,7 @@ def list_use_cases(
     return query.order_by(UseCase.aid).all()
 
 @router.get("/{aid}", response_model=UseCaseOut)
-def get_use_case(aid: str, db: Session = Depends(get_db)):
+def get_use_case(aid: str, db: Session = Depends(get_db), _user=Depends(deps.get_current_user)):
     obj = db.query(UseCase).filter(UseCase.aid == aid).first()
     if not obj:
         raise HTTPException(404, "Use Case not found")

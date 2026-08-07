@@ -250,6 +250,20 @@ export const getResponseBody = (response: AxiosResponse<any>): any => {
 };
 
 export const catchErrorCodes = (options: ApiRequestOptions, result: ApiResult): void => {
+    // On 401, clear session so AuthGuard / login flow can recover
+    // (hand-maintained after openapi-typescript-codegen regeneration)
+    if (result.status === 401 && typeof window !== 'undefined') {
+        try {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            if (!window.location.pathname.startsWith('/login')) {
+                window.location.href = '/login';
+            }
+        } catch {
+            // ignore storage errors
+        }
+    }
+
     const errors: Record<number, string> = {
         400: 'Bad Request',
         401: 'Unauthorized',
