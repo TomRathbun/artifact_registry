@@ -101,8 +101,11 @@ cd frontend && npm run dev
 ```bash
 # Database: use your local PostgreSQL on the port in .env (default 5433)
 
-# Backend
-uv run uvicorn artifact_registry:app --reload --port 8000
+# Backend — only watch app/ so frontend/node_modules never triggers reload
+# (On Windows, avoid --reload-exclude with * globs; PowerShell expands them.)
+uv run uvicorn artifact_registry:app --reload --reload-dir app --host 127.0.0.1 --port 8000
+
+# Or on Windows: .\win_run_backend.bat
 
 # Frontend (second terminal)
 cd frontend && npm install && npm run dev

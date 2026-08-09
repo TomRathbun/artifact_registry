@@ -35,11 +35,8 @@ else {
 $BackendCmd = @"
 Set-Location '$Root'
 Write-Host 'Artifact Registry Backend — http://127.0.0.1:8000' -ForegroundColor Cyan
-if (Test-Path '.\.venv\Scripts\python.exe') {
-  & '.\.venv\Scripts\python.exe' -m uvicorn artifact_registry:app --reload --reload-exclude '.venv' --host 127.0.0.1 --port 8000
-} else {
-  uv run uvicorn artifact_registry:app --reload --reload-exclude '.venv' --host 127.0.0.1 --port 8000
-}
+Write-Host 'Reload ignores frontend/node_modules (npm upgrades will not restart the API).' -ForegroundColor DarkGray
+& '$Root\scripts\win_backend.ps1'
 "@
 Start-Process powershell -ArgumentList @(
     "-NoExit",

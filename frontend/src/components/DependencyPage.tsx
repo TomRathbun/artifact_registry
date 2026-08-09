@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useSearchParams, Link } from 'react-router-dom';
-import { ChevronLeft, ExternalLink, Package, Server, Smartphone, Search, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, ExternalLink, Package, Server, Smartphone, Search, AlertTriangle, ShieldCheck, RefreshCw } from 'lucide-react';
 
 interface Dependency {
     name: string;
@@ -23,6 +23,7 @@ const DependencyPage: React.FC = () => {
 
     const [loading, setLoading] = useState(true);
     const [upgrading, setUpgrading] = useState<string | null>(null);
+    const [upgradingAll, setUpgradingAll] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
     const [systemInfo, setSystemInfo] = useState<any>(null);
@@ -80,13 +81,30 @@ const DependencyPage: React.FC = () => {
                 // Refresh dependencies to show the new version
                 await fetchDeps();
             } else {
-                setMessage({ text: response.data.message, type: 'error' });
+                const detail = response.data.detail || response.data.raw || '';
+                setMessage({
+                    text: detail
+                        ? `${response.data.message}\n\n${detail}`
+                        : (response.data.message || 'Upgrade failed.'),
+                    type: 'error',
+                });
             }
         } catch (err: any) {
             if (err.response?.status === 401 || err.response?.status === 403) {
                 setMessage({ text: 'Unauthorized: You do not have permission to upgrade packages.', type: 'error' });
             } else {
-                setMessage({ text: err.response?.data?.message || 'Upgrade failed due to a server error.', type: 'error' });
+                const data = err.response?.data;
+                const msg =
+                    data?.message ||
+                    data?.detail ||
+                    (typeof data === 'string' ? data : null) ||
+                    err.message ||
+                    'Upgrade failed due to a server error.';
+                const detail = typeof data?.detail === 'string' && data?.message ? data.detail : data?.raw;
+                setMessage({
+                    text: detail && detail !== msg ? `${msg}\n\n${detail}` : String(msg),
+                    type: 'error',
+                });
             }
         } finally {
             setUpgrading(null);
@@ -122,8 +140,68 @@ const DependencyPage: React.FC = () => {
     };
 
     const currentDeps = type === 'frontend' ? dependencies.frontend : dependencies.backend;
+    const outdatedDeps = currentDeps.filter((pkg) => pkg.latest && pkg.version !== pkg.latest);
     const runtimeVersion = type === 'frontend' ? systemInfo?.node_version : systemInfo?.python_version;
     const runtimeName = type === 'frontend' ? 'Node.js' : 'Python';
+    const anyBusy = upgradingAll || !!upgrading;
+
+    const handleUpgradeAll = async () => {
+        if (outdatedDeps.length === 0) {
+            setMessage({ text: 'All packages on this tab are already up to date.', type: 'success' });
+            return;
+        }
+
+        const scopeLabel = type === 'frontend' ? 'frontend (npm)' : 'backend (PyPI)';
+        const confirmed = window.confirm(
+            `Update all ${scopeLabel} packages?\n\n` +
+            `${outdatedDeps.length} package(s) appear newer than installed.\n\n` +
+            `Frontend uses semver-safe updates (respects package.json ranges like ^7.x).\n` +
+            `It will NOT jump major versions that break peers (e.g. vite 7 → 8).\n\n` +
+            `This may take several minutes. Restart the app afterward if needed.`
+        );
+        if (!confirmed) return;
+
+        setUpgradingAll(true);
+        setMessage(null);
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.post(
+                '/api/v1/system/dependencies/upgrade-all',
+                { source: type === 'frontend' ? 'npm' : 'pypi' },
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                    // Bulk upgrades can take a long time
+                    timeout: 15 * 60 * 1000,
+                }
+            );
+
+            const data = response.data;
+            const base = data.message || (data.success ? 'All packages upgraded.' : 'Upgrade finished with errors.');
+            const detail = data.detail || '';
+            setMessage({
+                text: detail ? `${base}\n\n${detail}` : base,
+                type: data.success ? 'success' : 'error',
+            });
+            await fetchDeps();
+        } catch (err: any) {
+            if (err.response?.status === 401 || err.response?.status === 403) {
+                setMessage({ text: 'Unauthorized: You do not have permission to upgrade packages.', type: 'error' });
+            } else if (err.code === 'ECONNABORTED') {
+                setMessage({ text: 'Upgrade timed out. Check the server logs; some packages may still have updated.', type: 'error' });
+            } else {
+                const data = err.response?.data;
+                const msg = data?.message || data?.detail || 'Update all failed due to a server error.';
+                const detail = data?.detail && data?.message ? data.detail : data?.raw;
+                setMessage({
+                    text: detail && detail !== msg ? `${msg}\n\n${detail}` : String(msg),
+                    type: 'error',
+                });
+            }
+        } finally {
+            setUpgradingAll(false);
+        }
+    };
 
     if (loading && !dependencies.frontend.length) {
         return (
@@ -165,28 +243,66 @@ const DependencyPage: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="flex bg-slate-100 p-1 rounded-lg">
+                <div className="flex items-center gap-3">
                     <button
-                        onClick={() => setSearchParams({ type: 'frontend' })}
-                        className={`px-4 py-2 rounded-md transition-all ${type === 'frontend' ? 'bg-white shadow text-blue-600 font-medium' : 'text-slate-600 hover:text-slate-900'}`}
+                        onClick={handleUpgradeAll}
+                        disabled={anyBusy || loading || outdatedDeps.length === 0}
+                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                            anyBusy || outdatedDeps.length === 0
+                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                : type === 'frontend'
+                                    ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
+                                    : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm'
+                        }`}
+                        title={
+                            outdatedDeps.length === 0
+                                ? 'All packages are up to date'
+                                : `Upgrade ${outdatedDeps.length} outdated package(s)`
+                        }
                     >
-                        Frontend (NPM)
+                        {upgradingAll ? (
+                            <>
+                                <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                                Updating all…
+                            </>
+                        ) : (
+                            <>
+                                <RefreshCw size={16} />
+                                Update all
+                                {outdatedDeps.length > 0 && (
+                                    <span className="ml-0.5 px-1.5 py-0.5 rounded-md bg-white/20 text-xs font-bold">
+                                        {outdatedDeps.length}
+                                    </span>
+                                )}
+                            </>
+                        )}
                     </button>
-                    <button
-                        onClick={() => setSearchParams({ type: 'backend' })}
-                        className={`px-4 py-2 rounded-md transition-all ${type === 'backend' ? 'bg-white shadow text-emerald-600 font-medium' : 'text-slate-600 hover:text-slate-900'}`}
-                    >
-                        Backend (PyPI)
-                    </button>
+
+                    <div className="flex bg-slate-100 p-1 rounded-lg">
+                        <button
+                            onClick={() => setSearchParams({ type: 'frontend' })}
+                            className={`px-4 py-2 rounded-md transition-all ${type === 'frontend' ? 'bg-white shadow text-blue-600 font-medium' : 'text-slate-600 hover:text-slate-900'}`}
+                        >
+                            Frontend (NPM)
+                        </button>
+                        <button
+                            onClick={() => setSearchParams({ type: 'backend' })}
+                            className={`px-4 py-2 rounded-md transition-all ${type === 'backend' ? 'bg-white shadow text-emerald-600 font-medium' : 'text-slate-600 hover:text-slate-900'}`}
+                        >
+                            Backend (PyPI)
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {message && (
-                <div className={`p-4 rounded-lg mb-6 border flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300 ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-red-50 text-red-700 border-red-100'
+                <div className={`p-4 rounded-lg mb-6 border flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300 ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-red-50 text-red-700 border-red-100'
                     }`}>
-                    <Package className="shrink-0" size={18} />
-                    <p className="text-sm font-medium">{message.text}</p>
-                    <button onClick={() => setMessage(null)} className="ml-auto text-slate-400 hover:text-slate-600">
+                    <Package className="shrink-0 mt-0.5" size={18} />
+                    <pre className="text-sm font-medium whitespace-pre-wrap break-words flex-1 font-sans m-0">
+                        {message.text}
+                    </pre>
+                    <button onClick={() => setMessage(null)} className="ml-auto text-slate-400 hover:text-slate-600 shrink-0">
                         ×
                     </button>
                 </div>
@@ -274,11 +390,15 @@ const DependencyPage: React.FC = () => {
                                                         {pkg.analysis.safe ? 'Safe' : 'Conflict'}
                                                     </div>
                                                 )}
-                                                {hasUpdate ? (
+                                                {(pkg as any).missing ? (
+                                                    <span className="text-red-500 text-xs font-medium" title={pkg.description}>
+                                                        Not on registry
+                                                    </span>
+                                                ) : hasUpdate ? (
                                                     <button
                                                         onClick={() => handleUpgrade(pkg)}
-                                                        disabled={!!upgrading}
-                                                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${isUpgrading
+                                                        disabled={anyBusy}
+                                                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${isUpgrading || upgradingAll
                                                             ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                                                             : 'bg-primary/10 text-primary hover:bg-primary hover:text-white'
                                                             }`}

@@ -1,9 +1,29 @@
 # win_backend.ps1
-# Specialized runner for Windows to prevent reload storms and database resets.
-# This script excludes the virtual environment from being watched for changes.
+# Backend runner for Windows.
+#
+# IMPORTANT: Do not use shell globs like frontend/* in arguments.
+# PowerShell expands them into thousands of paths before uvicorn runs.
+#
+# We only watch app/ for reload, so frontend/node_modules (katex .py files, etc.)
+# never trigger API restarts during npm upgrades.
 
 Write-Host "Starting Artifact Registry Backend with optimized reload settings..." -ForegroundColor Cyan
+Write-Host "Reload watch directory: app\ only (frontend, .venv, node_modules ignored)" -ForegroundColor DarkGray
 
-# Use --reload-exclude to ignore the .venv directory
-# This prevents hundreds of file change events when packages are updated.
-uv run uvicorn artifact_registry:app --reload --reload-exclude ".venv" --host 127.0.0.1 --port 8000
+# --reload-dir app is enough: no exclude globs, no PowerShell expansion.
+# Changes to root artifact_registry.py require a manual restart (rare).
+$pythonArgs = @(
+    '-m', 'uvicorn',
+    'artifact_registry:app',
+    '--reload',
+    '--reload-dir', 'app',
+    '--host', '127.0.0.1',
+    '--port', '8000'
+)
+
+if (Test-Path '.\.venv\Scripts\python.exe') {
+    & '.\.venv\Scripts\python.exe' @pythonArgs
+}
+else {
+    uv run python @pythonArgs
+}
